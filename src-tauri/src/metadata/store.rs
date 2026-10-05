@@ -13,7 +13,7 @@ use crate::library::db::now;
 pub fn anime_titles_needing_work(conn: &Connection) -> rusqlite::Result<Vec<i64>> {
     let mut stmt = conn.prepare(
         "SELECT t.id FROM titles t JOIN libraries l ON l.id = t.library_id
-         WHERE t.present = 1 AND l.kind = 'anime' AND (
+         WHERE t.present = 1 AND COALESCE(t.kind, l.kind) = 'anime' AND (
              NOT EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id)
              OR EXISTS (SELECT 1 FROM seasons s WHERE s.title_id = t.id AND s.present = 1
                         AND NOT EXISTS (SELECT 1 FROM season_meta sm WHERE sm.season_id = s.id))
@@ -28,7 +28,7 @@ pub fn anime_titles_needing_work(conn: &Connection) -> rusqlite::Result<Vec<i64>
 
 pub fn is_anime(conn: &Connection, title_id: i64) -> rusqlite::Result<bool> {
     conn.query_row(
-        "SELECT l.kind = 'anime' FROM titles t JOIN libraries l ON l.id = t.library_id WHERE t.id = ?1",
+        "SELECT COALESCE(t.kind, l.kind) = 'anime' FROM titles t JOIN libraries l ON l.id = t.library_id WHERE t.id = ?1",
         [title_id],
         |r| r.get(0),
     )

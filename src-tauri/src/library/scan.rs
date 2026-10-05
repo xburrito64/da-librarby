@@ -59,6 +59,8 @@ impl Role {
 pub struct ScannedTitle {
     /// Folder (or file) path relative to the library root, '/'-separated. Stable identity.
     pub key: String,
+    /// Usually the library's kind; a category folder ("Anime", "Movies") inside it overrides it.
+    pub kind: LibraryKind,
     /// Key of the show this one is nested in (spin-offs like "Adventure Time: Fionna and Cake").
     pub parent_key: Option<String>,
     /// A single movie rather than a series.
@@ -97,25 +99,46 @@ pub struct ScannedFile {
 
 /// Scans one library folder. Fails only if the folder itself can't be read
 /// (e.g. the drive is disconnected); unreadable subfolders are skipped.
+///
+/// Category folders directly inside it ("Anime", "Cartoons", "Movies"...) are scanned as
+/// their own kind, so a whole drive can be added as one library.
 pub fn scan_library(root: &Path, kind: LibraryKind) -> io::Result<Vec<ScannedTitle>> {
     let entries = list(root)?;
     let mut out = Vec::new();
+    scan_entries(root, &entries, kind, "", true, &mut out);
+    Ok(out)
+}
+
+fn scan_entries(dir: &Path, entries: &[Entry], kind: LibraryKind, prefix: &str, top: bool, out: &mut Vec<ScannedTitle>) {
     for entry in entries {
-        let key = entry.name.clone();
+        let key = format!("{prefix}{}", entry.name);
+        let start = out.len();
+        let mut entry_kind = kind;
         if entry.is_dir {
-            match kind {
-                LibraryKind::Movies => scan_movie_dir(&entry.path, &key, &mut out),
-                LibraryKind::Anime | LibraryKind::Shows => scan_show(&entry.path, &key, None, &mut out),
+            match parse::category_folder(&entry.name).filter(|_| top) {
+                Some(category) => {
+                    if let Ok(children) = list(&entry.path) {
+                        scan_entries(&entry.path, &children, category, &format!("{key}/"), false, out);
+                    }
+                    continue;
+                }
+                None => match kind {
+                    LibraryKind::Movies => scan_movie_dir(&entry.path, &key, out),
+                    LibraryKind::Anime | LibraryKind::Shows => scan_show(&entry.path, &key, None, out),
+                },
             }
         } else if parse::is_video(&entry.name) {
             let (name, year) = parse::title_and_year(parse::file_stem(&entry.name));
-            let mut title = ScannedTitle::new(key, None, name.clone(), year, root);
-            title.push_file(&entry, Role::Movie, None, None, None, Some(name), year);
+            let mut title = ScannedTitle::new(key, None, name.clone(), year, dir);
+            title.push_file(entry, Role::Movie, None, None, None, Some(name), year);
             title.finish();
             out.push(title);
+            entry_kind = kind;
+        }
+        for title in &mut out[start..] {
+            title.kind = entry_kind;
         }
     }
-    Ok(out)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -289,6 +312,7 @@ impl ScannedTitle {
     fn new(key: String, parent_key: Option<String>, name: String, year: Option<i32>, folder: &Path) -> Self {
         Self {
             key,
+            kind: LibraryKind::Shows,
             parent_key,
             is_movie: false,
             name,

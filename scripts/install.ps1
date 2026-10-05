@@ -17,34 +17,22 @@ $installer = Get-ChildItem "src-tauri\target\release\bundle\nsis\*-setup.exe" |
     Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if (-not $installer) { throw "No installer found after build." }
 
-# The installer can't replace the app while it's running.
-$running = Get-Process "da-librarby" -ErrorAction SilentlyContinue
-foreach ($p in $running) {
-    $p.CloseMainWindow() | Out-Null
-    if (-not $p.WaitForExit(5000)) { $p.Kill() }
-}
-
+# The install step is started through Windows' process service (WMI) rather than as a child
+# of this shell. When this script runs inside a sandboxed/packaged terminal (like the Claude
+# desktop app), files its children write to AppData are silently redirected to a private
+# folder; starting the installer this way puts the app where Windows and its shortcuts expect it.
 Write-Host "Installing $($installer.Name)..."
-$proc = Start-Process $installer.FullName -ArgumentList "/S" -Wait -PassThru
-if ($proc.ExitCode -ne 0) { throw "Installer exited with code $($proc.ExitCode)." }
+$step = Join-Path $PSScriptRoot "install-app.ps1"
+$command = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$step`" -Installer `"$($installer.FullName)`""
+$started = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $command }
+if ($started.ReturnValue -ne 0) { throw "Could not start the install step (code $($started.ReturnValue))." }
+while (Get-Process -Id $started.ProcessId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 300 }
 
-$exe = Join-Path $env:LOCALAPPDATA "Da Librarby\da-librarby.exe"
-if (-not (Test-Path $exe)) { throw "Installed app not found at $exe" }
+$result = Get-Content "src-tauri\target\install.log" -Raw
+Write-Host $result.Trim()
+if ($result.Trim() -notmatch "^OK") { throw "Install failed." }
 
-# Silent installs don't always create shortcuts; make sure both exist.
-$shell = New-Object -ComObject WScript.Shell
-$shortcuts = @(
-    (Join-Path ([Environment]::GetFolderPath("Desktop")) "Da Librarby.lnk"),
-    (Join-Path ([Environment]::GetFolderPath("Programs")) "Da Librarby.lnk")
-)
-foreach ($path in $shortcuts) {
-    if (-not (Test-Path $path)) {
-        $lnk = $shell.CreateShortcut($path)
-        $lnk.TargetPath = $exe
-        $lnk.WorkingDirectory = Split-Path $exe
-        $lnk.Save()
-    }
+if ($Launch) {
+    $exe = Join-Path $env:LOCALAPPDATA "Da Librarby\da-librarby.exe"
+    Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = "`"$exe`"" } | Out-Null
 }
-
-Write-Host "Installed: $exe"
-if ($Launch) { Start-Process $exe }

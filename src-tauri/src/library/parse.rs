@@ -118,6 +118,17 @@ pub enum FolderKind {
     Other,
 }
 
+/// Folders that sort media by type rather than being a show: "Anime", "Cartoons", "Movies"...
+pub fn category_folder(name: &str) -> Option<super::scan::LibraryKind> {
+    use super::scan::LibraryKind;
+    match clean_text(name).to_lowercase().as_str() {
+        "anime" | "animes" => Some(LibraryKind::Anime),
+        "cartoons" | "cartoon" | "shows" | "tv shows" | "tv" | "series" | "tv series" | "serien" => Some(LibraryKind::Shows),
+        "movies" | "movie" | "mobies" | "films" | "film" | "filme" => Some(LibraryKind::Movies),
+        _ => None,
+    }
+}
+
 /// What a folder inside a show folder holds. Only the part before a "+" counts:
 /// "South Park (1997) S01 + Extras" is season 1, "Jujutsu Kaisen S01 Extras" is extras.
 pub fn classify_folder(name: &str) -> FolderKind {
@@ -310,6 +321,12 @@ mod tests {
         assert_eq!(classify_folder("NC"), Extras);
         assert_eq!(classify_folder("Sword Art Online Extra Artwork"), Extras);
         assert_eq!(classify_folder("Movies"), Movies);
+
+        use crate::library::scan::LibraryKind;
+        assert_eq!(category_folder("Anime"), Some(LibraryKind::Anime));
+        assert_eq!(category_folder("Mobies"), Some(LibraryKind::Movies));
+        assert_eq!(category_folder("Cartoons"), Some(LibraryKind::Shows));
+        assert_eq!(category_folder("Chainsaw Man"), None);
 
         assert_eq!(numbered_group("01. Romance Dawn"), (Some(1.0), "Romance Dawn".into()));
         assert_eq!(numbered_group("06½. The Adventures of Buggy's Crew"), (Some(6.5), "The Adventures of Buggy's Crew".into()));

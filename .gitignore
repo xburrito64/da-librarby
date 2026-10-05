@@ -25,3 +25,6 @@ dist-ssr
 
 # libmpv binary, fetched by scripts/setup-mpv.ps1
 src-tauri/lib/
+
+# Local debugging output
+.debug/

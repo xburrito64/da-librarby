@@ -203,7 +203,10 @@ function Folders({
   return (
     <div className="lib__folders">
       <h2>Library folders</h2>
-      {libraries.length === 0 && <p className="muted">Add the folders where your anime, shows and movies live.</p>}
+      <p className="muted small">
+        Add the folders (or whole drives) where your anime, shows and movies live. Folders named Anime, Cartoons,
+        Shows or Movies inside them are sorted automatically.
+      </p>
       {libraries.map((lib) => (
         <div key={lib.id} className="lib__folder">
           <span>{lib.path}</span>

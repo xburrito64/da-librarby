@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 2;
+const SCHEMA_VERSION: i32 = 3;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -141,6 +141,13 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
     }
     if version < 2 {
         conn.execute_batch(SCHEMA_V2)?;
+    }
+    if version < 3 {
+        // Each title has its own kind, so "Anime" and "Movies" folders on one drive work.
+        conn.execute_batch(
+            "ALTER TABLE titles ADD COLUMN kind TEXT;
+             UPDATE titles SET kind = (SELECT kind FROM libraries l WHERE l.id = titles.library_id);",
+        )?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
@@ -281,17 +288,21 @@ pub fn apply_scan(conn: &mut Connection, library_id: i64, titles: &[ScannedTitle
         let title_id = match existing_titles.get(&title.key) {
             Some(&id) => {
                 tx.execute(
-                    "UPDATE titles SET parent_id = ?2, is_movie = ?3, name = ?4, year = ?5, folder = ?6, present = 1
+                    "UPDATE titles SET parent_id = ?2, is_movie = ?3, name = ?4, year = ?5, folder = ?6, kind = ?7,
+                         present = 1
                      WHERE id = ?1",
-                    params![id, parent_id, title.is_movie, title.name, title.year, folder],
+                    params![id, parent_id, title.is_movie, title.name, title.year, folder, title.kind.as_str()],
                 )?;
                 id
             }
             None => {
                 tx.execute(
-                    "INSERT INTO titles (library_id, key, parent_id, is_movie, name, year, folder, added_at)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                    params![library_id, title.key, parent_id, title.is_movie, title.name, title.year, folder, now],
+                    "INSERT INTO titles (library_id, key, parent_id, is_movie, name, year, folder, kind, added_at)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                    params![
+                        library_id, title.key, parent_id, title.is_movie, title.name, title.year, folder,
+                        title.kind.as_str(), now
+                    ],
                 )?;
                 tx.last_insert_rowid()
             }
@@ -423,7 +434,7 @@ pub struct TitleSummary {
 
 pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSummary>> {
     let mut stmt = conn.prepare(
-        "SELECT t.id, t.library_id, l.kind, t.parent_id, t.is_movie, t.name, COALESCE(t.year, m.year), l.online,
+        "SELECT t.id, t.library_id, COALESCE(t.kind, l.kind), t.parent_id, t.is_movie, t.name, COALESCE(t.year, m.year), l.online,
                 (SELECT COUNT(DISTINCT f.season_id) FROM files f
                   WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'episode'),
                 (SELECT COUNT(*) FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'episode'),
@@ -529,7 +540,7 @@ pub struct TitleDetail {
 pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Result<Option<TitleDetail>> {
     let head = conn
         .query_row(
-            "SELECT t.name, t.year, t.is_movie, t.folder, l.kind FROM titles t
+            "SELECT t.name, t.year, t.is_movie, t.folder, COALESCE(t.kind, l.kind) FROM titles t
              JOIN libraries l ON l.id = t.library_id WHERE t.id = ?1",
             [id],
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get::<_, String>(4)?)),
@@ -713,6 +724,46 @@ mod tests {
         // A missing library folder (disconnected drive) can't be scanned at all.
         assert!(scan_library(&root.join("not-there"), LibraryKind::Anime).is_err());
 
+        drop(conn);
+        let _ = fs::remove_dir_all(&root);
+    }
+}
+
+#[cfg(test)]
+mod category_tests {
+    use super::*;
+    use crate::library::scan::scan_library;
+    use std::fs;
+
+    #[test]
+    fn drive_with_category_folders() {
+        let root = std::env::temp_dir().join(format!("da-librarby-test-drive-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        for path in [
+            "Anime/Show/Show S01/Show - S01E01 - One.mkv",
+            "Cartoons/Toon/Toon S01/Toon - S01E01 - Pilot.mkv",
+            "Mobies/Film (2020)/Film (2020).mkv",
+        ] {
+            let p = root.join(path);
+            fs::create_dir_all(p.parent().unwrap()).unwrap();
+            fs::write(p, b"x").unwrap();
+        }
+        let mut conn = open(&root.join("test.db")).unwrap();
+        let id = add_library(&conn, &root.to_string_lossy(), LibraryKind::Shows).unwrap();
+        let scanned = scan_library(&root, LibraryKind::Shows).unwrap();
+        apply_scan(&mut conn, id, &scanned).unwrap();
+
+        let mut kinds: Vec<(String, LibraryKind, bool)> =
+            titles(&conn, &root).unwrap().into_iter().map(|t| (t.name, t.kind, t.is_movie)).collect();
+        kinds.sort_by(|a, b| a.0.cmp(&b.0));
+        assert_eq!(
+            kinds,
+            [
+                ("Film".to_string(), LibraryKind::Movies, true),
+                ("Show".to_string(), LibraryKind::Anime, false),
+                ("Toon".to_string(), LibraryKind::Shows, false),
+            ]
+        );
         drop(conn);
         let _ = fs::remove_dir_all(&root);
     }
