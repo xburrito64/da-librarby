@@ -468,3 +468,21 @@ pub async fn settings_set_tmdb_key(app: AppHandle, library: State<'_, Library>, 
     request(&app, None);
     Ok(())
 }
+
+/// Settings of the interface itself (like the theme). Only keys starting with "ui." can be used
+/// this way, so the page can never read the TMDB key through it.
+fn ui_key(key: &str) -> Result<(), String> {
+    if key.starts_with("ui.") { Ok(()) } else { Err(format!("not an interface setting: {key}")) }
+}
+
+#[tauri::command]
+pub async fn ui_setting(library: State<'_, Library>, key: String) -> Result<Option<String>, String> {
+    ui_key(&key)?;
+    library.with_db(|c| store::setting(c, &key))
+}
+
+#[tauri::command]
+pub async fn set_ui_setting(library: State<'_, Library>, key: String, value: Option<String>) -> Result<(), String> {
+    ui_key(&key)?;
+    library.with_db(|c| store::set_setting(c, &key, value.as_deref()))
+}

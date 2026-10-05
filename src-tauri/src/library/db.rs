@@ -438,6 +438,10 @@ pub struct TitleSummary {
     pub color: Option<String>,
     /// None = not looked up yet, Some(false) = looked up, nothing found.
     pub matched: Option<bool>,
+    pub genres: Vec<String>,
+    /// Full path of the wide artwork, if downloaded.
+    pub banner: Option<String>,
+    pub score: Option<i32>,
 }
 
 pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSummary>> {
@@ -448,7 +452,8 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                 (SELECT COUNT(*) FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'episode'),
                 (SELECT COUNT(*) FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'movie'),
                 (SELECT COUNT(*) FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'extra'),
-                m.thumb, m.color, m.title_id IS NOT NULL, m.provider_id IS NOT NULL
+                m.thumb, m.color, m.title_id IS NOT NULL, m.provider_id IS NOT NULL,
+                m.genres, m.banner, m.score
          FROM titles t JOIN libraries l ON l.id = t.library_id
          LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
@@ -471,6 +476,9 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
             thumb: image_path(images, r.get(12)?),
             color: r.get(13)?,
             matched: if looked_up { Some(r.get(15)?) } else { None },
+            genres: r.get::<_, Option<String>>(16)?.and_then(|g| serde_json::from_str(&g).ok()).unwrap_or_default(),
+            banner: image_path(images, r.get(17)?),
+            score: r.get(18)?,
         })
     })?;
     rows.collect()

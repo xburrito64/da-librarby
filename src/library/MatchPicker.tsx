@@ -1,4 +1,4 @@
-// Search AniList and pick the right entry for a show, season or movie.
+// Search AniList/TMDB and pick the right entry for a show, season or movie.
 import { useEffect, useState } from "react";
 import { metadata, type Candidate, type MatchSource } from "./api";
 
@@ -51,45 +51,47 @@ export default function MatchPicker({ heading, source, initialQuery, multiple, c
   };
 
   return (
-    <div className="picker__backdrop" onClick={onClose}>
-      <div className="picker" onClick={(e) => e.stopPropagation()}>
-        <h2>{heading}</h2>
+    <div className="modal" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal__panel picker" role="dialog" aria-label={heading}>
+        <h2 className="picker__heading">{heading}</h2>
         <form
-          className="picker__search"
+          className="field-row"
           onSubmit={(e) => {
             e.preventDefault();
             search(query);
           }}
         >
-          <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${serviceName}`} />
-          <button type="submit">{searching ? "Searching…" : "Search"}</button>
+          <input className="input" autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${serviceName}`} />
+          <button className="btn btn--small btn--primary" type="submit">
+            {searching ? "Searching…" : "Search"}
+          </button>
         </form>
         {multiple && (
-          <p className="muted small">
+          <p className="picker__hint">
             Pick the entries this season covers, in order (e.g. Part 1, then Part 2).
             {picked.length > 0 && <> Selected: {picked.map((p) => p.title).join(" + ")}</>}
           </p>
         )}
-        {error && <p className="lib__error">{error}</p>}
+        {error && <p className="picker__error">{error}</p>}
 
         <div className="picker__results">
-          {results?.length === 0 && <p className="muted">Nothing found. Try another name.</p>}
+          {results?.length === 0 && <p className="picker__hint">Nothing found. Try another name.</p>}
           {results?.map((c) => {
             const order = picked.findIndex((p) => p.id === c.id);
             const isCurrent = current?.includes(c.id);
             return (
-              <button key={c.id} className={`picker__result ${order >= 0 ? "picker__result--picked" : ""}`} onClick={() => choose(c)}>
-                {c.coverUrl ? <img src={c.coverUrl} alt="" /> : <div className="picker__noimg" />}
-                <span>
-                  <strong>
+              <button key={c.id} className={`picker__result ${order >= 0 ? "is-picked" : ""}`} onClick={() => choose(c)}>
+                <span className="picker__cover">{c.coverUrl && <img src={c.coverUrl} alt="" />}</span>
+                <span className="picker__info">
+                  <span className="picker__name">
                     {order >= 0 && `${order + 1}. `}
                     {c.title}
-                  </strong>
-                  {c.altTitle && <span className="muted"> · {c.altTitle}</span>}
-                  <div className="muted small">
+                  </span>
+                  {c.altTitle && <span className="picker__alt">{c.altTitle}</span>}
+                  <span className="picker__meta">
                     {[formatLabel(c.format), c.year, c.episodes != null && `${c.episodes} episode${c.episodes === 1 ? "" : "s"}`].filter(Boolean).join(" · ")}
-                    {isCurrent && " · current match"}
-                  </div>
+                    {isCurrent && <span className="chip chip--score">current match</span>}
+                  </span>
                 </span>
               </button>
             );
@@ -97,12 +99,20 @@ export default function MatchPicker({ heading, source, initialQuery, multiple, c
         </div>
 
         <div className="picker__actions">
-          <button onClick={onAutomatic}>Let the app decide</button>
-          {onNone && <button onClick={onNone}>No match</button>}
+          <button className="btn btn--small" onClick={onAutomatic}>
+            Let the app decide
+          </button>
+          {onNone && (
+            <button className="btn btn--small" onClick={onNone}>
+              No match
+            </button>
+          )}
           <span className="spacer" />
-          <button onClick={onClose}>Cancel</button>
+          <button className="btn btn--small btn--ghost" onClick={onClose}>
+            Cancel
+          </button>
           {multiple && (
-            <button disabled={picked.length === 0} onClick={() => onSave(picked.map((p) => p.id))}>
+            <button className="btn btn--small btn--primary" disabled={picked.length === 0} onClick={() => onSave(picked.map((p) => p.id))}>
               Save
             </button>
           )}

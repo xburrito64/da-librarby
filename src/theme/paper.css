@@ -1,0 +1,460 @@
+/* Paper: a film magazine. Warm paper, ink-black serif headlines, thin rules and a red spot colour. */
+
+[data-theme="paper"] {
+  --bg: #f1ebdf;
+  --bg-elev: #f6f1e7;
+  --surface: rgba(28, 22, 14, 0.06);
+  --surface-hover: rgba(28, 22, 14, 0.11);
+  --line: #1c160e;
+  --text: #1c160e;
+  --muted: #72695b;
+  --accent: #cf3f28;
+  --on-accent: #fff8ee;
+  --btn-primary-bg: #1c160e;
+  --btn-primary-text: #f6f1e7;
+  --danger: #b3261e;
+  --scrim: rgba(40, 32, 20, 0.35);
+
+  --font-body: "Inter Variable", system-ui, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, serif;
+  --font-label: "Inter Variable", system-ui, sans-serif;
+  --display-weight: 620;
+  --display-style: italic;
+  --display-tracking: -0.025em;
+  --label-tracking: 0.16em;
+
+  --radius: 0px;
+  --radius-card: 0px;
+  --radius-panel: 0px;
+  --btn-radius: 0px;
+  /* Paper grain. */
+  --app-decor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .11 0 0 0 0 .08 0 0 0 0 .04 0 0 0 .5 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="paper"] {
+  --gutter: 56px;
+  --nav-h: 132px;
+  --hero-top: var(--nav-h);
+  --rows-overlap: 0px;
+  --card-w: 160px;
+  --row-card-w: 160px;
+  --card-gap: 28px;
+}
+
+:root[data-theme="paper"] .view::-webkit-scrollbar-thumb {
+  background-color: rgba(28, 22, 14, 0.35);
+  border-radius: 0;
+}
+
+/* ----- Masthead ----- */
+
+:root[data-theme="paper"] .nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 0;
+  padding: 10px var(--gutter) 0;
+  background: var(--app-decor), var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+:root[data-theme="paper"] .app--scrolled .nav {
+  box-shadow: 0 5px 0 -4px var(--line);
+}
+
+:root[data-theme="paper"] .nav::before {
+  display: none;
+}
+
+:root[data-theme="paper"] .nav::after {
+  content: "Personal edition · Anime, shows & films";
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  font: 600 10.5px var(--font-label);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+:root[data-theme="paper"] .nav__brand {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  font-size: 50px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-variation-settings: "opsz" 144;
+}
+
+:root[data-theme="paper"] .nav__logo {
+  display: none;
+}
+
+:root[data-theme="paper"] .nav__tabs {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+:root[data-theme="paper"] .nav__tab {
+  padding: 6px 18px;
+  font: 650 11.5px var(--font-label);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+:root[data-theme="paper"] .nav__tab.is-active {
+  background: var(--text);
+  color: var(--bg);
+}
+
+:root[data-theme="paper"] .nav__end {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+/* ----- Buttons and chips: printed, square, ruled ----- */
+
+:root[data-theme="paper"] .btn {
+  --btn-border: var(--line);
+  background: transparent;
+  height: 44px;
+  font: 650 12px var(--font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="paper"] .btn:hover {
+  background: var(--text);
+  color: var(--bg);
+}
+
+:root[data-theme="paper"] .btn--primary {
+  background: var(--btn-primary-bg);
+}
+
+:root[data-theme="paper"] .btn--primary:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+  filter: none;
+}
+
+:root[data-theme="paper"] .btn--small {
+  height: 34px;
+  font-size: 11px;
+}
+
+:root[data-theme="paper"] .chip {
+  padding: 4px 10px;
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--line);
+  font: 650 10.5px var(--font-label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="paper"] .chip--score {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+/* ----- Spotlight: a "cover story" spread ----- */
+
+:root[data-theme="paper"] .hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr);
+  align-items: center;
+  gap: 48px;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  margin: 36px var(--gutter) 40px;
+  padding-bottom: 36px;
+  overflow: visible;
+  isolation: auto;
+}
+
+:root[data-theme="paper"] .hero__art {
+  position: relative;
+  inset: auto;
+  order: 2;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  box-shadow: 10px 10px 0 var(--line);
+}
+
+:root[data-theme="paper"] .hero__shade {
+  display: none;
+}
+
+:root[data-theme="paper"] .hero__content {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  max-width: none;
+  order: 1;
+}
+
+:root[data-theme="paper"] .hero__eyebrow::before {
+  content: "Cover story — ";
+  color: var(--text);
+}
+
+:root[data-theme="paper"] .hero__title {
+  font-size: clamp(44px, 5vw, 84px);
+  line-height: 0.95;
+  font-variation-settings: "opsz" 144;
+}
+
+:root[data-theme="paper"] .hero__desc {
+  min-height: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--text);
+  -webkit-line-clamp: 4;
+}
+
+:root[data-theme="paper"] .hero__dots {
+  right: 0;
+  bottom: 12px;
+  gap: 6px;
+}
+
+:root[data-theme="paper"] .hero__dots button {
+  width: 22px;
+  height: 3px;
+  border-radius: 0;
+  background: rgba(28, 22, 14, 0.2);
+}
+
+:root[data-theme="paper"] .hero__dots button.is-active {
+  width: 44px;
+  background: var(--accent);
+}
+
+/* ----- Rows, grids and covers ----- */
+
+:root[data-theme="paper"] .row__head {
+  margin: 0 var(--gutter);
+  padding: 12px 0 0;
+  border-top: 3px double var(--line);
+}
+
+:root[data-theme="paper"] .row__title,
+:root[data-theme="paper"] .section-title {
+  font-size: 34px;
+}
+
+:root[data-theme="paper"] .row__more::after {
+  content: " →";
+}
+
+:root[data-theme="paper"] .row__more:hover {
+  color: var(--accent);
+}
+
+:root[data-theme="paper"] .row__arrow {
+  border-color: var(--line);
+  background: var(--bg);
+}
+
+:root[data-theme="paper"] .grid-page__head {
+  padding-bottom: 18px;
+  border-bottom: 3px double var(--line);
+}
+
+:root[data-theme="paper"] .grid-page__title {
+  font-size: clamp(56px, 6vw, 96px);
+  font-variation-settings: "opsz" 144;
+}
+
+:root[data-theme="paper"] .card__art {
+  box-shadow: 0 0 0 1px rgba(28, 22, 14, 0.15);
+}
+
+:root[data-theme="paper"] .card:hover .card__art {
+  transform: translate(-4px, -4px);
+  box-shadow: 7px 7px 0 var(--line);
+}
+
+:root[data-theme="paper"] .card__text::before {
+  content: "No. " counter(card, decimal-leading-zero);
+  display: block;
+  margin-bottom: 5px;
+  font: 700 10px var(--font-label);
+  letter-spacing: 0.16em;
+  color: var(--accent);
+}
+
+:root[data-theme="paper"] .card__name {
+  font-family: var(--font-display);
+  font-size: 17.5px;
+  font-weight: 600;
+  line-height: 1.12;
+}
+
+:root[data-theme="paper"] .card__sub {
+  margin-top: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ----- Show page: a feature article ----- */
+
+:root[data-theme="paper"] .tp__backdrop {
+  display: none;
+}
+
+:root[data-theme="paper"] .tp__head {
+  grid-template-columns: 290px minmax(0, 1fr);
+  align-items: start;
+  margin: 0 var(--gutter);
+  padding: 76px 0 48px;
+  border-bottom: 3px double var(--line);
+}
+
+:root[data-theme="paper"] .tp__back {
+  left: 0;
+}
+
+:root[data-theme="paper"] .tp__cover {
+  box-shadow: 12px 12px 0 var(--line);
+}
+
+:root[data-theme="paper"] .tp__title {
+  font-size: clamp(50px, 5.6vw, 92px);
+  line-height: 0.95;
+  font-variation-settings: "opsz" 144;
+}
+
+:root[data-theme="paper"] .tp__alt {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 18px;
+}
+
+:root[data-theme="paper"] .tp__desc {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 17.5px;
+  line-height: 1.55;
+  color: var(--text);
+  max-height: calc(1.55em * 8);
+  -webkit-mask-image: linear-gradient(#000 70%, transparent);
+  mask-image: linear-gradient(#000 70%, transparent);
+}
+
+:root[data-theme="paper"] .tp__desc.is-open {
+  max-height: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+:root[data-theme="paper"] .tp__desc::first-letter {
+  float: left;
+  padding: 8px 10px 0 0;
+  font-size: 3.6em;
+  line-height: 0.78;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+:root[data-theme="paper"] .seasons {
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+:root[data-theme="paper"] .seasons__tab {
+  margin-bottom: -1px;
+  padding: 8px 18px 10px;
+  background: none;
+  border-bottom: 3px solid transparent;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 19px;
+  font-weight: 550;
+}
+
+:root[data-theme="paper"] .seasons__tab.is-active {
+  background: none;
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+:root[data-theme="paper"] .eps {
+  margin: 0;
+  gap: 0 44px;
+}
+
+:root[data-theme="paper"] .ep {
+  padding: 18px 0;
+  border-top: 1px solid rgba(28, 22, 14, 0.22);
+}
+
+:root[data-theme="paper"] .ep:hover {
+  background: none;
+}
+
+:root[data-theme="paper"] .ep:hover .ep__name {
+  color: var(--accent);
+}
+
+:root[data-theme="paper"] .ep__still img {
+  filter: grayscale(1) contrast(1.06);
+}
+
+:root[data-theme="paper"] .ep:hover .ep__still img {
+  filter: none;
+}
+
+:root[data-theme="paper"] .ep__play {
+  display: none;
+}
+
+:root[data-theme="paper"] .ep__code {
+  font: italic 650 22px var(--font-display);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+:root[data-theme="paper"] .ep__name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+:root[data-theme="paper"] .ep__desc {
+  color: color-mix(in srgb, var(--text) 72%, transparent);
+}
+
+/* ----- Dialogs ----- */
+
+:root[data-theme="paper"] .modal__panel {
+  background: var(--app-decor), var(--bg-elev);
+  border-color: var(--line);
+  box-shadow: 14px 14px 0 var(--line);
+}
+
+:root[data-theme="paper"] .settings__nav.is-active {
+  background: var(--text);
+  color: var(--bg);
+}
+
+:root[data-theme="paper"] .theme-card {
+  background: none;
+  box-shadow: inset 0 0 0 1px rgba(28, 22, 14, 0.2);
+}
+
+:root[data-theme="paper"] .theme-card.is-active {
+  border-color: var(--accent);
+}

@@ -50,6 +50,8 @@ pub fn run() {
             metadata::metadata_match_file,
             metadata::settings_tmdb_key,
             metadata::settings_set_tmdb_key,
+            metadata::ui_setting,
+            metadata::set_ui_setting,
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {

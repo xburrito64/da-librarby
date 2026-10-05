@@ -31,6 +31,10 @@ export interface TitleSummary {
   color: string | null;
   /** null = not looked up yet, false = looked up but nothing found. */
   matched: boolean | null;
+  genres: string[];
+  /** Full path of the wide artwork, if downloaded. */
+  banner: string | null;
+  score: number | null;
 }
 
 /** Information from AniList/TMDB. */
@@ -165,4 +169,53 @@ export function episodeCode(file: FileRow, seasonNumber: number | null) {
 /** Sort key that ignores a leading "The"/"A". */
 export function sortName(name: string) {
   return name.replace(/^(the|a|an)\s+/i, "").toLowerCase();
+}
+
+export const KIND_LABELS: Record<LibraryKind, string> = { anime: "Anime", shows: "Shows", movies: "Movies" };
+
+/** "2019 · 3 seasons · 59 episodes" */
+export function describe(t: TitleSummary) {
+  const parts: (string | number)[] = [];
+  if (t.year != null) parts.push(t.year);
+  if (t.isMovie) parts.push("Movie");
+  else {
+    if (t.seasons > 1) parts.push(`${t.seasons} seasons`);
+    if (t.episodes) parts.push(`${t.episodes} episode${t.episodes === 1 ? "" : "s"}`);
+    else if (t.movies) parts.push(`${t.movies} movie${t.movies === 1 ? "" : "s"}`);
+  }
+  if (!t.online) parts.push("drive offline");
+  return parts.join(" · ");
+}
+
+export function fileName(path: string) {
+  return path.split(/[\\/]/).pop() ?? path;
+}
+
+export interface PlayRequest {
+  path: string;
+  label: string;
+}
+
+/** What "Play" starts for a title: the first episode, or the movie. */
+export function firstPlayable(title: TitleDetail): { file: FileRow; request: PlayRequest } | null {
+  for (const season of title.seasons) {
+    if (season.number === 0) continue;
+    const file = title.files.find((f) => f.role === "episode" && f.seasonId === season.id);
+    if (file) return { file, request: playRequest(title, file, season.number) };
+  }
+  const file =
+    title.files.find((f) => f.role === "movie") ?? title.files.find((f) => f.role === "episode");
+  if (!file) return null;
+  const season = title.seasons.find((s) => s.id === file.seasonId);
+  return { file, request: playRequest(title, file, season?.number ?? null) };
+}
+
+export function episodeName(file: FileRow) {
+  return file.name ?? file.meta?.name ?? (file.episode != null ? `Episode ${file.episode}` : fileName(file.path));
+}
+
+export function playRequest(title: TitleDetail, file: FileRow, seasonNumber: number | null): PlayRequest {
+  if (file.role === "movie") return { path: file.path, label: file.meta?.name ?? file.name ?? title.name };
+  if (file.role === "extra") return { path: file.path, label: file.name ?? fileName(file.path) };
+  return { path: file.path, label: [title.name, episodeCode(file, seasonNumber), episodeName(file)].filter(Boolean).join(" · ") };
 }

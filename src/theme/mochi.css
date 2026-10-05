@@ -1,0 +1,476 @@
+/* Mochi: soft and cosy. Pastel lavender and peach, rounded everything, bouncy little covers. */
+
+[data-theme="mochi"] {
+  --bg: #fbf6ff;
+  --bg-elev: #ffffff;
+  --surface: #f2e9fb;
+  --surface-hover: #e9dcf7;
+  --line: #ece2f6;
+  --text: #3e3157;
+  --muted: #958aab;
+  --accent: #ff6fae;
+  --on-accent: #ffffff;
+  --btn-primary-bg: #ff6fae;
+  --btn-primary-text: #ffffff;
+  --danger: #f2557a;
+  --scrim: rgba(86, 60, 128, 0.28);
+
+  --font-body: "Nunito Variable", system-ui, sans-serif;
+  --font-display: "Fredoka Variable", "Nunito Variable", sans-serif;
+  --font-label: "Nunito Variable", system-ui, sans-serif;
+  --display-weight: 600;
+  --display-tracking: -0.01em;
+  --label-transform: none;
+  --label-tracking: 0.01em;
+
+  --radius: 16px;
+  --radius-card: 16px;
+  --radius-panel: 30px;
+  --btn-radius: 999px;
+  --card-frame: 8px;
+  --card-frame-bg: #ffffff;
+  --app-decor:
+    radial-gradient(560px 380px at 6% 10%, rgba(255, 182, 214, 0.55), transparent 70%),
+    radial-gradient(640px 460px at 94% 16%, rgba(186, 218, 255, 0.6), transparent 70%),
+    radial-gradient(760px 540px at 62% 104%, rgba(255, 224, 186, 0.55), transparent 70%),
+    radial-gradient(520px 420px at 20% 90%, rgba(190, 242, 214, 0.45), transparent 70%);
+}
+
+:root[data-theme="mochi"] {
+  --nav-h: 100px;
+  --hero-top: var(--nav-h);
+  --hero-h: 52vh;
+  --hero-margin: 6px var(--gutter) 40px;
+  --hero-radius: 32px;
+  --rows-overlap: 0px;
+  --card-w: 170px;
+  --row-card-w: 170px;
+  --card-gap: 22px;
+}
+
+/* Pages fade out as they scroll up behind the floating navigation. */
+:root[data-theme="mochi"] .view {
+  -webkit-mask-image: linear-gradient(transparent 0, #000 96px);
+  mask-image: linear-gradient(transparent 0, #000 96px);
+}
+
+:root[data-theme="mochi"] .view::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 111, 174, 0.35);
+}
+
+/* ----- Floating pill navigation ----- */
+
+:root[data-theme="mochi"] .nav {
+  top: 20px;
+  left: 50%;
+  right: auto;
+  width: max-content;
+  max-width: calc(100% - 40px);
+  height: 62px;
+  gap: 22px;
+  padding: 0 10px 0 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 12px 32px -14px rgba(120, 80, 170, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+  transform: translateX(-50%);
+}
+
+:root[data-theme="mochi"] .nav::before {
+  display: none;
+}
+
+:root[data-theme="mochi"] .nav__brand {
+  font-size: 21px;
+  gap: 12px;
+}
+
+/* A little dango as the logo. */
+:root[data-theme="mochi"] .nav__logo {
+  width: 34px;
+  height: 12px;
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 6px 6px, #ff9cc6 5.5px, transparent 6px),
+    radial-gradient(circle at 17px 6px, #fff3d6 5.5px, transparent 6px),
+    radial-gradient(circle at 28px 6px, #9be0b4 5.5px, transparent 6px),
+    linear-gradient(#c79a6b, #c79a6b) 0 5px / 100% 2px no-repeat;
+}
+
+:root[data-theme="mochi"] .nav__tab {
+  padding: 9px 16px;
+  font-weight: 750;
+}
+
+:root[data-theme="mochi"] .nav__tab:hover {
+  background: var(--surface);
+}
+
+:root[data-theme="mochi"] .nav__tab.is-active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 12px -4px rgba(255, 111, 174, 0.8);
+}
+
+:root[data-theme="mochi"] .nav__status-text {
+  max-width: 220px;
+}
+
+:root[data-theme="mochi"] .icon-btn {
+  color: var(--muted);
+}
+
+:root[data-theme="mochi"] .icon-btn:hover {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+/* ----- Chunky, squishy buttons ----- */
+
+:root[data-theme="mochi"] .btn {
+  background: #fff;
+  font-weight: 800;
+  box-shadow: 0 4px 0 #e7dbf4;
+}
+
+:root[data-theme="mochi"] .btn:hover {
+  background: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #e7dbf4;
+}
+
+:root[data-theme="mochi"] .btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #e7dbf4;
+}
+
+:root[data-theme="mochi"] .btn--primary,
+:root[data-theme="mochi"] .btn--primary:hover {
+  background: var(--accent);
+  box-shadow: 0 4px 0 #e0508f;
+}
+
+:root[data-theme="mochi"] .btn--primary:hover {
+  box-shadow: 0 6px 0 #e0508f;
+  filter: none;
+}
+
+:root[data-theme="mochi"] .btn--ghost {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+:root[data-theme="mochi"] .chip {
+  background: #ffe3ef;
+  color: #b6467a;
+  font-weight: 750;
+}
+
+:root[data-theme="mochi"] .chip:nth-child(4n + 2) {
+  background: #dfeeff;
+  color: #3f6fa8;
+}
+
+:root[data-theme="mochi"] .chip:nth-child(4n + 3) {
+  background: #dcf5e6;
+  color: #2f7d52;
+}
+
+:root[data-theme="mochi"] .chip:nth-child(4n) {
+  background: #fff0d9;
+  color: #a2652a;
+}
+
+:root[data-theme="mochi"] .chip--score {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ----- Spotlight: a rounded card with a speech-bubble caption ----- */
+
+:root[data-theme="mochi"] .hero {
+  box-shadow: 0 24px 50px -24px rgba(120, 80, 170, 0.5);
+}
+
+:root[data-theme="mochi"] .hero__shade {
+  background: linear-gradient(to top, rgba(62, 49, 87, 0.35), transparent 50%);
+}
+
+:root[data-theme="mochi"] .hero__content {
+  left: 32px;
+  bottom: 32px;
+  max-width: 470px;
+  padding: 24px 28px 26px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px -16px rgba(62, 49, 87, 0.45);
+}
+
+:root[data-theme="mochi"] .hero__eyebrow {
+  font-weight: 800;
+}
+
+:root[data-theme="mochi"] .hero__title {
+  margin: 6px 0 10px;
+  font-size: clamp(32px, 3.4vw, 50px);
+  line-height: 1.02;
+}
+
+:root[data-theme="mochi"] .hero__desc {
+  min-height: 0;
+  font-size: 14.5px;
+  color: #5d5275;
+}
+
+:root[data-theme="mochi"] .hero__actions {
+  margin-top: 18px;
+}
+
+:root[data-theme="mochi"] .hero__dots {
+  bottom: 28px;
+  right: 30px;
+  padding: 8px 10px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+:root[data-theme="mochi"] .hero__dots button:not(.is-active) {
+  background: #e3d6f2;
+}
+
+/* ----- Rows, grids and polaroid covers ----- */
+
+:root[data-theme="mochi"] .row__title,
+:root[data-theme="mochi"] .section-title {
+  font-size: 26px;
+}
+
+:root[data-theme="mochi"] .row__count,
+:root[data-theme="mochi"] .grid-page__count {
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: #fff;
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: 0 3px 10px -4px rgba(120, 80, 170, 0.35);
+}
+
+:root[data-theme="mochi"] .row__more {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+:root[data-theme="mochi"] .row__more::after {
+  content: " ›";
+}
+
+:root[data-theme="mochi"] .row__track {
+  padding-top: 16px;
+  padding-bottom: 28px;
+}
+
+:root[data-theme="mochi"] .row__arrow {
+  border: 0;
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 8px 20px -8px rgba(120, 80, 170, 0.5);
+}
+
+:root[data-theme="mochi"] .card {
+  border-radius: 22px;
+  box-shadow: 0 10px 24px -14px rgba(120, 80, 170, 0.5);
+  transition:
+    transform 0.45s var(--spring),
+    box-shadow 0.35s var(--ease);
+}
+
+:root[data-theme="mochi"] .card:hover {
+  transform: translateY(-7px) rotate(-1.5deg);
+  box-shadow: 0 22px 34px -16px rgba(255, 111, 174, 0.6);
+}
+
+:root[data-theme="mochi"] .card:nth-child(even):hover {
+  transform: translateY(-7px) rotate(1.5deg);
+}
+
+:root[data-theme="mochi"] .card:hover .card__art {
+  transform: none;
+}
+
+:root[data-theme="mochi"] .card__text {
+  padding: 10px 6px 4px;
+  text-align: center;
+}
+
+:root[data-theme="mochi"] .card__name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+:root[data-theme="mochi"] .card__sub {
+  font-weight: 650;
+}
+
+:root[data-theme="mochi"] .poster__change {
+  display: block;
+  margin: 8px auto 0;
+}
+
+/* ----- Show page ----- */
+
+:root[data-theme="mochi"] .tp__backdrop {
+  left: var(--gutter);
+  right: var(--gutter);
+  top: var(--nav-h);
+  height: 300px;
+  border-radius: 32px;
+  background: var(--c, var(--surface));
+  box-shadow: 0 24px 50px -26px rgba(120, 80, 170, 0.55);
+}
+
+:root[data-theme="mochi"] .tp__backdrop {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+:root[data-theme="mochi"] .tp__backdrop img {
+  opacity: 1;
+}
+
+:root[data-theme="mochi"] .tp__backdrop::after {
+  background: linear-gradient(to top, rgba(62, 49, 87, 0.3), transparent 60%);
+}
+
+:root[data-theme="mochi"] .tp__head {
+  align-items: start;
+  padding-top: 190px;
+  padding-left: calc(var(--gutter) + 32px);
+}
+
+:root[data-theme="mochi"] .tp__back {
+  top: 18px;
+  left: calc(var(--gutter) + 18px);
+}
+
+:root[data-theme="mochi"] .tp__cover {
+  padding: 9px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 22px 40px -18px rgba(120, 80, 170, 0.55);
+}
+
+:root[data-theme="mochi"] .tp__cover img {
+  border-radius: 16px;
+}
+
+:root[data-theme="mochi"] .tp__info {
+  padding-top: 132px;
+}
+
+:root[data-theme="mochi"] .tp__eyebrow {
+  font-weight: 800;
+}
+
+:root[data-theme="mochi"] .tp__title {
+  font-size: clamp(36px, 4vw, 58px);
+  line-height: 1.04;
+}
+
+:root[data-theme="mochi"] .tp__desc {
+  color: #5d5275;
+}
+
+:root[data-theme="mochi"] .seasons__tab {
+  background: #fff;
+  box-shadow: 0 3px 0 #ebe0f6;
+}
+
+:root[data-theme="mochi"] .seasons__tab.is-active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 3px 0 #e0508f;
+}
+
+:root[data-theme="mochi"] .eps {
+  margin: 0;
+  gap: 14px 22px;
+}
+
+:root[data-theme="mochi"] .ep {
+  padding: 10px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 20px -14px rgba(120, 80, 170, 0.45);
+  transition:
+    transform 0.4s var(--spring),
+    box-shadow 0.3s;
+}
+
+:root[data-theme="mochi"] .ep:hover {
+  background: #fff;
+  transform: translateY(-3px);
+  box-shadow: 0 14px 26px -14px rgba(255, 111, 174, 0.55);
+}
+
+:root[data-theme="mochi"] .ep__still {
+  border-radius: 14px;
+}
+
+:root[data-theme="mochi"] .ep__code {
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: #ffe3ef;
+  font-size: 11.5px;
+}
+
+:root[data-theme="mochi"] .ep__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+:root[data-theme="mochi"] .extra:hover {
+  background: #fff;
+}
+
+/* ----- Dialogs ----- */
+
+:root[data-theme="mochi"] .modal {
+  backdrop-filter: blur(6px);
+}
+
+:root[data-theme="mochi"] .modal__panel {
+  border: 0;
+  box-shadow: 0 40px 90px -30px rgba(86, 60, 128, 0.55);
+}
+
+:root[data-theme="mochi"] .input {
+  border-radius: 99px;
+  border-width: 2px;
+  background: #fff;
+}
+
+:root[data-theme="mochi"] .folder,
+:root[data-theme="mochi"] .theme-card {
+  background: var(--bg);
+}
+
+:root[data-theme="mochi"] .settings__nav {
+  border-radius: 99px;
+}
+
+:root[data-theme="mochi"] .settings__nav.is-active {
+  background: #ffe3ef;
+  color: #b6467a;
+}
+
+:root[data-theme="mochi"] .theme-card {
+  border-radius: 24px;
+}
+
+:root[data-theme="mochi"] .theme-card__preview {
+  border-radius: 16px;
+}

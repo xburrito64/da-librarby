@@ -94,32 +94,32 @@ export default function PlayerView({ path, label, onBack }: { path: string; labe
 
   return (
     <div
-      className={`stage ${visible ? "" : "stage--hidden"}`}
+      className={`player ${visible ? "" : "player--hidden"}`}
       onMouseMove={showControls}
       onDoubleClick={(e) => e.target === e.currentTarget && toggleFullscreen()}
     >
-      {error && <div className="error">{error}</div>}
+      {error && <div className="player__error">{error}</div>}
 
-      <div className="topbar">
-        <button className="btn" onClick={back} title="Back (Esc)">
+      <div className="player__top">
+        <button className="player__btn" onClick={back} title="Back (Esc)">
           <BackIcon />
         </button>
-        <span className="title">{label}</span>
+        <span className="player__title">{label}</span>
       </div>
 
-      <div className="controls" onDoubleClick={(e) => e.stopPropagation()}>
-        <div className="progress" onClick={seekTo}>
-          <div className="progress__fill" style={{ width: `${duration ? (time / duration) * 100 : 0}%` }} />
+      <div className="player__controls" onDoubleClick={(e) => e.stopPropagation()}>
+        <div className="player__progress" onClick={seekTo}>
+          <div className="player__fill" style={{ width: `${duration ? (time / duration) * 100 : 0}%` }} />
         </div>
-        <div className="row">
-          <button className="btn btn--main" onClick={togglePause} title="Play / pause (Space)">
+        <div className="player__row">
+          <button className="player__btn player__btn--main" onClick={togglePause} title="Play / pause (Space)">
             {paused ? <PlayIcon /> : <PauseIcon />}
           </button>
-          <span className="time">
+          <span className="player__time">
             {formatTime(time)} / {formatTime(duration)}
           </span>
-          <span className="spacer" />
-          <button className="btn" onClick={toggleFullscreen} title="Fullscreen (F)">
+          <span className="player__spacer" />
+          <button className="player__btn" onClick={toggleFullscreen} title="Fullscreen (F)">
             {fullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
           </button>
         </div>

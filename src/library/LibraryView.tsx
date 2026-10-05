@@ -1,35 +1,38 @@
-// Temporary, plain library screen. Replaced by the real cover grid and show pages in step 4.
+// The library: navigation, home screen, cover grids, show pages and settings.
+// How it looks is entirely up to the theme (src/theme); this file only lays out the pieces.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
 import {
   library,
   metadata,
-  guessKind,
-  img,
   sortName,
+  KIND_LABELS,
   type Library,
   type LibraryKind,
   type MetadataStatus,
+  type PlayRequest,
   type TitleSummary,
 } from "./api";
+import Browse from "./Browse";
 import TitlePage from "./TitlePage";
-import "./LibraryView.css";
+import Settings, { type SettingsSection } from "./Settings";
+import { RefreshIcon, SettingsIcon } from "../ui/icons";
 
-export interface PlayRequest {
-  path: string;
-  label: string;
-}
+export type { PlayRequest };
+export type Tab = "home" | LibraryKind;
 
-const KIND_LABELS: Record<LibraryKind, string> = { anime: "Anime", shows: "Shows", movies: "Movies" };
+const KINDS: LibraryKind[] = ["anime", "shows", "movies"];
 
-export default function LibraryView({ onPlay }: { onPlay: (request: PlayRequest) => void }) {
+/** `active` is false while the player is showing on top. */
+export default function LibraryView({ active, onPlay }: { active: boolean; onPlay: (request: PlayRequest) => void }) {
   const [libraries, setLibraries] = useState<Library[] | null>(null);
-  const [titles, setTitles] = useState<TitleSummary[]>([]);
+  const [titles, setTitles] = useState<TitleSummary[] | null>(null);
   const [scanning, setScanning] = useState<string | null>(null);
   const [fetching, setFetching] = useState<MetadataStatus | null>(null);
-  const [panel, setPanel] = useState<"folders" | "settings" | null>(null);
+  const [tab, setTab] = useState<Tab>("home");
   const [openTitle, setOpenTitle] = useState<number | null>(null);
+  const [settings, setSettings] = useState<SettingsSection | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   const refresh = useCallback(() => {
     library.list().then(setLibraries).catch((e) => setError(String(e)));
@@ -51,189 +54,109 @@ export default function LibraryView({ onPlay }: { onPlay: (request: PlayRequest)
     return () => offs.forEach((p) => p.then((off) => off()));
   }, [refresh]);
 
-  const groups = useMemo(() => {
-    const byKind = new Map<LibraryKind, TitleSummary[]>();
-    for (const t of [...titles].sort((a, b) => sortName(a.name).localeCompare(sortName(b.name)))) {
-      byKind.set(t.kind, [...(byKind.get(t.kind) ?? []), t]);
-    }
-    return (["anime", "shows", "movies"] as LibraryKind[])
-      .filter((k) => byKind.has(k))
-      .map((k) => ({ kind: k, titles: byKind.get(k)! }));
-  }, [titles]);
+  // Esc or the mouse's back button leaves a show page (unless a dialog is open; Esc closes that first).
+  useEffect(() => {
+    if (!active || openTitle == null || settings) return;
+    const back = () => !document.querySelector(".modal") && setOpenTitle(null);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && back();
+    const onMouse = (e: MouseEvent) => e.button === 3 && back();
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mouseup", onMouse);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mouseup", onMouse);
+    };
+  }, [active, openTitle, settings]);
 
-  if (openTitle != null) {
-    return <TitlePage id={openTitle} onBack={() => setOpenTitle(null)} onPlay={onPlay} />;
-  }
+  const sorted = useMemo(
+    () => (titles ?? []).slice().sort((a, b) => sortName(a.name).localeCompare(sortName(b.name))),
+    [titles],
+  );
+  const kinds = KINDS.filter((k) => sorted.some((t) => t.kind === k));
 
-  const noLibraries = libraries != null && libraries.length === 0;
   const status =
     scanning != null
       ? `Scanning${scanning ? ` ${scanning}` : ""}…`
       : fetching?.running
-        ? `Getting info from ${fetching.source ?? "online"}: ${fetching.current ?? ""} (${fetching.done + 1}/${fetching.total})`
-        : (fetching?.error ?? "");
+        ? `Getting info from ${fetching.source ?? "online"} · ${fetching.done + 1} of ${fetching.total}`
+        : null;
+
+  const goTo = (next: Tab) => {
+    setOpenTitle(null);
+    setTab(next);
+  };
 
   return (
-    <div className="lib">
-      <header className="lib__header">
-        <h1>Da Librarby</h1>
-        <span className="lib__status">{status}</span>
-        <button onClick={() => library.rescan()}>Rescan</button>
-        <button onClick={() => setPanel((p) => (p === "folders" ? null : "folders"))}>Folders</button>
-        <button onClick={() => setPanel((p) => (p === "settings" ? null : "settings"))}>Settings</button>
-      </header>
-
-      {error && <p className="lib__error" onClick={() => setError(null)}>{error}</p>}
-
-      {(panel === "folders" || noLibraries) && libraries && (
-        <Folders libraries={libraries} onChange={setLibraries} onError={setError} />
-      )}
-      {panel === "settings" && <Settings onError={setError} />}
-
-      {groups.map((group) => (
-        <section key={group.kind}>
-          <h2>
-            {KIND_LABELS[group.kind]} <span className="muted">{group.titles.length}</span>
-          </h2>
-          <div className="lib__titles">
-            {group.titles.map((t) => (
-              <button
-                key={t.id}
-                className={`lib__card ${t.online ? "" : "lib__card--offline"}`}
-                onClick={() => setOpenTitle(t.id)}
-              >
-                <div className="lib__poster" style={{ background: t.color ?? undefined }}>
-                  {t.thumb && <img src={img(t.thumb)} alt="" loading="lazy" decoding="async" />}
-                </div>
-                <strong>{t.name}</strong>
-                <div className="muted small">{describe(t)}</div>
-              </button>
-            ))}
-          </div>
-        </section>
-      ))}
-    </div>
-  );
-}
-
-function describe(t: TitleSummary) {
-  const parts = [];
-  if (t.year != null) parts.push(t.year);
-  if (t.isMovie) parts.push("Movie");
-  else {
-    if (t.seasons) parts.push(`${t.seasons} season${t.seasons === 1 ? "" : "s"}`);
-    if (t.episodes) parts.push(`${t.episodes} ep`);
-    if (t.movies) parts.push(`${t.movies} movie${t.movies === 1 ? "" : "s"}`);
-  }
-  if (t.matched === false) parts.push("no match");
-  if (!t.online) parts.push("drive offline");
-  return parts.join(" · ");
-}
-
-function Settings({ onError }: { onError: (message: string) => void }) {
-  const [saved, setSaved] = useState<string | null>(null);
-  const [key, setKey] = useState("");
-
-  useEffect(() => {
-    metadata.tmdbKey().then(setSaved);
-  }, []);
-
-  const save = (value: string | null) =>
-    metadata
-      .setTmdbKey(value)
-      .then(() => metadata.tmdbKey())
-      .then((k) => {
-        setSaved(k);
-        setKey("");
-      })
-      .catch((e) => onError(String(e)));
-
-  return (
-    <div className="lib__folders">
-      <h2>Settings</h2>
-      <p className="muted small">
-        TMDB API key (for covers and info of shows and movies). It's stored only on this computer.
-      </p>
-      <div className="lib__folder">
-        <span>{saved ? `Saved key ${saved}` : "No key saved"}</span>
-        <input
-          type="password"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder={saved ? "Paste a new key to replace it" : "Paste your TMDB API key"}
-          autoComplete="off"
-          spellCheck={false}
-        />
-        <button disabled={!key.trim()} onClick={() => save(key)}>
-          Save
+    <div className={`app ${scrolled ? "app--scrolled" : ""} ${openTitle != null ? "app--title" : ""}`}>
+      <nav className="nav">
+        <button className="nav__brand" onClick={() => goTo("home")}>
+          <span className="nav__logo" aria-hidden="true" />
+          <span className="nav__name">Da Librarby</span>
         </button>
-        {saved && <button onClick={() => save(null)}>Remove</button>}
-      </div>
-    </div>
-  );
-}
-
-function Folders({
-  libraries,
-  onChange,
-  onError,
-}: {
-  libraries: Library[];
-  onChange: (libraries: Library[]) => void;
-  onError: (message: string) => void;
-}) {
-  const [pending, setPending] = useState<{ path: string; kind: LibraryKind } | null>(null);
-
-  const pick = async () => {
-    const path = await open({ directory: true, multiple: false, title: "Choose a library folder" });
-    if (typeof path === "string") setPending({ path, kind: guessKind(path) });
-  };
-
-  const add = () => {
-    if (!pending) return;
-    library
-      .add(pending.path, pending.kind)
-      .then((libs) => {
-        onChange(libs);
-        setPending(null);
-      })
-      .catch((e) => onError(String(e)));
-  };
-
-  return (
-    <div className="lib__folders">
-      <h2>Library folders</h2>
-      <p className="muted small">
-        Add the folders (or whole drives) where your anime, shows and movies live. Folders named Anime, Cartoons,
-        Shows or Movies inside them are sorted automatically.
-      </p>
-      {libraries.map((lib) => (
-        <div key={lib.id} className="lib__folder">
-          <span>{lib.path}</span>
-          <span className="muted">
-            {KIND_LABELS[lib.kind]} · {lib.titleCount} title{lib.titleCount === 1 ? "" : "s"}{lib.online ? "" : " · offline"}
-          </span>
-          <button onClick={() => library.remove(lib.id).then(onChange).catch((e) => onError(String(e)))}>
-            Remove
+        <div className="nav__tabs">
+          {(["home", ...kinds] as Tab[]).map((t) => (
+            <button
+              key={t}
+              className={`nav__tab ${tab === t && openTitle == null ? "is-active" : ""}`}
+              onClick={() => goTo(t)}
+            >
+              {t === "home" ? "Home" : KIND_LABELS[t]}
+            </button>
+          ))}
+        </div>
+        <div className="nav__end">
+          {status && (
+            <span className="nav__status" title={fetching?.running ? (fetching.current ?? status) : status}>
+              <span className="nav__pulse" />
+              <span className="nav__status-text">{status}</span>
+            </span>
+          )}
+          <button className="icon-btn" title="Look for new files" onClick={() => library.rescan()}>
+            <RefreshIcon />
+          </button>
+          <button className="icon-btn" title="Settings" onClick={() => setSettings("appearance")}>
+            <SettingsIcon />
           </button>
         </div>
-      ))}
-      {pending ? (
-        <div className="lib__folder">
-          <span>{pending.path}</span>
-          <select
-            value={pending.kind}
-            onChange={(e) => setPending({ ...pending, kind: e.target.value as LibraryKind })}
-          >
-            <option value="anime">Anime</option>
-            <option value="shows">Shows</option>
-            <option value="movies">Movies</option>
-          </select>
-          <button onClick={add}>Add</button>
-          <button onClick={() => setPending(null)}>Cancel</button>
-        </div>
-      ) : (
-        <button onClick={pick}>Add folder…</button>
+      </nav>
+
+      <Browse
+        tab={tab}
+        titles={sorted}
+        loaded={titles != null && libraries != null}
+        hasLibraries={(libraries?.length ?? 0) > 0}
+        active={openTitle == null}
+        onTab={goTo}
+        onOpen={setOpenTitle}
+        onPlay={onPlay}
+        onScrolled={setScrolled}
+        onAddFolder={() => setSettings("library")}
+      />
+      {openTitle != null && (
+        <TitlePage
+          key={openTitle}
+          id={openTitle}
+          onBack={() => setOpenTitle(null)}
+          onPlay={onPlay}
+          onScrolled={setScrolled}
+        />
+      )}
+
+      {settings && (
+        <Settings
+          section={settings}
+          onSection={setSettings}
+          libraries={libraries ?? []}
+          titles={sorted}
+          onLibraries={setLibraries}
+          onError={setError}
+          onClose={() => setSettings(null)}
+        />
+      )}
+      {error && (
+        <button className="toast" onClick={() => setError(null)} title="Dismiss">
+          {error}
+        </button>
       )}
     </div>
   );

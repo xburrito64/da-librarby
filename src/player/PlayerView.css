@@ -1,45 +1,49 @@
-/* Player overlay. Plain until the design pass. */
+/* Player overlay, drawn on top of mpv's video. Takes the theme's font and accent colour;
+   the full player design comes in step 5. */
 
-.stage {
+.player {
   position: fixed;
   inset: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  color: #fff;
+  font-family: var(--font-body);
+  --overlay: rgba(0, 0, 0, 0.6);
 }
 
-.stage--hidden {
+.player--hidden {
   cursor: none;
 }
 
-.stage--hidden .topbar,
-.stage--hidden .controls {
+.player--hidden .player__top,
+.player--hidden .player__controls {
   opacity: 0;
 }
 
-.topbar,
-.controls {
+.player__top,
+.player__controls {
   transition: opacity 0.25s ease;
   padding: 16px 20px;
 }
 
-.topbar {
+.player__top {
   background: linear-gradient(var(--overlay), transparent);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.title {
+.player__title {
   font-size: 15px;
   opacity: 0.9;
 }
 
-.controls {
+.player__controls {
   background: linear-gradient(transparent, var(--overlay));
 }
 
-.progress {
+.player__progress {
   position: relative;
   height: 14px;
   display: flex;
@@ -47,7 +51,7 @@
   cursor: pointer;
 }
 
-.progress::before {
+.player__progress::before {
   content: "";
   position: absolute;
   left: 0;
@@ -57,32 +61,32 @@
   background: rgba(255, 255, 255, 0.25);
 }
 
-.progress__fill {
+.player__fill {
   position: relative;
   height: 4px;
   border-radius: 2px;
-  background: #fff;
+  background: var(--accent, #fff);
 }
 
-.row {
+.player__row {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 6px;
 }
 
-.spacer {
+.player__spacer {
   flex: 1;
 }
 
-.time {
+.player__time {
   font-variant-numeric: tabular-nums;
   font-size: 13px;
   opacity: 0.85;
   margin-left: 4px;
 }
 
-.btn {
+.player__btn {
   width: 40px;
   height: 40px;
   display: grid;
@@ -94,23 +98,23 @@
   cursor: pointer;
 }
 
-.btn:hover {
+.player__btn:hover {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.btn svg {
+.player__btn svg {
   width: 24px;
   height: 24px;
   fill: currentColor;
 }
 
-.btn--main {
+.player__btn--main {
   width: 48px;
   height: 48px;
   background: rgba(255, 255, 255, 0.15);
 }
 
-.error {
+.player__error {
   position: absolute;
   top: 50%;
   left: 50%;

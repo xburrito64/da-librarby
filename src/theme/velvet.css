@@ -1,0 +1,121 @@
+/* Velvet: cinematic and dark. Deep blacks, soft glass, and colour that glows out of the artwork. */
+
+[data-theme="velvet"] {
+  --bg: #09090c;
+  --bg-elev: #141418;
+  --surface: rgba(255, 255, 255, 0.075);
+  --surface-hover: rgba(255, 255, 255, 0.14);
+  --line: rgba(255, 255, 255, 0.09);
+  --text: #f6f3ee;
+  --muted: #8e8b96;
+  --accent: #f0c477;
+  --on-accent: #1b1406;
+  --btn-primary-bg: #f6f3ee;
+  --btn-primary-text: #0b0b0d;
+  --scrim: rgba(4, 4, 6, 0.62);
+
+  --font-body: "Manrope Variable", system-ui, sans-serif;
+  --font-display: "Manrope Variable", system-ui, sans-serif;
+  --font-label: "Manrope Variable", system-ui, sans-serif;
+  --display-weight: 800;
+  --display-tracking: -0.035em;
+
+  --radius: 12px;
+  --radius-card: 12px;
+  --radius-panel: 22px;
+  --btn-radius: 999px;
+  --app-decor: radial-gradient(1100px 620px at 88% -8%, rgba(240, 196, 119, 0.07), transparent 62%);
+}
+
+/* Glass navigation once the page scrolls under it. */
+:root[data-theme="velvet"] .app--scrolled .nav {
+  background: rgba(10, 10, 13, 0.7);
+  backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: 0 1px 0 var(--line);
+}
+
+:root[data-theme="velvet"] .nav__logo {
+  width: 10px;
+  height: 22px;
+  border-radius: 3px;
+  background: linear-gradient(var(--accent), #c9874a);
+  box-shadow: 6px 0 0 -1px rgba(240, 196, 119, 0.45);
+}
+
+:root[data-theme="velvet"] .nav__tab.is-active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translateX(-50%);
+}
+
+/* Glass secondary buttons. */
+:root[data-theme="velvet"] .btn:not(.btn--primary) {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(14px);
+  --btn-border: rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme="velvet"] .btn:not(.btn--primary):hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Spotlight: a slow colour glow from the featured artwork. */
+:root[data-theme="velvet"] .hero::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: auto 0 0 0;
+  height: 70%;
+  background: radial-gradient(70% 90% at 22% 100%, color-mix(in srgb, var(--c, var(--accent)) 26%, transparent), transparent 70%);
+  pointer-events: none;
+  transition: background 1.2s;
+}
+
+/* Covers lift and glow in their own colour. */
+:root[data-theme="velvet"] .card__art {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 10px 30px -14px rgba(0, 0, 0, 0.9);
+}
+
+:root[data-theme="velvet"] .card:hover .card__art {
+  transform: translateY(-6px) scale(1.035);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 26px 48px -18px color-mix(in srgb, var(--c, #888) 85%, transparent);
+}
+
+:root[data-theme="velvet"] .card:hover .card__name {
+  color: #fff;
+}
+
+/* Show page: the backdrop is tinted with the show's colour. */
+:root[data-theme="velvet"] .tp__backdrop {
+  background: radial-gradient(60% 70% at 30% 0%, color-mix(in srgb, var(--c, var(--accent)) 30%, transparent), transparent 75%);
+}
+
+:root[data-theme="velvet"] .tp__cover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 40px 80px -24px color-mix(in srgb, var(--c, #000) 70%, #000);
+}
+
+:root[data-theme="velvet"] .chip:not(.chip--score) {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="velvet"] .modal {
+  backdrop-filter: blur(8px);
+}
+
+:root[data-theme="velvet"] .modal__panel {
+  background: rgba(22, 22, 27, 0.92);
+  backdrop-filter: blur(30px);
+}

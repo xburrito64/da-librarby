@@ -18,8 +18,8 @@ export default function App() {
     <>
       {/* Stays mounted while playing so the library keeps its place. */}
       <div style={{ display: playing ? "none" : undefined }}>
-        <LibraryView onPlay={setPlaying} />
-        {playerError && <div className="error">Player failed to start: {playerError}</div>}
+        <LibraryView active={!playing} onPlay={setPlaying} />
+        {playerError && <div className="toast">Player failed to start: {playerError}</div>}
       </div>
       {playing && <PlayerView path={playing.path} label={playing.label} onBack={() => setPlaying(null)} />}
     </>
