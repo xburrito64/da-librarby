@@ -1,4 +1,5 @@
 mod library;
+mod metadata;
 mod mpv;
 mod player;
 
@@ -11,7 +12,12 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(player::Player::default())
         .setup(|app| {
-            app.manage(library::Library::open(app.handle())?);
+            let library = library::Library::open(app.handle())?;
+            app.manage(metadata::Metadata::new(&library));
+            // The configured image scope only covers folders that existed at launch; the images
+            // folder is created on first run, so allow it explicitly as well.
+            app.asset_protocol_scope().allow_directory(&library.images_dir, true)?;
+            app.manage(library);
             // Pick up anything that changed on disk since last time, in the background.
             library::request_scan(app.handle(), None);
             Ok(())
@@ -28,6 +34,13 @@ pub fn run() {
             library::library_scanning,
             library::library_titles,
             library::library_title,
+            metadata::metadata_status,
+            metadata::metadata_search,
+            metadata::metadata_match_title,
+            metadata::metadata_match_season,
+            metadata::metadata_match_file,
+            metadata::settings_tmdb_key,
+            metadata::settings_set_tmdb_key,
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {

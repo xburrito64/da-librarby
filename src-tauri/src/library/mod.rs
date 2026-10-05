@@ -22,6 +22,8 @@ use scan::LibraryKind;
 pub struct Library {
     db: Mutex<Connection>,
     queue: Mutex<ScanQueue>,
+    /// Where downloaded artwork lives (kept out of the roaming profile).
+    pub images_dir: PathBuf,
 }
 
 #[derive(Default)]
@@ -35,10 +37,11 @@ impl Library {
         let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let conn = db::open(&dir.join("library.db")).map_err(|e| e.to_string())?;
-        Ok(Self { db: Mutex::new(conn), queue: Mutex::new(ScanQueue::default()) })
+        let images_dir = app.path().app_local_data_dir().map_err(|e| e.to_string())?.join("images");
+        Ok(Self { db: Mutex::new(conn), queue: Mutex::new(ScanQueue::default()), images_dir })
     }
 
-    fn with_db<T>(&self, f: impl FnOnce(&mut Connection) -> rusqlite::Result<T>) -> Result<T, String> {
+    pub(crate) fn with_db<T>(&self, f: impl FnOnce(&mut Connection) -> rusqlite::Result<T>) -> Result<T, String> {
         let mut conn = self.db.lock().unwrap();
         f(&mut conn).map_err(|e| e.to_string())
     }
@@ -104,6 +107,7 @@ fn run_scans(app: AppHandle) {
         }
     }
     let _ = app.emit("library:scan", json!({ "running": false, "library": null }));
+    crate::metadata::request(&app, None);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -160,12 +164,12 @@ pub async fn library_scanning(library: State<'_, Library>) -> Result<bool, Strin
 
 #[tauri::command]
 pub async fn library_titles(library: State<'_, Library>) -> Result<Vec<db::TitleSummary>, String> {
-    library.with_db(|c| db::titles(c))
+    library.with_db(|c| db::titles(c, &library.images_dir))
 }
 
 #[tauri::command]
 pub async fn library_title(library: State<'_, Library>, id: i64) -> Result<Option<db::TitleDetail>, String> {
-    library.with_db(|c| db::title_detail(c, id))
+    library.with_db(|c| db::title_detail(c, id, &library.images_dir))
 }
 
 /// "f:/Anime/" -> "F:\Anime"

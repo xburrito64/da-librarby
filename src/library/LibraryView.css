@@ -134,3 +134,228 @@
   padding: 0;
   font-weight: inherit;
 }
+
+.lib input {
+  font: inherit;
+  color: inherit;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-width: 280px;
+}
+
+.lib button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* Cover cards */
+.lib__titles {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 18px 14px;
+}
+
+.lib .lib__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+  background: none;
+  border: 0;
+  text-align: left;
+}
+
+.lib .lib__card:hover {
+  background: none;
+}
+
+.lib__card--offline {
+  opacity: 0.45;
+}
+
+.lib__poster {
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #222;
+  margin-bottom: 4px;
+}
+
+.lib__poster img,
+.title__poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Show page */
+.title {
+  padding-top: 0;
+}
+
+.title__banner {
+  display: block;
+  width: calc(100% + 56px);
+  margin: 0 -28px -60px;
+  height: 220px;
+  object-fit: cover;
+  mask-image: linear-gradient(#000 40%, transparent);
+  opacity: 0.6;
+}
+
+.title .lib__header {
+  position: relative;
+  padding-top: 16px;
+}
+
+.title__head {
+  position: relative;
+  display: flex;
+  gap: 24px;
+  margin-top: 12px;
+}
+
+.title__cover {
+  width: 200px;
+  border-radius: 8px;
+  align-self: flex-start;
+}
+
+.title__info h1 {
+  margin: 0 0 4px;
+  font-size: 26px;
+}
+
+.title__info p {
+  margin: 4px 0;
+}
+
+.title__description {
+  white-space: pre-line;
+  line-height: 1.5;
+  max-width: 820px;
+  color: #ccc;
+}
+
+.title__season {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.title__season img {
+  width: 46px;
+  border-radius: 4px;
+}
+
+.title__season h2 {
+  margin: 0;
+}
+
+.title__season p {
+  margin: 2px 0 0;
+}
+
+.title__movies {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 14px;
+}
+
+.lib .title__poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.title__noimg,
+.picker__noimg {
+  width: 100%;
+  height: 100%;
+  background: #262626;
+}
+
+.lib .lib__link {
+  color: #8ab4ff;
+}
+
+/* Match picker */
+.picker__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+  z-index: 10;
+}
+
+.picker {
+  width: min(720px, 92vw);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: #1c1c1c;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 4px 20px 16px;
+}
+
+.picker__search {
+  display: flex;
+  gap: 8px;
+}
+
+.picker__search input {
+  flex: 1;
+}
+
+.picker__results {
+  overflow-y: auto;
+  margin: 12px 0;
+  min-height: 120px;
+}
+
+.lib .picker__result {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 6px;
+  margin-bottom: 4px;
+}
+
+.lib .picker__result:hover {
+  background: #262626;
+}
+
+.lib .picker__result--picked {
+  border-color: #8ab4ff;
+  background: #1f2633;
+}
+
+.picker__result img,
+.picker__noimg {
+  width: 46px;
+  height: 66px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.picker__actions {
+  display: flex;
+  gap: 8px;
+}

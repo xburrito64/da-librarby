@@ -1,17 +1,18 @@
-// Temporary, plain library screen for checking the scanner. Replaced by the real
-// cover grid and show pages in step 4.
+// Temporary, plain library screen. Replaced by the real cover grid and show pages in step 4.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
   library,
+  metadata,
   guessKind,
-  episodeCode,
+  img,
   sortName,
   type Library,
   type LibraryKind,
-  type TitleDetail,
+  type MetadataStatus,
   type TitleSummary,
 } from "./api";
+import TitlePage from "./TitlePage";
 import "./LibraryView.css";
 
 export interface PlayRequest {
@@ -25,7 +26,8 @@ export default function LibraryView({ onPlay }: { onPlay: (request: PlayRequest)
   const [libraries, setLibraries] = useState<Library[] | null>(null);
   const [titles, setTitles] = useState<TitleSummary[]>([]);
   const [scanning, setScanning] = useState<string | null>(null);
-  const [showFolders, setShowFolders] = useState(false);
+  const [fetching, setFetching] = useState<MetadataStatus | null>(null);
+  const [panel, setPanel] = useState<"folders" | "settings" | null>(null);
   const [openTitle, setOpenTitle] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,12 +39,14 @@ export default function LibraryView({ onPlay }: { onPlay: (request: PlayRequest)
   useEffect(() => {
     refresh();
     library.scanning().then((running) => running && setScanning(""));
+    metadata.status().then(setFetching);
     const offs = [
       library.onChanged(refresh),
       library.onScan((s) => {
         setScanning(s.running ? (s.library ?? "") : null);
         if (!s.running) refresh();
       }),
+      metadata.onStatus(setFetching),
     ];
     return () => offs.forEach((p) => p.then((off) => off()));
   }, [refresh]);
@@ -62,23 +66,29 @@ export default function LibraryView({ onPlay }: { onPlay: (request: PlayRequest)
   }
 
   const noLibraries = libraries != null && libraries.length === 0;
+  const status =
+    scanning != null
+      ? `Scanning${scanning ? ` ${scanning}` : ""}…`
+      : fetching?.running
+        ? `Getting info from AniList: ${fetching.current ?? ""} (${fetching.done + 1}/${fetching.total})`
+        : (fetching?.error ?? "");
 
   return (
     <div className="lib">
       <header className="lib__header">
         <h1>Da Librarby</h1>
-        <span className="lib__status">
-          {scanning != null && `Scanning${scanning ? ` ${scanning}` : ""}…`}
-        </span>
+        <span className="lib__status">{status}</span>
         <button onClick={() => library.rescan()}>Rescan</button>
-        <button onClick={() => setShowFolders((v) => !v)}>Folders</button>
+        <button onClick={() => setPanel((p) => (p === "folders" ? null : "folders"))}>Folders</button>
+        <button onClick={() => setPanel((p) => (p === "settings" ? null : "settings"))}>Settings</button>
       </header>
 
       {error && <p className="lib__error" onClick={() => setError(null)}>{error}</p>}
 
-      {(showFolders || noLibraries) && libraries && (
+      {(panel === "folders" || noLibraries) && libraries && (
         <Folders libraries={libraries} onChange={setLibraries} onError={setError} />
       )}
+      {panel === "settings" && <Settings onError={setError} />}
 
       {groups.map((group) => (
         <section key={group.kind}>
@@ -89,11 +99,13 @@ export default function LibraryView({ onPlay }: { onPlay: (request: PlayRequest)
             {group.titles.map((t) => (
               <button
                 key={t.id}
-                className={`lib__title ${t.online ? "" : "lib__title--offline"}`}
+                className={`lib__card ${t.online ? "" : "lib__card--offline"}`}
                 onClick={() => setOpenTitle(t.id)}
               >
+                <div className="lib__poster" style={{ background: t.color ?? undefined }}>
+                  {t.thumb && <img src={img(t.thumb)} alt="" loading="lazy" decoding="async" />}
+                </div>
                 <strong>{t.name}</strong>
-                {t.year != null && <span className="muted"> ({t.year})</span>}
                 <div className="muted small">{describe(t)}</div>
               </button>
             ))}
@@ -105,13 +117,60 @@ export default function LibraryView({ onPlay }: { onPlay: (request: PlayRequest)
 }
 
 function describe(t: TitleSummary) {
-  if (t.isMovie) return t.online ? "Movie" : "Movie · drive offline";
   const parts = [];
-  if (t.seasons) parts.push(`${t.seasons} season${t.seasons === 1 ? "" : "s"}`);
-  if (t.episodes) parts.push(`${t.episodes} episodes`);
-  if (t.movies) parts.push(`${t.movies} movie${t.movies === 1 ? "" : "s"}`);
+  if (t.year != null) parts.push(t.year);
+  if (t.isMovie) parts.push("Movie");
+  else {
+    if (t.seasons) parts.push(`${t.seasons} season${t.seasons === 1 ? "" : "s"}`);
+    if (t.episodes) parts.push(`${t.episodes} ep`);
+    if (t.movies) parts.push(`${t.movies} movie${t.movies === 1 ? "" : "s"}`);
+  }
+  if (t.kind === "anime" && t.matched === false) parts.push("no match");
   if (!t.online) parts.push("drive offline");
   return parts.join(" · ");
+}
+
+function Settings({ onError }: { onError: (message: string) => void }) {
+  const [saved, setSaved] = useState<string | null>(null);
+  const [key, setKey] = useState("");
+
+  useEffect(() => {
+    metadata.tmdbKey().then(setSaved);
+  }, []);
+
+  const save = (value: string | null) =>
+    metadata
+      .setTmdbKey(value)
+      .then(() => metadata.tmdbKey())
+      .then((k) => {
+        setSaved(k);
+        setKey("");
+      })
+      .catch((e) => onError(String(e)));
+
+  return (
+    <div className="lib__folders">
+      <h2>Settings</h2>
+      <p className="muted small">
+        TMDB API key (for covers and info of shows and movies). It's stored only on this computer.
+      </p>
+      <div className="lib__folder">
+        <span>{saved ? `Saved key ${saved}` : "No key saved"}</span>
+        <input
+          type="password"
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          placeholder={saved ? "Paste a new key to replace it" : "Paste your TMDB API key"}
+          autoComplete="off"
+          spellCheck={false}
+        />
+        <button disabled={!key.trim()} onClick={() => save(key)}>
+          Save
+        </button>
+        {saved && <button onClick={() => save(null)}>Remove</button>}
+      </div>
+    </div>
+  );
 }
 
 function Folders({
@@ -175,99 +234,4 @@ function Folders({
       )}
     </div>
   );
-}
-
-function TitlePage({
-  id,
-  onBack,
-  onPlay,
-}: {
-  id: number;
-  onBack: () => void;
-  onPlay: (request: PlayRequest) => void;
-}) {
-  const [title, setTitle] = useState<TitleDetail | null>(null);
-  const [showExtras, setShowExtras] = useState(false);
-
-  useEffect(() => {
-    library.title(id).then(setTitle);
-  }, [id]);
-
-  if (!title) return <div className="lib" />;
-
-  const movies = title.files.filter((f) => f.role === "movie");
-  const extras = title.files.filter((f) => f.role === "extra");
-
-  return (
-    <div className="lib">
-      <header className="lib__header">
-        <button onClick={onBack}>← Back</button>
-        <h1>
-          {title.name} {title.year != null && <span className="muted">({title.year})</span>}
-        </h1>
-      </header>
-      <p className="muted small">{title.folder}</p>
-
-      {title.seasons.map((season) => (
-        <section key={season.id}>
-          <h2>{season.label}</h2>
-          {title.files
-            .filter((f) => f.role === "episode" && f.seasonId === season.id)
-            .map((f) => {
-              const code = episodeCode(f, season.number);
-              return (
-                <button
-                  key={f.id}
-                  className="lib__row"
-                  onClick={() => onPlay({ path: f.path, label: [title.name, code, f.name].filter(Boolean).join(" · ") })}
-                >
-                  <span className="lib__code">{code}</span>
-                  <span>{f.name ?? fileName(f.path)}</span>
-                </button>
-              );
-            })}
-        </section>
-      ))}
-
-      {movies.length > 0 && (
-        <section>
-          <h2>{title.isMovie ? "Movie" : "Movies & Specials"}</h2>
-          {movies.map((f) => (
-            <button
-              key={f.id}
-              className="lib__row"
-              onClick={() => onPlay({ path: f.path, label: f.name ?? title.name })}
-            >
-              <span>{f.name ?? fileName(f.path)}</span>
-              {f.year != null && <span className="muted"> ({f.year})</span>}
-            </button>
-          ))}
-        </section>
-      )}
-
-      {extras.length > 0 && (
-        <section>
-          <h2>
-            <button className="lib__link" onClick={() => setShowExtras((v) => !v)}>
-              Extras ({extras.length}) {showExtras ? "▾" : "▸"}
-            </button>
-          </h2>
-          {showExtras &&
-            extras.map((f) => (
-              <button
-                key={f.id}
-                className="lib__row"
-                onClick={() => onPlay({ path: f.path, label: f.name ?? fileName(f.path) })}
-              >
-                <span>{f.name ?? fileName(f.path)}</span>
-              </button>
-            ))}
-        </section>
-      )}
-    </div>
-  );
-}
-
-function fileName(path: string) {
-  return path.split(/[\\/]/).pop() ?? path;
 }

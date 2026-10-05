@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 1;
+const SCHEMA_VERSION: i32 = 2;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -68,6 +68,66 @@ CREATE INDEX files_season ON files (season_id);
 CREATE INDEX titles_library ON titles (library_id);
 ";
 
+/// Metadata from AniList/TMDB. `provider_id` NULL means "looked, found nothing".
+/// `locked` rows were chosen by hand and are never replaced automatically.
+/// Image columns hold file names inside the images folder.
+const SCHEMA_V2: &str = "
+CREATE TABLE settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+CREATE TABLE provider_cache (
+    provider   TEXT NOT NULL,
+    id         TEXT NOT NULL,
+    json       TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL,
+    PRIMARY KEY (provider, id)
+);
+CREATE TABLE title_meta (
+    title_id    INTEGER PRIMARY KEY REFERENCES titles(id) ON DELETE CASCADE,
+    provider    TEXT NOT NULL,
+    provider_id TEXT,
+    locked      INTEGER NOT NULL DEFAULT 0,
+    name        TEXT,
+    description TEXT,
+    year        INTEGER,
+    genres      TEXT,
+    score       INTEGER,
+    status      TEXT,
+    studio      TEXT,
+    color       TEXT,
+    cover       TEXT,
+    thumb       TEXT,
+    banner      TEXT,
+    updated_at  INTEGER NOT NULL
+);
+CREATE TABLE season_meta (
+    season_id    INTEGER PRIMARY KEY REFERENCES seasons(id) ON DELETE CASCADE,
+    provider_ids TEXT NOT NULL DEFAULT '[]',
+    locked       INTEGER NOT NULL DEFAULT 0,
+    name         TEXT,
+    description  TEXT,
+    year         INTEGER,
+    score        INTEGER,
+    cover        TEXT,
+    thumb        TEXT,
+    updated_at   INTEGER NOT NULL
+);
+CREATE TABLE file_meta (
+    file_id          INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
+    provider_id      TEXT,
+    provider_episode INTEGER,
+    locked           INTEGER NOT NULL DEFAULT 0,
+    name             TEXT,
+    description      TEXT,
+    year             INTEGER,
+    air_date         TEXT,
+    cover            TEXT,
+    thumb            TEXT,
+    updated_at       INTEGER NOT NULL
+);
+";
+
 pub fn open(path: &Path) -> rusqlite::Result<Connection> {
     let conn = Connection::open(path)?;
     conn.execute_batch(
@@ -78,6 +138,9 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
     let version: i32 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
     if version < 1 {
         conn.execute_batch(SCHEMA_V1)?;
+    }
+    if version < 2 {
+        conn.execute_batch(SCHEMA_V2)?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
@@ -332,6 +395,11 @@ fn mark_missing_seasons(conn: &Connection, title_id: i64, keep: &[&str]) -> rusq
 // ---------------------------------------------------------------------------------------------
 // Reading for the interface
 
+/// Turns a stored image file name into a full path the interface can load.
+fn image_path(dir: &Path, name: Option<String>) -> Option<String> {
+    name.map(|n| dir.join(n).to_string_lossy().into_owned())
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TitleSummary {
@@ -347,20 +415,27 @@ pub struct TitleSummary {
     pub episodes: i64,
     pub movies: i64,
     pub extras: i64,
+    pub thumb: Option<String>,
+    pub color: Option<String>,
+    /// None = not looked up yet, Some(false) = looked up, nothing found.
+    pub matched: Option<bool>,
 }
 
-pub fn titles(conn: &Connection) -> rusqlite::Result<Vec<TitleSummary>> {
+pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSummary>> {
     let mut stmt = conn.prepare(
-        "SELECT t.id, t.library_id, l.kind, t.parent_id, t.is_movie, t.name, t.year, l.online,
+        "SELECT t.id, t.library_id, l.kind, t.parent_id, t.is_movie, t.name, COALESCE(t.year, m.year), l.online,
                 (SELECT COUNT(DISTINCT f.season_id) FROM files f
                   WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'episode'),
                 (SELECT COUNT(*) FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'episode'),
                 (SELECT COUNT(*) FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'movie'),
-                (SELECT COUNT(*) FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'extra')
+                (SELECT COUNT(*) FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'extra'),
+                m.thumb, m.color, m.title_id IS NOT NULL, m.provider_id IS NOT NULL
          FROM titles t JOIN libraries l ON l.id = t.library_id
+         LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
     )?;
     let rows = stmt.query_map([], |r| {
+        let looked_up: bool = r.get(14)?;
         Ok(TitleSummary {
             id: r.get(0)?,
             library_id: r.get(1)?,
@@ -374,9 +449,41 @@ pub fn titles(conn: &Connection) -> rusqlite::Result<Vec<TitleSummary>> {
             episodes: r.get(9)?,
             movies: r.get(10)?,
             extras: r.get(11)?,
+            thumb: image_path(images, r.get(12)?),
+            color: r.get(13)?,
+            matched: if looked_up { Some(r.get(15)?) } else { None },
         })
     })?;
     rows.collect()
+}
+
+/// Information from AniList/TMDB about a title, season or file.
+#[derive(Debug, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Meta {
+    pub provider: Option<String>,
+    /// AniList/TMDB ids; empty = nothing found.
+    pub provider_ids: Vec<String>,
+    /// Chosen by hand.
+    pub locked: bool,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub year: Option<i32>,
+    pub score: Option<i32>,
+    pub cover: Option<String>,
+    pub thumb: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TitleMeta {
+    #[serde(flatten)]
+    pub base: Meta,
+    pub genres: Vec<String>,
+    pub status: Option<String>,
+    pub studio: Option<String>,
+    pub color: Option<String>,
+    pub banner: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -391,6 +498,9 @@ pub struct FileRow {
     pub name: Option<String>,
     pub year: Option<i32>,
     pub size: i64,
+    pub meta: Option<Meta>,
+    /// Episode number within the AniList entry in `meta.provider_ids[0]`.
+    pub provider_episode: Option<i32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -399,45 +509,127 @@ pub struct SeasonRow {
     pub id: i64,
     pub number: Option<i32>,
     pub label: String,
+    pub meta: Option<Meta>,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TitleDetail {
     pub id: i64,
+    pub kind: LibraryKind,
     pub name: String,
     pub year: Option<i32>,
     pub is_movie: bool,
     pub folder: String,
+    pub meta: Option<TitleMeta>,
     pub seasons: Vec<SeasonRow>,
     pub files: Vec<FileRow>,
 }
 
-pub fn title_detail(conn: &Connection, id: i64) -> rusqlite::Result<Option<TitleDetail>> {
+pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Result<Option<TitleDetail>> {
     let head = conn
-        .query_row("SELECT name, year, is_movie, folder FROM titles WHERE id = ?1", [id], |r| {
-            Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
-        })
+        .query_row(
+            "SELECT t.name, t.year, t.is_movie, t.folder, l.kind FROM titles t
+             JOIN libraries l ON l.id = t.library_id WHERE t.id = ?1",
+            [id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get::<_, String>(4)?)),
+        )
         .optional()?;
-    let Some((name, year, is_movie, folder)) = head else { return Ok(None) };
+    let Some((name, year, is_movie, folder, kind)) = head else { return Ok(None) };
+    let kind = LibraryKind::parse(&kind).unwrap_or(LibraryKind::Shows);
+
+    let meta = conn
+        .query_row(
+            "SELECT provider, provider_id, locked, name, description, year, score, cover, thumb,
+                    genres, status, studio, color, banner
+             FROM title_meta WHERE title_id = ?1",
+            [id],
+            |r| {
+                Ok(TitleMeta {
+                    base: Meta {
+                        provider: r.get(0)?,
+                        provider_ids: r.get::<_, Option<String>>(1)?.into_iter().collect(),
+                        locked: r.get(2)?,
+                        name: r.get(3)?,
+                        description: r.get(4)?,
+                        year: r.get(5)?,
+                        score: r.get(6)?,
+                        cover: image_path(images, r.get(7)?),
+                        thumb: image_path(images, r.get(8)?),
+                    },
+                    genres: r
+                        .get::<_, Option<String>>(9)?
+                        .and_then(|g| serde_json::from_str(&g).ok())
+                        .unwrap_or_default(),
+                    status: r.get(10)?,
+                    studio: r.get(11)?,
+                    color: r.get(12)?,
+                    banner: image_path(images, r.get(13)?),
+                })
+            },
+        )
+        .optional()?;
+    let provider = meta.as_ref().and_then(|m| m.base.provider.clone());
 
     // Specials go last, like on streaming services.
     let mut stmt = conn.prepare(
-        "SELECT s.id, s.number, s.label FROM seasons s
+        "SELECT s.id, s.number, s.label,
+                sm.season_id IS NOT NULL, sm.provider_ids, sm.locked, sm.name, sm.description, sm.year, sm.score,
+                sm.cover, sm.thumb
+         FROM seasons s LEFT JOIN season_meta sm ON sm.season_id = s.id
          WHERE s.title_id = ?1 AND s.present = 1
            AND EXISTS (SELECT 1 FROM files f WHERE f.season_id = s.id AND f.present = 1)
          ORDER BY s.number = 0, s.sort",
     )?;
     let seasons = stmt
-        .query_map([id], |r| Ok(SeasonRow { id: r.get(0)?, number: r.get(1)?, label: r.get(2)? }))?
+        .query_map([id], |r| {
+            let has_meta: bool = r.get(3)?;
+            let meta = if has_meta {
+                let ids: Vec<i64> =
+                    r.get::<_, Option<String>>(4)?.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default();
+                Some(Meta {
+                    provider: provider.clone(),
+                    provider_ids: ids.iter().map(i64::to_string).collect(),
+                    locked: r.get(5)?,
+                    name: r.get(6)?,
+                    description: r.get(7)?,
+                    year: r.get(8)?,
+                    score: r.get(9)?,
+                    cover: image_path(images, r.get(10)?),
+                    thumb: image_path(images, r.get(11)?),
+                })
+            } else {
+                None
+            };
+            Ok(SeasonRow { id: r.get(0)?, number: r.get(1)?, label: r.get(2)?, meta })
+        })?
         .collect::<rusqlite::Result<_>>()?;
 
     let mut stmt = conn.prepare(
-        "SELECT id, path, role, season_id, episode, episode_end, name, year, size FROM files
-         WHERE title_id = ?1 AND present = 1 ORDER BY sort",
+        "SELECT f.id, f.path, f.role, f.season_id, f.episode, f.episode_end, f.name, f.year, f.size,
+                fm.file_id IS NOT NULL, fm.provider_id, fm.locked, fm.name, fm.description, fm.year,
+                fm.cover, fm.thumb, fm.provider_episode
+         FROM files f LEFT JOIN file_meta fm ON fm.file_id = f.id
+         WHERE f.title_id = ?1 AND f.present = 1 ORDER BY f.sort",
     )?;
     let files = stmt
         .query_map([id], |r| {
+            let has_meta: bool = r.get(9)?;
+            let meta = if has_meta {
+                Some(Meta {
+                    provider: provider.clone(),
+                    provider_ids: r.get::<_, Option<String>>(10)?.into_iter().collect(),
+                    locked: r.get(11)?,
+                    name: r.get(12)?,
+                    description: r.get(13)?,
+                    year: r.get(14)?,
+                    score: None,
+                    cover: image_path(images, r.get(15)?),
+                    thumb: image_path(images, r.get(16)?),
+                })
+            } else {
+                None
+            };
             Ok(FileRow {
                 id: r.get(0)?,
                 path: r.get(1)?,
@@ -448,11 +640,13 @@ pub fn title_detail(conn: &Connection, id: i64) -> rusqlite::Result<Option<Title
                 name: r.get(6)?,
                 year: r.get(7)?,
                 size: r.get(8)?,
+                meta,
+                provider_episode: r.get(17)?,
             })
         })?
         .collect::<rusqlite::Result<_>>()?;
 
-    Ok(Some(TitleDetail { id, name, year, is_movie, folder, seasons, files }))
+    Ok(Some(TitleDetail { id, kind, name, year, is_movie, folder, meta, seasons, files }))
 }
 
 #[cfg(test)]
@@ -502,7 +696,7 @@ mod tests {
         fs::remove_file(show.join("Show - S01E01 - One.mkv")).unwrap();
         let removed = rescan(&mut conn, id, &root);
         assert_eq!(removed.removed, 1);
-        let summary = &titles(&conn).unwrap()[0];
+        let summary = &titles(&conn, &root).unwrap()[0];
         assert_eq!(summary.episodes, 2);
 
         // The row is kept (hidden), so it comes back with the same id if the file returns.
