@@ -70,7 +70,7 @@ export default function LibraryView({ onPlay }: { onPlay: (request: PlayRequest)
     scanning != null
       ? `Scanning${scanning ? ` ${scanning}` : ""}…`
       : fetching?.running
-        ? `Getting info from AniList: ${fetching.current ?? ""} (${fetching.done + 1}/${fetching.total})`
+        ? `Getting info from ${fetching.source ?? "online"}: ${fetching.current ?? ""} (${fetching.done + 1}/${fetching.total})`
         : (fetching?.error ?? "");
 
   return (
@@ -125,7 +125,7 @@ function describe(t: TitleSummary) {
     if (t.episodes) parts.push(`${t.episodes} ep`);
     if (t.movies) parts.push(`${t.movies} movie${t.movies === 1 ? "" : "s"}`);
   }
-  if (t.kind === "anime" && t.matched === false) parts.push("no match");
+  if (t.matched === false) parts.push("no match");
   if (!t.online) parts.push("drive offline");
   return parts.join(" · ");
 }

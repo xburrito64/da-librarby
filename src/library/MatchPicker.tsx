@@ -1,9 +1,10 @@
 // Search AniList and pick the right entry for a show, season or movie.
 import { useEffect, useState } from "react";
-import { metadata, type Candidate } from "./api";
+import { metadata, type Candidate, type MatchSource } from "./api";
 
 interface Props {
   heading: string;
+  source: MatchSource;
   initialQuery: string;
   /** Seasons can span several AniList entries (e.g. "Part 1" + "Part 2"). */
   multiple?: boolean;
@@ -15,7 +16,8 @@ interface Props {
   onClose: () => void;
 }
 
-export default function MatchPicker({ heading, initialQuery, multiple, current, onSave, onAutomatic, onNone, onClose }: Props) {
+export default function MatchPicker({ heading, source, initialQuery, multiple, current, onSave, onAutomatic, onNone, onClose }: Props) {
+  const serviceName = source === "anilist" ? "AniList" : "TMDB";
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<Candidate[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -27,7 +29,7 @@ export default function MatchPicker({ heading, initialQuery, multiple, current, 
     setSearching(true);
     setError(null);
     metadata
-      .search(q)
+      .search(q, source)
       .then(setResults)
       .catch((e) => setError(String(e)))
       .finally(() => setSearching(false));
@@ -59,7 +61,7 @@ export default function MatchPicker({ heading, initialQuery, multiple, current, 
             search(query);
           }}
         >
-          <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search AniList" />
+          <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${serviceName}`} />
           <button type="submit">{searching ? "Searching…" : "Search"}</button>
         </form>
         {multiple && (

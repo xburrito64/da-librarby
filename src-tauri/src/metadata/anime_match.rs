@@ -22,6 +22,8 @@ pub type Locked = Option<Option<i64>>;
 
 pub struct ShowInput {
     pub name: String,
+    /// From the folder name, if it has one ("South Park (1997)").
+    pub year: Option<i32>,
     pub is_movie: bool,
     pub locked_root: Locked,
     pub seasons: Vec<SeasonInput>,
@@ -39,6 +41,10 @@ pub struct SeasonInput {
 pub struct EpisodeInput {
     pub file_id: i64,
     pub episode: Option<f64>,
+    /// Last episode in a multi-episode file ("S01E01-E03").
+    pub episode_end: Option<f64>,
+    /// Title from the file name, if any.
+    pub name: Option<String>,
 }
 
 pub struct MovieInput {
@@ -247,7 +253,7 @@ fn build_chain(root: Media, need: i32, src: &mut dyn Source, seen: &mut Vec<Medi
 
 /// Numbers every whole episode across the show's run, keyed by file id.
 /// Seasons that continue the count (Naruto's season 2 starts at episode 58) are kept as they are.
-fn global_numbers(seasons: &[SeasonInput]) -> HashMap<i64, i32> {
+pub(crate) fn global_numbers(seasons: &[SeasonInput]) -> HashMap<i64, i32> {
     let mut numbered: Vec<&SeasonInput> = seasons.iter().filter(|s| s.number.is_some_and(|n| n > 0)).collect();
     numbered.sort_by_key(|s| s.number);
 
@@ -283,7 +289,7 @@ fn global_numbers(seasons: &[SeasonInput]) -> HashMap<i64, i32> {
 }
 
 /// Episode number as a whole number ≥ 1 (0 and 14.5 are specials and aren't mapped).
-fn whole(episode: Option<f64>) -> Option<i32> {
+pub(crate) fn whole(episode: Option<f64>) -> Option<i32> {
     episode.filter(|e| *e >= 1.0 && e.fract() == 0.0).map(|e| e as i32)
 }
 
@@ -377,15 +383,23 @@ pub fn similarity(a: &str, b: &str) -> f64 {
     if a == b {
         return 1.0;
     }
-    if b.starts_with(&format!("{a} ")) || a.starts_with(&format!("{b} ")) {
-        return 0.9;
+    if let Some(rest) = b.strip_prefix(&format!("{a} ")).or_else(|| a.strip_prefix(&format!("{b} "))) {
+        // "Kaiji" vs "Kaiji 2": a bare sequel number is a weaker match than a subtitle
+        // ("Mushoku Tensei: Isekai..."), so an un-numbered entry wins when both exist.
+        return if is_sequel_number(rest) { 0.85 } else { 0.9 };
     }
     // Overlap of letter pairs: tolerant of small differences, strict with short names
     // ("One Pace" is not "One Piece").
     strsim::sorensen_dice(&a, &b) * 0.95
 }
 
-fn best_similarity(query: &str, titles: &[&str]) -> f64 {
+pub(crate) fn is_sequel_number(rest: &str) -> bool {
+    let words: Vec<&str> = rest.split_whitespace().collect();
+    let numeric = |w: &&str| w.chars().all(|c| c.is_ascii_digit()) || ["ii", "iii", "iv", "v", "2nd", "3rd"].contains(w);
+    words.iter().any(numeric) && words.iter().all(|w| numeric(w) || ["part", "season", "cour"].contains(w))
+}
+
+pub(crate) fn best_similarity(query: &str, titles: &[&str]) -> f64 {
     titles.iter().map(|t| similarity(query, t)).fold(0.0, f64::max)
 }
 
@@ -447,7 +461,7 @@ mod tests {
             id,
             number: Some(number),
             locked: None,
-            episodes: eps.map(|e| EpisodeInput { file_id: id * 1000 + e as i64, episode: Some(e as f64) }).collect(),
+            episodes: eps.map(|e| EpisodeInput { file_id: id * 1000 + e as i64, episode: Some(e as f64), episode_end: None, name: None }).collect(),
         }
     }
 
@@ -464,6 +478,7 @@ mod tests {
         let mut src = Fake(all.into_iter().map(|m| (m.id, m)).collect(), vec![4]);
         let input = ShowInput {
             name: "Show".into(),
+            year: None,
             is_movie: false,
             locked_root: None,
             seasons: vec![season(10, 1, 1..=23), season(20, 2, 1..=12)],
@@ -489,6 +504,7 @@ mod tests {
         let mut src = Fake(all.into_iter().map(|m| (m.id, m)).collect(), vec![1]);
         let input = ShowInput {
             name: "Naruto".into(),
+            year: None,
             is_movie: false,
             locked_root: None,
             seasons: vec![season(1, 1, 1..=57), season(2, 2, 58..=100)],
@@ -507,6 +523,8 @@ mod tests {
         assert_eq!(similarity("Mushoku Tensei", "Mushoku Tensei: Isekai Ittara Honki Dasu"), 0.9);
         assert!(similarity("One Pace", "One Piece") < MIN_SIMILARITY);
         assert!(similarity("Naruto", "Boruto: Naruto Next Generations") < MIN_SIMILARITY);
+        let part = "South Park: The Streaming Wars Part";
+        assert!(similarity(part, "South Park: The Streaming Wars") > similarity(part, "South Park the Streaming Wars Part 2"));
     }
 }
 
@@ -558,7 +576,7 @@ mod live {
                         .iter()
                         .enumerate()
                         .filter(|(_, f)| f.season == Some(i))
-                        .map(|(j, f)| EpisodeInput { file_id: j as i64, episode: f.episode })
+                        .map(|(j, f)| EpisodeInput { file_id: j as i64, episode: f.episode, episode_end: f.episode_end, name: f.name.clone() })
                         .collect(),
                 })
                 .collect();
@@ -570,7 +588,7 @@ mod live {
                 .map(|(j, f)| MovieInput { file_id: j as i64, name: f.name.clone().unwrap_or_default(), year: f.year, locked: None })
                 .collect();
             let _ = ids(());
-            let input = ShowInput { name: t.name.clone(), is_movie: t.is_movie, locked_root: None, seasons, movies };
+            let input = ShowInput { name: t.name.clone(), year: t.year, is_movie: t.is_movie, locked_root: None, seasons, movies };
             let m = match_show(&input, &mut src).unwrap();
             println!("=== {} -> {}", t.name, m.root.as_ref().map(|r| format!("{} {} ({:?})", r.id, r.display_title(), r.format)).unwrap_or("NO MATCH".into()));
             for (s, sm) in t.seasons.iter().zip(&m.seasons) {
@@ -597,7 +615,7 @@ mod episode_zero {
             id,
             number: Some(number),
             locked: None,
-            episodes: eps.iter().map(|&e| EpisodeInput { file_id: id * 100 + e as i64, episode: Some(e) }).collect(),
+            episodes: eps.iter().map(|&e| EpisodeInput { file_id: id * 100 + e as i64, episode: Some(e), episode_end: None, name: None }).collect(),
         };
         let seasons = [mk(1, 1, &[1.0, 2.0]), mk(2, 2, &[0.0, 1.0, 2.0]), mk(3, 3, &[1.0])];
         let g = global_numbers(&seasons);

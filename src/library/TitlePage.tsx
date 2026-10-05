@@ -1,7 +1,7 @@
 // Show page: artwork, description, seasons and episodes, movies, extras.
 // Plain layout for now; the real design comes later.
 import { useCallback, useEffect, useState } from "react";
-import { library, metadata, img, episodeCode, type FileRow, type SeasonRow, type TitleDetail } from "./api";
+import { library, metadata, img, episodeCode, type FileRow, type MatchSource, type SeasonRow, type TitleDetail } from "./api";
 import MatchPicker from "./MatchPicker";
 import type { PlayRequest } from "./LibraryView";
 
@@ -31,6 +31,8 @@ export default function TitlePage({ id, onBack, onPlay }: { id: number; onBack: 
 
   const meta = title.meta;
   const anime = title.kind === "anime";
+  const titleSource: MatchSource = anime ? "anilist" : title.isMovie ? "tmdb-movie" : "tmdb-tv";
+  const movieSource: MatchSource = anime ? "anilist" : "tmdb-movie";
   const movies = title.files.filter((f) => f.role === "movie");
   const extras = title.files.filter((f) => f.role === "extra");
   const close = () => setPicking(null);
@@ -41,7 +43,7 @@ export default function TitlePage({ id, onBack, onPlay }: { id: number; onBack: 
       <header className="lib__header">
         <button onClick={onBack}>← Back</button>
         <span className="spacer" />
-        {anime && <button onClick={() => setPicking({ kind: "title" })}>Fix match</button>}
+        <button onClick={() => setPicking({ kind: "title" })}>Fix match</button>
       </header>
 
       <div className="title__head">
@@ -86,14 +88,19 @@ export default function TitlePage({ id, onBack, onPlay }: { id: number; onBack: 
             .filter((f) => f.role === "episode" && f.seasonId === season.id)
             .map((f) => {
               const code = episodeCode(f, season.number);
+              const name = f.name ?? f.meta?.name ?? (f.episode != null ? `Episode ${f.episode}` : fileName(f.path));
               return (
                 <button
                   key={f.id}
-                  className="lib__row"
-                  onClick={() => onPlay({ path: f.path, label: [title.name, code, f.name].filter(Boolean).join(" · ") })}
+                  className="lib__row title__episode"
+                  onClick={() => onPlay({ path: f.path, label: [title.name, code, name].filter(Boolean).join(" · ") })}
                 >
                   <span className="lib__code">{code}</span>
-                  <span>{f.name ?? (f.episode != null ? `Episode ${f.episode}` : fileName(f.path))}</span>
+                  <span className="title__still">{f.meta?.thumb && <img src={img(f.meta.thumb)} alt="" loading="lazy" />}</span>
+                  <span className="title__epinfo">
+                    <span>{name}</span>
+                    {f.meta?.description && <span className="muted small title__epdesc">{f.meta.description}</span>}
+                  </span>
                 </button>
               );
             })}
@@ -112,7 +119,7 @@ export default function TitlePage({ id, onBack, onPlay }: { id: number; onBack: 
                 <div className="small">{f.meta?.name ?? f.name ?? fileName(f.path)}</div>
                 <div className="muted small">
                   {f.meta?.year ?? f.year}
-                  {anime && !title.isMovie && (
+                  {!title.isMovie && (
                     <>
                       {" "}
                       <button className="lib__link" onClick={() => setPicking({ kind: "file", file: f })}>
@@ -145,7 +152,8 @@ export default function TitlePage({ id, onBack, onPlay }: { id: number; onBack: 
 
       {picking?.kind === "title" && (
         <MatchPicker
-          heading={`Which show is "${title.name}"?`}
+          heading={`Which ${title.isMovie ? "movie" : "show"} is "${title.name}"?`}
+          source={titleSource}
           initialQuery={title.name}
           current={meta?.providerIds.map(Number)}
           onSave={([pick]) => metadata.matchTitle(title.id, "pick", pick).then(close)}
@@ -157,6 +165,7 @@ export default function TitlePage({ id, onBack, onPlay }: { id: number; onBack: 
       {picking?.kind === "season" && (
         <MatchPicker
           heading={`${title.name}: ${picking.season.label}`}
+          source="anilist"
           initialQuery={picking.season.meta?.name ?? title.meta?.name ?? title.name}
           multiple
           current={picking.season.meta?.providerIds.map(Number)}
@@ -168,6 +177,7 @@ export default function TitlePage({ id, onBack, onPlay }: { id: number; onBack: 
       {picking?.kind === "file" && (
         <MatchPicker
           heading={`Which movie is "${picking.file.name ?? fileName(picking.file.path)}"?`}
+          source={movieSource}
           initialQuery={picking.file.name ?? fileName(picking.file.path)}
           current={picking.file.meta?.providerIds.map(Number)}
           onSave={([pick]) => metadata.matchFile(picking.file.id, "pick", pick).then(close)}
@@ -182,7 +192,7 @@ export default function TitlePage({ id, onBack, onPlay }: { id: number; onBack: 
 
 function matchNote(title: TitleDetail) {
   const source = title.kind === "anime" ? "AniList" : "TMDB";
-  if (!title.meta) return title.kind === "anime" ? "Not looked up yet" : "TMDB info comes in the next step";
+  if (!title.meta) return "Not looked up yet";
   if (title.meta.providerIds.length === 0) return `No ${source} match${title.meta.locked ? " (set by hand)" : ""}`;
   return `${source} match${title.meta.locked ? " (set by hand)" : ""}`;
 }

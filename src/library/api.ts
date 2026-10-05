@@ -108,6 +108,7 @@ export interface MetadataStatus {
   done: number;
   total: number;
   current: string | null;
+  source: "AniList" | "TMDB" | null;
   error: string | null;
 }
 
@@ -121,12 +122,15 @@ export interface Candidate {
   coverUrl: string | null;
 }
 
+/** Where the fix-match picker searches. */
+export type MatchSource = "anilist" | "tmdb-tv" | "tmdb-movie";
+
 /** "auto" = let the app decide, "none" = no match, "pick" = use the given id. */
 export type MatchMode = "auto" | "none" | "pick";
 
 export const metadata = {
   status: () => invoke<MetadataStatus>("metadata_status"),
-  search: (query: string) => invoke<Candidate[]>("metadata_search", { query }),
+  search: (query: string, source: MatchSource) => invoke<Candidate[]>("metadata_search", { query, source }),
   matchTitle: (titleId: number, mode: MatchMode, id?: number) =>
     invoke<void>("metadata_match_title", { titleId, mode, id: id ?? null }),
   matchSeason: (seasonId: number, ids: number[]) => invoke<void>("metadata_match_season", { seasonId, ids }),

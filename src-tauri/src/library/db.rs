@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 3;
+const SCHEMA_VERSION: i32 = 4;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -147,6 +147,14 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
         conn.execute_batch(
             "ALTER TABLE titles ADD COLUMN kind TEXT;
              UPDATE titles SET kind = (SELECT kind FROM libraries l WHERE l.id = titles.library_id);",
+        )?;
+    }
+    if version < 4 {
+        // tmdb_id: the TMDB show used for an anime's episode info.
+        // details_at: when episode details (description, thumbnail) were last looked up.
+        conn.execute_batch(
+            "ALTER TABLE title_meta ADD COLUMN tmdb_id TEXT;
+             ALTER TABLE file_meta ADD COLUMN details_at INTEGER;",
         )?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;

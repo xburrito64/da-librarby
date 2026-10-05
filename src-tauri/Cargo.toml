@@ -27,6 +27,7 @@ rusqlite = { version = "0.40.2", features = ["bundled"] }
 ureq = { version = "3.4.2", features = ["json"] }
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
 strsim = "0.11.1"
+tauri-plugin-single-instance = "2.5.2"
 
 [profile.release]
 codegen-units = 1

@@ -1,13 +1,15 @@
 //! Covers, descriptions and episode mapping from AniList (anime) and later TMDB (shows, movies).
 //! Runs in the background after scans; everything is saved locally so it works offline.
 //!
-//! Events: `metadata:status` { running, done, total, current, error }, plus `library:changed`
+//! Events: `metadata:status` { running, done, total, current, source, error }, plus `library:changed`
 //! after each title so the interface fills in as it goes.
 
 pub mod anilist;
 pub mod anime_match;
 pub mod images;
 pub mod store;
+pub mod tmdb;
+pub mod tmdb_match;
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
@@ -20,6 +22,7 @@ use crate::library::Library;
 use anilist::{AniList, Media};
 use anime_match::Source;
 use images::Images;
+use tmdb::Tmdb;
 
 pub struct Metadata {
     anilist: AniList,
@@ -43,6 +46,8 @@ pub struct Status {
     done: usize,
     total: usize,
     current: Option<String>,
+    /// "AniList" or "TMDB".
+    source: Option<String>,
     error: Option<String>,
 }
 
@@ -50,6 +55,9 @@ impl Metadata {
     pub fn new(library: &Library) -> Self {
         if let Err(e) = library.with_db(|c| store::clean_saved_descriptions(c)) {
             eprintln!("cleaning saved descriptions failed: {e}");
+        }
+        if let Err(e) = library.with_db(|c| store::refresh_tmdb_matches_if_outdated(c)) {
+            eprintln!("refreshing TMDB matches failed: {e}");
         }
         Self {
             anilist: AniList::new(),
@@ -81,11 +89,58 @@ pub fn request(app: &AppHandle, force: Option<i64>) {
     }
 }
 
+/// Which service a piece of work goes to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Job {
+    /// Anime: show, seasons, movies.
+    AniList,
+    /// Shows and movies; for anime, episode descriptions and thumbnails.
+    Tmdb,
+}
+
+impl Job {
+    fn label(self) -> &'static str {
+        match self {
+            Job::AniList => "AniList",
+            Job::Tmdb => "TMDB",
+        }
+    }
+}
+
+fn tmdb_key(library: &Library) -> Option<String> {
+    library.with_db(|c| store::setting(c, "tmdb_api_key")).ok().flatten()
+}
+
+/// Everything that needs looking up, hand-made fixes first.
+fn find_jobs(library: &Library, forced: &[i64], attempted: &HashSet<(i64, Job)>, has_key: bool) -> Vec<(i64, Job)> {
+    let is_anime = |id: i64| library.with_db(|c| store::is_anime(c, id)).unwrap_or(false);
+    let mut jobs: Vec<(i64, Job)> = Vec::new();
+    for &id in forced {
+        if is_anime(id) {
+            jobs.push((id, Job::AniList));
+        } else if has_key {
+            jobs.push((id, Job::Tmdb));
+        }
+    }
+    let mut add = |ids: Vec<i64>, job: Job| {
+        for id in ids {
+            if !attempted.contains(&(id, job)) && !jobs.contains(&(id, job)) {
+                jobs.push((id, job));
+            }
+        }
+    };
+    add(library.with_db(|c| store::anime_titles_needing_work(c)).unwrap_or_default(), Job::AniList);
+    if has_key {
+        add(library.with_db(|c| store::titles_needing_tmdb(c)).unwrap_or_default(), Job::Tmdb);
+    }
+    jobs
+}
+
 fn run(app: AppHandle) {
     let metadata = app.state::<Metadata>();
     let library = app.state::<Library>();
-    // Each title is processed at most once per round unless a hand-made fix forces it again.
-    let mut attempted: HashSet<i64> = HashSet::new();
+    // Each piece of work runs at most once per round unless a hand-made fix forces it again.
+    let mut attempted: HashSet<(i64, Job)> = HashSet::new();
     let mut done = 0;
 
     'outer: loop {
@@ -94,13 +149,11 @@ fn run(app: AppHandle) {
             queue.again = false;
             std::mem::take(&mut queue.forced)
         };
-        let mut todo = forced.clone();
-        if let Ok(ids) = library.with_db(|c| store::anime_titles_needing_work(c)) {
-            todo.extend(ids.into_iter().filter(|id| !forced.contains(id) && !attempted.contains(id)));
-        }
-        todo.retain(|id| library.with_db(|c| store::is_anime(c, *id)).unwrap_or(false));
+        let key = tmdb_key(&library);
+        let tmdb = key.as_deref().map(Tmdb::new);
+        let jobs = find_jobs(&library, &forced, &attempted, tmdb.is_some());
 
-        if todo.is_empty() {
+        if jobs.is_empty() {
             let mut queue = metadata.queue.lock().unwrap();
             if queue.again || !queue.forced.is_empty() {
                 continue;
@@ -109,24 +162,37 @@ fn run(app: AppHandle) {
             break;
         }
 
-        let total = done + todo.len();
-        for id in todo {
+        let total = done + jobs.len();
+        for (id, job) in jobs {
             let input = match library.with_db(|c| store::load_show_input(c, id)) {
                 Ok(Some(input)) => input,
                 _ => continue,
             };
-            attempted.insert(id);
-            set_status(&app, Status { running: true, done, total, current: Some(input.name.clone()), error: None });
+            attempted.insert((id, job));
+            set_status(
+                &app,
+                Status { running: true, done, total, current: Some(input.name.clone()), source: Some(job.label().into()), error: None },
+            );
 
-            match process(&app, id, &input) {
+            let result = match (job, &tmdb) {
+                (Job::AniList, _) => process(&app, id, &input),
+                (Job::Tmdb, Some(tmdb)) => process_tmdb(&app, id, &input, tmdb),
+                (Job::Tmdb, None) => Ok(()),
+            };
+            match result {
                 Ok(()) => {
                     let _ = app.emit("library:changed", json!({}));
                 }
                 Err(anilist::Error::Unavailable(message)) => {
-                    // Offline or AniList down: stop now, try again on the next scan or start.
+                    // Offline, service down or key refused: stop now, try again on the next scan or start.
                     eprintln!("metadata paused: {message}");
                     metadata.queue.lock().unwrap().running = false;
-                    set_status(&app, Status { error: Some("AniList can't be reached right now.".into()), ..Status::default() });
+                    let error = if message.contains("key") {
+                        "The TMDB key wasn't accepted. Check it in Settings.".to_string()
+                    } else {
+                        format!("{} can't be reached right now.", job.label())
+                    };
+                    set_status(&app, Status { error: Some(error), ..Status::default() });
                     return;
                 }
                 Err(e) => eprintln!("metadata for {} failed: {e}", input.name),
@@ -140,6 +206,87 @@ fn run(app: AppHandle) {
         }
     }
     set_status(&app, Status::default());
+}
+
+/// TMDB work for one title: a show, a movie, or episode details for an anime.
+fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, tmdb: &Tmdb) -> Result<(), anilist::Error> {
+    let metadata = app.state::<Metadata>();
+    let library = app.state::<Library>();
+    let images = &metadata.images;
+    let db_error = |e: String| anilist::Error::Rejected(e);
+    let kind = library.with_db(|c| store::title_kind(c, title_id)).map_err(db_error)?;
+    let mut art = store::TmdbArt::default();
+
+    if kind.as_deref() == Some("anime") {
+        let (names, year, known) = library.with_db(|c| store::anime_lookup_hints(c, title_id)).map_err(db_error)?;
+        let names: Vec<&str> = names.iter().map(String::as_str).collect();
+        let (tmdb_id, episodes) = tmdb_match::anime_episodes(input, &names, year, known, tmdb)?;
+        art.stills = save_stills(images, tmdb_id, &episodes);
+        return library.with_db(|c| store::save_anime_episodes(c, title_id, tmdb_id, &episodes, &art)).map_err(db_error);
+    }
+
+    if input.is_movie {
+        let movie = tmdb_match::match_movie(input, tmdb)?;
+        if let Some(m) = &movie {
+            save_poster(images, &mut art, &format!("movie-{}", m.id), m.poster_path.as_deref());
+            art.banner = images.banner(&format!("tmdb-movie-{}", m.id), tmdb::image_url(m.backdrop_path.as_deref(), "w1280").as_deref());
+        }
+        return library.with_db(|c| store::save_movie_title(c, title_id, input, movie.as_ref(), &art)).map_err(db_error);
+    }
+
+    let matched = tmdb_match::match_tv(input, tmdb)?;
+    if let Some(show) = &matched.show {
+        save_poster(images, &mut art, &format!("tv-{}", show.id), show.poster_path.as_deref());
+        art.banner = images.banner(&format!("tmdb-tv-{}", show.id), tmdb::image_url(show.backdrop_path.as_deref(), "w1280").as_deref());
+        for summary in matched.seasons.iter().filter_map(|(_, s)| s.as_ref()) {
+            let key = format!("season-{}", summary.season_number);
+            if let Some(saved) = images.cover(
+                &format!("tmdb-tv-{}-s{}", show.id, summary.season_number),
+                tmdb::image_url(summary.poster_path.as_deref(), "w780").as_deref(),
+            ) {
+                art.covers.insert(key, saved);
+            }
+        }
+    }
+    for movie in matched.movies.iter().filter_map(|m| m.movie.as_ref()) {
+        save_poster(images, &mut art, &format!("movie-{}", movie.id), movie.poster_path.as_deref());
+    }
+    art.stills = save_stills(images, matched.show.as_ref().map(|s| s.id), &matched.episodes);
+    library.with_db(|c| store::save_tv_match(c, title_id, input, &matched, &art)).map_err(db_error)
+}
+
+/// `key` is "tv-<id>" or "movie-<id>"; the file is named "tmdb-<key>".
+fn save_poster(images: &Images, art: &mut store::TmdbArt, key: &str, path: Option<&str>) {
+    if let Some(saved) = images.cover(&format!("tmdb-{key}"), tmdb::image_url(path, "w780").as_deref()) {
+        art.covers.insert(key.to_string(), saved);
+    }
+}
+
+/// Downloads episode thumbnails a few at a time; returns file id -> image name.
+fn save_stills(images: &Images, show_id: Option<i64>, episodes: &[(i64, Vec<tmdb::Episode>)]) -> HashMap<i64, String> {
+    let Some(show_id) = show_id else { return HashMap::new() };
+    let wanted: Vec<(i64, String, String)> = episodes
+        .iter()
+        .filter_map(|(file_id, eps)| {
+            let ep = eps.iter().find(|e| e.still_path.is_some())?;
+            let url = tmdb::image_url(ep.still_path.as_deref(), "w300")?;
+            Some((*file_id, format!("tmdb-tv-{show_id}-s{}e{}", ep.season_number, ep.episode_number), url))
+        })
+        .collect();
+    let results = Mutex::new(HashMap::new());
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    std::thread::scope(|scope| {
+        for _ in 0..6 {
+            scope.spawn(|| loop {
+                let i = next.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                let Some((file_id, key, url)) = wanted.get(i) else { break };
+                if let Some(name) = images.still(key, Some(url)) {
+                    results.lock().unwrap().insert(*file_id, name);
+                }
+            });
+        }
+    });
+    results.into_inner().unwrap()
 }
 
 fn process(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput) -> Result<(), anilist::Error> {
@@ -224,20 +371,44 @@ pub struct Candidate {
     cover_url: Option<String>,
 }
 
-/// Searches AniList for the "fix match" picker.
+/// Searches for the "fix match" picker. `source`: "anilist", "tmdb-tv" or "tmdb-movie".
 #[tauri::command]
-pub async fn metadata_search(metadata: State<'_, Metadata>, query: String) -> Result<Vec<Candidate>, String> {
-    let results = metadata.anilist.search(&query, None).map_err(|e| e.to_string())?;
+pub async fn metadata_search(
+    metadata: State<'_, Metadata>,
+    library: State<'_, Library>,
+    query: String,
+    source: String,
+) -> Result<Vec<Candidate>, String> {
+    if source == "anilist" {
+        let results = metadata.anilist.search(&query, None).map_err(|e| e.to_string())?;
+        return Ok(results
+            .into_iter()
+            .map(|m| Candidate {
+                id: m.id,
+                title: m.display_title(),
+                alt_title: m.title.romaji.clone().filter(|r| Some(r) != m.title.english.as_ref()),
+                format: m.format.clone(),
+                year: m.year(),
+                episodes: m.episodes,
+                cover_url: m.cover_image.as_ref().and_then(|c| c.large.clone()),
+            })
+            .collect());
+    }
+    let key = tmdb_key(&library).ok_or("Add your TMDB key in Settings first.")?;
+    let tmdb = Tmdb::new(&key);
+    let movie = source == "tmdb-movie";
+    let results = if movie { tmdb.search_movie(&query, None) } else { tmdb.search_tv(&query, None) }
+        .map_err(|e| e.to_string())?;
     Ok(results
         .into_iter()
-        .map(|m| Candidate {
-            id: m.id,
-            title: m.display_title(),
-            alt_title: m.title.romaji.clone().filter(|r| Some(r) != m.title.english.as_ref()),
-            format: m.format.clone(),
-            year: m.year(),
-            episodes: m.episodes,
-            cover_url: m.cover_image.as_ref().and_then(|c| c.large.clone()),
+        .map(|r| Candidate {
+            id: r.id,
+            title: r.display_title(),
+            alt_title: r.original_name.clone().or(r.original_title.clone()).filter(|o| *o != r.display_title()),
+            format: Some(if movie { "MOVIE" } else { "TV" }.into()),
+            year: r.year(),
+            episodes: None,
+            cover_url: tmdb::image_url(r.poster_path.as_deref(), "w185"),
         })
         .collect())
 }
@@ -290,7 +461,10 @@ pub async fn settings_tmdb_key(library: State<'_, Library>) -> Result<Option<Str
 }
 
 #[tauri::command]
-pub async fn settings_set_tmdb_key(library: State<'_, Library>, key: Option<String>) -> Result<(), String> {
+pub async fn settings_set_tmdb_key(app: AppHandle, library: State<'_, Library>, key: Option<String>) -> Result<(), String> {
     let key = key.map(|k| k.trim().to_string()).filter(|k| !k.is_empty());
-    library.with_db(|c| store::set_setting(c, "tmdb_api_key", key.as_deref()))
+    library.with_db(|c| store::set_setting(c, "tmdb_api_key", key.as_deref()))?;
+    // Fetch info for shows and movies right away.
+    request(&app, None);
+    Ok(())
 }

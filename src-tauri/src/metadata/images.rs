@@ -11,6 +11,7 @@ use image::DynamicImage;
 const COVER_WIDTH: u32 = 600;
 const THUMB_WIDTH: u32 = 300;
 const BANNER_WIDTH: u32 = 1920;
+const STILL_WIDTH: u32 = 400;
 
 pub struct Images {
     dir: PathBuf,
@@ -52,6 +53,16 @@ impl Images {
         if !self.dir.join(&name).exists() {
             let image = self.download(url?)?;
             self.save(&image, BANNER_WIDTH, &name)?;
+        }
+        Some(name)
+    }
+
+    /// Saves an episode thumbnail as `<key>.jpg`.
+    pub fn still(&self, key: &str, url: Option<&str>) -> Option<String> {
+        let name = format!("{key}.jpg");
+        if !self.dir.join(&name).exists() {
+            let image = self.download(url?)?;
+            self.save(&image, STILL_WIDTH, &name)?;
         }
         Some(name)
     }
