@@ -18,9 +18,6 @@ Then:
 npm run tauri dev
 ```
 
-Rust build output goes to `C:\Users\raild\.cargo-targets\da-librarby` (see `src-tauri/.cargo/config.toml`)
-so it stays out of OneDrive.
-
 ## How playback works
 
 mpv draws video straight into the app window; the web interface sits on top with a transparent

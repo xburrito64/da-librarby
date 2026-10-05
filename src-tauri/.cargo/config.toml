@@ -1,3 +1,0 @@
-# Keep Rust's build output (several GB) out of the OneDrive-synced project folder.
-[build]
-target-dir = "C:/Users/raild/.cargo-targets/da-librarby"

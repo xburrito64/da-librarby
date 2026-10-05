@@ -2,7 +2,7 @@
 name = "da-librarby"
 version = "0.1.0"
 description = "A personal media library and player"
-authors = ["raild"]
+authors = ["xburrito64"]
 edition = "2021"
 
 [lib]
