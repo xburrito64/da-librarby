@@ -28,14 +28,24 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
-    "resources": ["lib/*.dll"],
+    "targets": [
+      "nsis"
+    ],
+    "resources": [
+      "lib/*.dll"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
+    "shortDescription": "Personal media library and player"
   }
 }

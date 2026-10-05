@@ -12,11 +12,14 @@ powershell -ExecutionPolicy Bypass -File scripts/setup-mpv.ps1
 npm install
 ```
 
-Then:
+Build and install the app (closes it if running, then reinstalls silently; adds Start Menu
+and desktop shortcuts):
 
 ```
-npm run tauri dev
+powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 ```
+
+For development with live reload: `npm run tauri dev`.
 
 ## How playback works
 
