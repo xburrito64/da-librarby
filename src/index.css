@@ -1,0 +1,18 @@
+/* Global basics. Deliberately plain, neutral styling until the design pass. */
+
+:root {
+  font-family: system-ui, "Segoe UI", sans-serif;
+  color: #fff;
+  --overlay: rgba(0, 0, 0, 0.55);
+}
+
+/* The window and page must be transparent so mpv's video shows through. */
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+}
