@@ -48,6 +48,7 @@ pub fn run() {
             library::watch_save,
             library::watch_set,
             library::watch_continue,
+            library::watch_hide,
             metadata::metadata_status,
             metadata::metadata_search,
             metadata::metadata_match_title,

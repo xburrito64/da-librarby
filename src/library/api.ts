@@ -233,6 +233,8 @@ export const watch = {
     invoke<void>("watch_save", { fileId, position, duration, done }),
   set: (fileIds: number[], watched: boolean) => invoke<void>("watch_set", { fileIds, watched }),
   continueList: () => invoke<ContinueItem[]>("watch_continue"),
+  /** Removes a show from "continue watching" until something of it is watched again. */
+  hide: (titleId: number) => invoke<void>("watch_hide", { titleId }),
 };
 
 /** "S1E3" / "E3" / "" for a play item. */

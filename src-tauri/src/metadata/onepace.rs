@@ -58,6 +58,8 @@ pub struct GuideEpisode {
 pub struct Guide {
     episodes: Vec<GuideEpisode>,
     by_crc: HashMap<String, usize>,
+    /// One Piece episodes each arc is made from.
+    arc_anime: HashMap<i64, BTreeSet<i32>>,
 }
 
 #[derive(Deserialize)]
@@ -65,6 +67,19 @@ struct RawData {
     episodes: HashMap<String, RawEpisode>,
     #[serde(default)]
     descriptions: HashMap<String, Vec<RawDescription>>,
+    #[serde(default)]
+    arcs: HashMap<String, Vec<RawArc>>,
+}
+
+#[derive(Deserialize)]
+struct RawArc {
+    part: i64,
+    info: Option<RawArcInfo>,
+}
+
+#[derive(Deserialize)]
+struct RawArcInfo {
+    anime_episodes: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -118,7 +133,16 @@ pub fn parse(json: &str) -> Result<Guide, String> {
         }
         by_crc.insert(crc.to_uppercase(), i);
     }
-    Ok(Guide { episodes, by_crc })
+    let arc_anime = raw
+        .arcs
+        .get("en")
+        .map(|arcs| {
+            arcs.iter()
+                .map(|a| (a.part, numbers(a.info.as_ref().and_then(|i| i.anime_episodes.as_deref()).unwrap_or(""))))
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(Guide { episodes, by_crc, arc_anime })
 }
 
 /// "8-11", "153-155, 142", "1 - 4, 19" -> the set of numbers.
@@ -205,14 +229,27 @@ fn guess(guide: &Guide, file_name: &str) -> Option<(usize, f64)> {
         .max_by(|a, b| a.1.total_cmp(&b.1))
 }
 
+impl Guide {
+    /// The One Piece episode whose picture fits a One Pace episode: the first one it's cut from
+    /// that belongs to its arc. Some are cut from much later flashbacks (Romance Dawn 01 comes
+    /// from episode 312, whose picture shows Water Seven); then the arc's first episode is used.
+    fn picture_source(&self, g: &GuideEpisode) -> Option<i32> {
+        let arc = self.arc_anime.get(&g.arc).filter(|a| !a.is_empty());
+        match arc {
+            Some(arc) => g.anime.iter().find(|n| arc.contains(n)).or_else(|| arc.first()).copied(),
+            None => g.anime.first().copied(),
+        }
+    }
+}
+
 /// Turns matches into episode info: One Pace's own title and description, with the date and
-/// picture of the first One Piece episode it covers (`one_piece` = TMDB's seasons of One Piece).
-pub fn episode_info(matches: &[(i64, &GuideEpisode)], one_piece: &[Season]) -> Vec<(i64, Vec<Episode>)> {
+/// picture of a One Piece episode it's cut from (`one_piece` = TMDB's seasons of One Piece).
+pub fn episode_info(guide: &Guide, matches: &[(i64, &GuideEpisode)], one_piece: &[Season]) -> Vec<(i64, Vec<Episode>)> {
     let lookup = AbsoluteEpisodes::new(one_piece);
     matches
         .iter()
         .map(|(file_id, g)| {
-            let source = g.anime.iter().find_map(|n| lookup.get(*n));
+            let source = guide.picture_source(g).and_then(|n| lookup.get(n));
             let info = Episode {
                 season_number: source.map_or(0, |e| e.season_number),
                 episode_number: source.map_or(0, |e| e.episode_number),
@@ -266,7 +303,7 @@ mod tests {
 
     const DATA: &str = r#"{
       "episodes": {
-        "E5F09F49": {"arc": 1, "episode": 1, "manga_chapters": "1", "anime_episodes": "1"},
+        "E5F09F49": {"arc": 1, "episode": 1, "manga_chapters": "1", "anime_episodes": "312"},
         "A465972A": {"arc": 1, "episode": 2, "manga_chapters": "2", "anime_episodes": "1-2"},
         "2DEB2701": {"arc": 1, "episode": 3, "manga_chapters": "3-4", "anime_episodes": "2-3"},
         "6E46167D": {"arc": 1, "episode": 4, "manga_chapters": "5-7", "anime_episodes": "3-4, 19"},
@@ -274,6 +311,7 @@ mod tests {
         "22222222": {"arc": 20, "episode": 3, "manga_chapters": "", "anime_episodes": "314"},
         "839FC67B": {"arc": 12, "episode": 5, "manga_chapters": "127-129", "anime_episodes": "77"}
       },
+      "arcs": {"en": [{"part": 1, "info": {"anime_episodes": "1 - 4, 19"}}]},
       "descriptions": {"en": [
         {"arc": 1, "episode": 1, "title": "Romance Dawn, the Dawn of an Adventure", "description": "Luffy sets out."},
         {"arc": 20, "episode": 3, "title": "Aftermath", "description": ""}
@@ -325,11 +363,17 @@ mod tests {
         let straight = [Season { season_number: 1, episodes: vec![ep(1, 1), ep(1, 2)] }, Season { season_number: 2, episodes: vec![ep(2, 3)] }];
         assert_eq!(AbsoluteEpisodes::new(&straight).get(3).and_then(|e| e.name.clone()).as_deref(), Some("S2E3"));
 
+        // Romance Dawn 01 is cut from episode 312 (a later flashback): the picture comes from
+        // its own arc instead. Romance Dawn 02 is cut from episode 1-2 as usual.
         let guide = parse(DATA).unwrap();
-        let matches = match_files(&guide, &[file(1, 10, 1.0, "One Pace[1] - Romance Dawn - E01.mkv")]);
-        let info = episode_info(&matches, &per_season);
+        let matches = match_files(
+            &guide,
+            &[file(1, 10, 1.0, "One Pace[1] - Romance Dawn - E01.mkv"), file(2, 10, 2.0, "One Pace[2] - Romance Dawn - E02.mkv")],
+        );
+        let info = episode_info(&guide, &matches, &per_season);
         assert_eq!(info[0].1[0].name.as_deref(), Some("Romance Dawn, the Dawn of an Adventure"));
         assert_eq!(info[0].1[0].overview.as_deref(), Some("Luffy sets out."));
-        assert_eq!(info[0].1[0].episode_number, 1);
+        assert_eq!((info[0].1[0].season_number, info[0].1[0].episode_number), (1, 1));
+        assert_eq!((info[1].1[0].season_number, info[1].1[0].episode_number), (1, 1));
     }
 }

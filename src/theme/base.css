@@ -955,23 +955,35 @@
   color: var(--muted);
 }
 
-.ccard__info {
+.ccard__actions {
   position: absolute;
   z-index: 2;
   top: calc(8px + var(--card-frame));
   right: calc(8px + var(--card-frame));
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.ccard__actions .icon-btn {
   width: 34px;
   height: 34px;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.55);
   color: #fff;
-  opacity: 0;
 }
 
-.ccard__info:hover {
-  background: rgba(0, 0, 0, 0.75);
+.ccard__actions .icon-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
 }
 
-.ccard:hover .ccard__info {
+.ccard__actions .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.ccard:hover .ccard__actions,
+.ccard__actions:focus-within {
   opacity: 1;
 }
 
@@ -1906,4 +1918,15 @@ select.input {
   border-radius: calc(var(--radius-card) / 2.5);
   clip-path: var(--card-clip);
   background: var(--surface-hover);
+}
+
+/* The buttons ride along when a continue-watching card lifts on hover. */
+.ccard:hover .ccard__actions {
+  transform: translateY(-5px);
+}
+
+.ccard__actions {
+  transition:
+    opacity 0.2s,
+    transform 0.35s var(--ease);
 }

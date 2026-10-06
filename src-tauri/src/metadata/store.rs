@@ -672,7 +672,7 @@ pub fn store_one_pace_guide(conn: &Connection, json: &str) -> rusqlite::Result<(
 }
 
 /// Bumped when One Pace matching improves, so its episodes are looked up again once.
-const ONE_PACE_VERSION: &str = "1";
+const ONE_PACE_VERSION: &str = "2";
 
 pub fn refresh_one_pace_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "onepace_version")?.as_deref() == Some(ONE_PACE_VERSION) {

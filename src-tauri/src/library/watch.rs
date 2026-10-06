@@ -26,6 +26,15 @@ CREATE TABLE IF NOT EXISTS watch (
 CREATE INDEX IF NOT EXISTS watch_updated ON watch (updated_at);
 ";
 
+/// Shows removed from "continue watching" by hand; they come back once something of theirs
+/// is watched after `hidden_at`.
+pub const SCHEMA_V6: &str = "
+CREATE TABLE IF NOT EXISTS continue_hidden (
+    title_id  INTEGER PRIMARY KEY REFERENCES titles(id) ON DELETE CASCADE,
+    hidden_at INTEGER NOT NULL
+);
+";
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Progress {
@@ -122,6 +131,14 @@ pub fn set_watched(conn: &mut Connection, file_ids: &[i64], watched: bool) -> ru
     tx.commit()
 }
 
+pub fn hide_from_continue(conn: &Connection, title_id: i64) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO continue_hidden (title_id, hidden_at) VALUES (?1, ?2)",
+        params![title_id, now()],
+    )?;
+    Ok(())
+}
+
 /// Number of watched files (episodes and movies) per title.
 pub fn watched_counts(conn: &Connection) -> rusqlite::Result<HashMap<i64, i64>> {
     let mut stmt = conn.prepare(
@@ -215,10 +232,16 @@ pub fn continue_watching(conn: &Connection, images: &Path) -> rusqlite::Result<V
     let rows: Vec<(i64, i64, i64)> =
         stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?.collect::<rusqlite::Result<_>>()?;
 
+    let hidden: HashMap<i64, i64> = {
+        let mut stmt = conn.prepare("SELECT title_id, hidden_at FROM continue_hidden")?;
+        let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?.collect::<rusqlite::Result<_>>()?;
+        rows
+    };
+
     let mut seen = std::collections::HashSet::new();
     let mut out = Vec::new();
     for (title_id, file_id, updated_at) in rows {
-        if !seen.insert(title_id) {
+        if !seen.insert(title_id) || hidden.get(&title_id).is_some_and(|at| *at >= updated_at) {
             continue;
         }
         let Some(progress) = progress(conn, file_id)? else { continue };
@@ -311,6 +334,12 @@ mod tests {
         // Next one already watched by hand: skip past it.
         set_watched(&mut conn, &[102], true).unwrap();
         conn.execute("UPDATE watch SET updated_at = 0 WHERE file_id = 102", []).unwrap();
+        assert_eq!(continue_watching(&conn, images).unwrap()[0].item.file_id, 103);
+
+        // Removed by hand: gone until something of it is watched again.
+        hide_from_continue(&conn, 1).unwrap();
+        assert!(continue_watching(&conn, images).unwrap().is_empty());
+        conn.execute("UPDATE continue_hidden SET hidden_at = hidden_at - 10", []).unwrap();
         assert_eq!(continue_watching(&conn, images).unwrap()[0].item.file_id, 103);
 
         // Everything watched: the show drops off the list.

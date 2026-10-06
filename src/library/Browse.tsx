@@ -7,13 +7,14 @@ import {
   itemCode,
   itemName,
   upNext,
+  watch,
   KIND_LABELS,
   type ContinueItem,
   type LibraryKind,
   type TitleSummary,
 } from "./api";
 import type { Tab } from "./LibraryView";
-import { ChevronLeft, ChevronRight, InfoIcon, PlayIcon } from "../ui/icons";
+import { ChevronLeft, ChevronRight, CloseIcon, InfoIcon, PlayIcon } from "../ui/icons";
 
 const KINDS: LibraryKind[] = ["anime", "shows", "movies"];
 const SPOTLIGHT_SIZE = 6;
@@ -270,9 +271,14 @@ function ContinueCard({ item, onPlay, onOpen }: { item: ContinueItem; onPlay: (f
           {left != null && <span className="ccard__left">{left} min left</span>}
         </span>
       </button>
-      <button className="icon-btn ccard__info" onClick={() => onOpen(item.titleId)} title="Show details">
-        <InfoIcon />
-      </button>
+      <div className="ccard__actions">
+        <button className="icon-btn" onClick={() => onOpen(item.titleId)} title="Show details">
+          <InfoIcon />
+        </button>
+        <button className="icon-btn" onClick={() => watch.hide(item.titleId)} title="Remove from Continue watching">
+          <CloseIcon />
+        </button>
+      </div>
     </div>
   );
 }

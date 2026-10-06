@@ -294,7 +294,7 @@ fn process_one_pace(library: &Library, images: &Images, title_id: i64, tmdb: &Tm
         Some((id, seasons)) => (Some(id), seasons),
         None => (None, Vec::new()),
     };
-    let episodes = onepace::episode_info(&matches, &seasons);
+    let episodes = onepace::episode_info(&guide, &matches, &seasons);
     let art = store::TmdbArt { stills: save_stills(images, tmdb_id, &episodes), ..Default::default() };
     library.with_db(|c| store::save_anime_episodes(c, title_id, tmdb_id, &episodes, &art)).map_err(db_error)
 }
