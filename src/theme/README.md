@@ -48,6 +48,10 @@ Themes that leave it out look and behave exactly as before.
   Elements can ask for a particular sound with `data-sfx="save"` (or `"none"`).
 - `icons`: pixel versions of the app's icons, by name (see `src/ui/icons.tsx`), drawn from rows of `#`
   and `.`.
+- `ownFiles`: a folder on the owner's PC (`<app data>/theme-files/<theme id>/`) where they can put their own
+  font (`font.ttf`, `.otf`, `.woff2`) and sound files named after the sounds (`select.wav`, ...), used
+  instead of the theme's (see `ownFiles.ts`). Settings shows what's in use. The files never become part
+  of the app or the project.
 - `Decor`: a component drawn behind the library screens (Snowdin's falling snow), given the theme's option
   values.
 
