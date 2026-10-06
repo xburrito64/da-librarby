@@ -1,0 +1,987 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Snowdin theme plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Nunito:wght@400..800&display=swap" rel="stylesheet" />
+<style>
+/* =====================================================================
+   Snowdin: the colours, fonts and pieces the theme would use.
+   ===================================================================== */
+:root {
+  --night: #0c0d1b;
+  --night-2: #131529;
+  --night-3: #1b1e38;
+  --box: #06060c;
+  --line: #ffffff;
+  --text: #fbf6ec;
+  --muted: #aeaac6;
+  --dim: #6e6b8c;
+  --yellow: #fff200;
+  --soul: #ff2b2b;
+  --orange: #ff8d2b;
+  --amber: #ffbe5c;
+  --ember: #ff7a3d;
+  --wood: #7a5236;
+  --wood-dark: #4a2e1c;
+  --pine: #1f4459;
+  --pine-dark: #142e3d;
+  --snow: #eef4ff;
+  --ice: #8fcbff;
+  --toriel: #8a6fc9;
+
+  --font-pixel: "Pixelify Sans", ui-monospace, monospace;
+  --font-body: var(--font-pixel);
+  --px: 4px;
+}
+body.smooth { --font-body: "Nunito", system-ui, sans-serif; }
+
+* { box-sizing: border-box; }
+html { background: var(--night); }
+body {
+  margin: 0;
+  color: var(--text);
+  font: 17px/1.5 var(--font-body);
+  background:
+    radial-gradient(1100px 700px at 85% -10%, rgba(255, 170, 80, 0.10), transparent 60%),
+    radial-gradient(900px 600px at 0% 30%, rgba(138, 111, 201, 0.10), transparent 60%),
+    var(--night);
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+img { display: block; }
+
+/* ----- Shared pieces ----- */
+
+.box {
+  background: var(--box);
+  border: var(--px) solid var(--line);
+}
+.pixel { font-family: var(--font-pixel); }
+.star-line::before { content: "* "; }
+
+/* The SOUL: appears beside whatever you point at. */
+.sel { position: relative; }
+.sel::before {
+  content: "";
+  position: absolute;
+  left: -26px;
+  top: 50%;
+  width: 18px;
+  height: 16px;
+  margin-top: -8px;
+  background: var(--heart) center / contain no-repeat;
+  image-rendering: pixelated;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.08s steps(2), transform 0.12s steps(3);
+}
+.sel:hover::before, .sel.is-on::before { opacity: 1; transform: none; }
+.sel:hover, .sel.is-on { color: var(--yellow); }
+
+/* Battle-style buttons: orange, and on hover yellow with the heart in place of the icon. */
+.bbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 18px 0 13px;
+  border: 3px solid var(--orange);
+  color: var(--orange);
+  background: rgba(6, 6, 12, 0.72);
+  font: 600 20px var(--font-pixel);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.bbtn .ico { width: 18px; height: 18px; }
+.bbtn:hover { color: var(--yellow); border-color: var(--yellow); }
+.bbtn:hover .ico { background: none; -webkit-mask: none; mask: none; }
+.bbtn:hover .ico::after { content: ""; display: block; width: 100%; height: 100%; background: var(--heart) center / contain no-repeat; }
+.bbtn--main { border-color: var(--amber); color: var(--amber); }
+.bbtn small { font-size: 15px; opacity: 0.8; letter-spacing: 0.02em; }
+
+.ico {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: var(--i) center / contain no-repeat;
+  mask: var(--i) center / contain no-repeat;
+  image-rendering: pixelated;
+}
+
+/* Yellow-over-red bar, like HP. */
+.hp { position: relative; height: 10px; background: #b01717; }
+.hp > i { position: absolute; inset: 0 auto 0 0; background: var(--yellow); }
+
+.label {
+  font: 600 14px var(--font-pixel);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+/* Snow caps that sit on top edges, like on Snowdin's roofs. */
+.capped { position: relative; }
+.capped::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: -10px;
+  height: 16px;
+  background: var(--cap) 0 0 / 80px 16px repeat-x;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* ----- The document around the mockups ----- */
+
+.doc { max-width: 1180px; margin: 0 auto; padding: 56px 24px 120px; }
+.doc h1 {
+  margin: 0;
+  font: 700 54px/1.05 var(--font-pixel);
+  letter-spacing: 0.02em;
+}
+.doc h1 em { font-style: normal; color: var(--yellow); }
+.doc h2 {
+  margin: 76px 0 8px;
+  font: 700 30px var(--font-pixel);
+  letter-spacing: 0.03em;
+}
+.doc h2 .n { color: var(--soul); margin-right: 12px; }
+.doc h3 { margin: 28px 0 6px; font: 600 21px var(--font-pixel); color: var(--amber); }
+.doc p, .doc li { color: #e4e0ef; max-width: 76ch; }
+.doc .lead { font-size: 19px; color: var(--text); max-width: 70ch; }
+.doc ul { padding-left: 22px; }
+.doc li { margin: 6px 0; }
+.doc li::marker { content: "* "; color: var(--amber); font-family: var(--font-pixel); }
+.doc strong { color: var(--text); }
+.note { color: var(--muted); font-size: 15px; }
+
+.intro { display: grid; grid-template-columns: 1fr 300px; gap: 40px; align-items: end; }
+.intro-box { padding: 18px 22px; font-size: 18px; }
+
+/* Settings for the mockups (sticky). */
+.knobs {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 36px -24px 0;
+  padding: 14px 24px;
+  background: rgba(12, 13, 27, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+  font: 600 16px var(--font-pixel);
+}
+.knob { display: flex; align-items: center; gap: 14px; }
+.knob > span { color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; font-size: 14px; }
+.knob button { padding: 2px 4px 2px 0; margin-left: 22px; }
+.knob button.is-on { color: var(--yellow); }
+
+/* Palette and fonts */
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-top: 18px; }
+.sw { border: 3px solid rgba(255, 255, 255, 0.85); background: var(--box); }
+.sw i { display: block; height: 62px; }
+.sw div { padding: 8px 10px; font: 500 14px var(--font-pixel); }
+.sw small { display: block; color: var(--muted); font-size: 12.5px; }
+.fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+.font-card { padding: 18px 20px; }
+.font-card .big { font: 700 34px/1.1 var(--font-pixel); }
+.font-card .smp { margin-top: 10px; font-size: 17px; color: #e4e0ef; }
+
+/* ----- Mockup frames: drawn at the app's real size, then scaled to fit ----- */
+
+.frame-wrap { margin-top: 20px; border: 3px solid rgba(255, 255, 255, 0.85); background: #000; overflow: hidden; }
+.frame { position: relative; width: 1280px; overflow: hidden; background: var(--night); font-size: 16px; }
+.frame-cap { display: flex; justify-content: space-between; gap: 20px; margin-top: 10px; color: var(--muted); font: 500 14px var(--font-pixel); }
+.snow { position: absolute; inset: 0; z-index: 30; pointer-events: none; image-rendering: pixelated; }
+
+/* ----- Navigation ----- */
+
+.nav {
+  position: absolute;
+  z-index: 20;
+  top: 0; left: 0; right: 0;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 0 44px;
+  background: linear-gradient(rgba(8, 8, 18, 0.88), rgba(8, 8, 18, 0));
+}
+.sign {
+  position: relative;
+  padding: 7px 16px 6px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 9px, rgba(0, 0, 0, 0.18) 9px 11px),
+    var(--wood);
+  border: 3px solid var(--wood-dark);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+  font: 700 22px var(--font-pixel);
+  letter-spacing: 0.08em;
+  color: #fff3d8;
+  text-shadow: 2px 2px 0 #2a170c;
+}
+.sign::before, .sign::after {
+  content: "";
+  position: absolute;
+  bottom: -14px;
+  width: 6px;
+  height: 12px;
+  background: var(--wood-dark);
+}
+.sign::before { left: 18px; }
+.sign::after { right: 18px; }
+.sign .capped-top { position: absolute; left: -6px; right: -6px; top: -9px; height: 16px; background: var(--cap) 0 0 / 80px 16px repeat-x; image-rendering: pixelated; }
+.tabs { display: flex; gap: 40px; margin-left: 20px; font: 600 19px var(--font-pixel); letter-spacing: 0.08em; }
+.tabs a { color: var(--text); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.search {
+  width: 250px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  background: rgba(6, 6, 12, 0.75);
+  color: var(--dim);
+  font: 500 16px var(--font-pixel);
+}
+.search .caret { width: 9px; height: 18px; margin-left: -6px; background: var(--text); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.iconbtn { width: 40px; height: 40px; display: grid; place-items: center; border: 3px solid transparent; color: var(--text); }
+.iconbtn:hover { border-color: var(--yellow); color: var(--yellow); }
+.iconbtn .ico { width: 20px; height: 20px; }
+
+/* ----- Spotlight ----- */
+
+.hero { position: relative; height: 520px; overflow: hidden; }
+.art { position: absolute; inset: 0; }
+.art--falls {
+  background:
+    radial-gradient(420px 260px at 72% 38%, rgba(255, 196, 120, 0.85), transparent 70%),
+    radial-gradient(500px 360px at 90% 80%, rgba(46, 120, 92, 0.9), transparent 70%),
+    radial-gradient(600px 380px at 55% 85%, rgba(30, 80, 70, 0.95), transparent 70%),
+    linear-gradient(180deg, #ef8f5c 0%, #c46a63 30%, #4a3b6e 62%, #172443 100%);
+}
+.pines {
+  position: absolute; z-index: 6; right: 0; bottom: 14px;
+  width: 560px; height: 150px;
+  background:
+    var(--trees) 30px 100% / 76px 84px repeat-x,
+    var(--trees-far) 0 calc(100% - 26px) / 52px 60px repeat-x;
+  image-rendering: pixelated;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 30%);
+  mask: linear-gradient(90deg, transparent, #000 30%);
+}
+.art-tag { position: absolute; right: 26px; top: 92px; color: rgba(255, 255, 255, 0.55); font: 500 13px var(--font-pixel); letter-spacing: 0.1em; }
+.hero-shade {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, rgba(12, 13, 27, 0.92) 0%, rgba(12, 13, 27, 0.65) 38%, transparent 70%),
+    linear-gradient(0deg, var(--night) 0%, transparent 34%);
+}
+.lights { position: absolute; left: 0; right: 0; top: 64px; height: 60px; z-index: 5; }
+.lights svg { width: 100%; height: 100%; overflow: visible; }
+.bulb { animation: twinkle 3.2s steps(1) infinite; }
+.bulb:nth-child(3n) { animation-delay: -1.1s; }
+.bulb:nth-child(3n + 1) { animation-delay: -2.3s; }
+@keyframes twinkle { 0%, 60% { opacity: 1; } 61%, 80% { opacity: 0.45; } 81% { opacity: 1; } }
+.drift {
+  position: absolute; left: 0; right: 0; bottom: -2px; height: 26px; z-index: 6;
+  background: var(--drift) 0 100% / 160px 26px repeat-x;
+  image-rendering: pixelated;
+}
+.hero-body { position: absolute; z-index: 8; left: 64px; top: 150px; width: 600px; }
+.hero-title {
+  margin: 10px 0 18px;
+  font: 700 64px/0.95 var(--font-pixel);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55);
+}
+.dlg { position: relative; padding: 16px 20px 18px 22px; font-size: 18px; line-height: 1.45; min-height: 100px; }
+.dlg p { margin: 0; }
+.dlg .skip { position: absolute; right: 10px; bottom: 6px; color: var(--dim); font: 500 12px var(--font-pixel); letter-spacing: 0.08em; }
+.hero-actions { display: flex; gap: 16px; margin-top: 22px; }
+.dots { position: absolute; z-index: 8; right: 64px; top: 152px; display: flex; gap: 10px; }
+.dots i { width: 12px; height: 12px; border: 3px solid var(--text); }
+.dots i.on { background: var(--yellow); border-color: var(--yellow); }
+
+/* ----- Rows ----- */
+
+.rows { position: relative; z-index: 9; padding: 0 64px 50px; margin-top: -28px; }
+.row-head { display: flex; align-items: baseline; gap: 14px; margin: 34px 0 18px; }
+.row-head h3 { margin: 0; font: 700 24px var(--font-pixel); letter-spacing: 0.06em; text-transform: uppercase; }
+.row-head .count { color: var(--dim); font: 500 16px var(--font-pixel); }
+.row-head .more { margin-left: auto; color: var(--muted); font: 600 14px var(--font-pixel); letter-spacing: 0.1em; }
+.row-head .save-star { width: 22px; height: 22px; align-self: center; background: var(--star) center / contain no-repeat; image-rendering: pixelated; animation: sparkle 2.4s steps(1) infinite; }
+@keyframes sparkle { 0%, 70% { filter: none; transform: none; } 71%, 85% { filter: brightness(1.6); transform: scale(1.15); } }
+.row { display: flex; gap: 26px; }
+
+/* Save files (Continue watching) */
+.save {
+  position: relative;
+  width: 372px;
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 14px;
+  padding: 12px;
+  text-align: left;
+  font-family: var(--font-pixel);
+  transition: border-color 0.1s steps(1);
+}
+.save .still { height: 74px; border: 3px solid var(--line); }
+.save .meta { min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
+.save .l1 { display: flex; justify-content: space-between; gap: 8px; font-size: 18px; font-weight: 600; white-space: nowrap; }
+.save .l1 span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.save .l1 b { flex: none; color: var(--amber); font-weight: 600; }
+.save .l2 { color: var(--muted); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.save .l3 { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
+.save .l3 .hp { flex: 1; height: 8px; }
+.save:hover { border-color: var(--yellow); }
+.save:hover .l1 span { color: var(--yellow); }
+.save.sel::before { left: -28px; }
+
+/* Covers */
+.card { position: relative; width: 168px; text-align: left; }
+.cover {
+  position: relative;
+  height: 250px;
+  border: var(--px) solid var(--line);
+  background: var(--box);
+  transition: transform 0.12s steps(2), border-color 0.1s steps(1);
+}
+.cover > i { position: absolute; inset: 4px; }
+.cover .t { position: absolute; left: 10px; right: 10px; bottom: 10px; font: 700 18px/1.05 var(--font-pixel); text-transform: uppercase; text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7); }
+.card .name { margin-top: 10px; font: 600 16px var(--font-pixel); letter-spacing: 0.04em; text-transform: uppercase; }
+.card .sub { color: var(--dim); font: 500 13px var(--font-pixel); }
+.card:hover .cover { border-color: var(--yellow); transform: translateY(-6px); }
+.card:hover .name { color: var(--yellow); }
+.card.sel::before { left: 50%; top: -22px; margin-left: -9px; margin-top: 0; transform: translateY(4px); }
+.card.sel:hover::before { transform: translateY(-4px); }
+.new {
+  position: absolute; z-index: 2; left: -8px; top: 12px;
+  padding: 1px 8px;
+  background: var(--yellow); color: #1a1500;
+  font: 700 13px var(--font-pixel); letter-spacing: 0.1em;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+.cover .bar { position: absolute; left: 4px; right: 4px; bottom: 4px; height: 7px; }
+
+/* ----- Show page ----- */
+
+.tp-hero { position: relative; height: 480px; overflow: hidden; }
+.tp-body { position: relative; z-index: 8; margin-top: -318px; padding: 0 64px; display: grid; grid-template-columns: 210px 1fr; gap: 40px; }
+.tp-cover { height: 310px; border: var(--px) solid var(--line); background: var(--box); }
+.tp-cover > i { display: block; height: 100%; }
+.tp-meta { display: flex; gap: 18px; color: var(--muted); font: 500 16px var(--font-pixel); letter-spacing: 0.06em; }
+.tp-meta b { color: var(--yellow); font-weight: 600; }
+.tp-title { margin: 8px 0 16px; font: 700 54px/1 var(--font-pixel); text-transform: uppercase; letter-spacing: 0.03em; text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55); }
+.tp-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 20px; }
+.season-tabs { display: flex; gap: 44px; margin: 44px 64px 20px; padding-bottom: 12px; border-bottom: 3px solid rgba(255, 255, 255, 0.16); font: 600 19px var(--font-pixel); letter-spacing: 0.06em; text-transform: uppercase; }
+.season-tabs .sel { color: var(--text); }
+.season-tabs .sel.is-on { color: var(--yellow); }
+.eps { display: flex; flex-direction: column; gap: 14px; padding: 0 64px 60px 64px; }
+.ep {
+  display: grid;
+  grid-template-columns: 212px 1fr auto;
+  gap: 20px;
+  align-items: start;
+  padding: 12px;
+  border: 3px solid transparent;
+  text-align: left;
+}
+.ep:hover { border-color: rgba(255, 255, 255, 0.9); background: rgba(6, 6, 12, 0.6); }
+.ep .thumb { position: relative; height: 118px; border: 3px solid var(--line); }
+.ep .thumb .hp { position: absolute; left: 0; right: 0; bottom: 0; height: 7px; }
+.ep .code { color: var(--amber); font: 600 15px var(--font-pixel); letter-spacing: 0.08em; }
+.ep .title { margin: 2px 0 6px; font: 600 21px var(--font-pixel); }
+.ep:hover .title { color: var(--yellow); }
+.ep .desc { color: var(--muted); font-size: 16px; line-height: 1.45; max-width: 74ch; }
+.ep .side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; padding-top: 4px; color: var(--muted); font: 500 14px var(--font-pixel); }
+.ep .done { color: var(--yellow); display: flex; align-items: center; gap: 6px; }
+.ep .done .ico { width: 15px; height: 15px; }
+.ep .tag { padding: 0 6px; background: var(--yellow); color: #1a1500; font: 700 12px var(--font-pixel); letter-spacing: 0.1em; }
+.ep.sel::before { left: -30px; top: 66px; }
+
+/* ----- Player ----- */
+
+.player { position: relative; width: 1280px; height: 720px; overflow: hidden; color: #fff; }
+.video {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(260px 200px at 30% 55%, rgba(255, 210, 140, 0.9), transparent 70%),
+    radial-gradient(500px 300px at 75% 40%, rgba(80, 140, 190, 0.8), transparent 70%),
+    linear-gradient(180deg, #7aa7c9, #3e6488 55%, #24364f);
+}
+.p-top { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 18px; padding: 22px 32px 60px; background: linear-gradient(rgba(0, 0, 0, 0.72), transparent); }
+.p-top .show { font: 600 14px var(--font-pixel); letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.75); }
+.p-top .ttl { font: 700 25px var(--font-pixel); }
+.p-top .ttl b { color: var(--amber); margin-right: 10px; font-weight: 700; }
+.p-top .clock { margin-left: auto; text-align: right; font: 600 22px var(--font-pixel); }
+.p-top .clock small { display: block; font-size: 14px; color: rgba(255, 255, 255, 0.72); }
+.p-btn { width: 46px; height: 46px; display: grid; place-items: center; border: 3px solid transparent; }
+.p-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+.p-btn .ico { width: 22px; height: 22px; }
+.p-btn.main { width: 54px; height: 54px; border-color: rgba(255, 255, 255, 0.9); }
+.p-btn.main:hover { border-color: var(--yellow); }
+.p-controls { position: absolute; left: 0; right: 0; bottom: 0; padding: 70px 32px 20px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.8)); }
+.seek { display: flex; align-items: center; gap: 14px; font: 600 16px var(--font-pixel); }
+.seek .hp-l { color: var(--text); font-size: 15px; letter-spacing: 0.1em; }
+.seek .hp { flex: 1; height: 14px; }
+.seek .hp .tick { position: absolute; top: 0; bottom: 0; width: 3px; background: rgba(0, 0, 0, 0.55); }
+.seek .hp .knob { position: absolute; top: 50%; width: 18px; height: 16px; margin: -8px 0 0 -9px; background: var(--heart) center / contain no-repeat; image-rendering: pixelated; }
+.p-bar { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.p-bar .time { margin-left: 10px; font: 600 16px var(--font-pixel); }
+.p-bar .sp { flex: 1; }
+.act {
+  position: absolute; right: 32px; bottom: 130px;
+  display: flex; gap: 56px;
+  padding: 18px 26px 20px 40px;
+  font: 500 18px var(--font-pixel);
+}
+.act h4 { margin: 0 0 10px -16px; font: 600 14px var(--font-pixel); color: var(--amber); letter-spacing: 0.12em; text-transform: uppercase; }
+.act .sel { display: block; padding: 3px 0; }
+.upnext { position: absolute; left: 32px; bottom: 132px; width: 420px; padding: 14px 18px; font: 500 17px var(--font-pixel); }
+.upnext .row2 { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.upnext .cd { color: var(--muted); font-size: 15px; }
+
+/* ----- Small pieces ----- */
+
+.pieces { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; margin-top: 22px; align-items: start; }
+.piece-cap { margin-top: 10px; color: var(--muted); font: 500 14px var(--font-pixel); }
+.ctx { width: 260px; padding: 12px 18px 12px 38px; font: 500 17px var(--font-pixel); }
+.ctx .sel { display: block; padding: 4px 0; }
+.ctx hr { margin: 8px 0 8px -20px; border: 0; border-top: 2px solid rgba(255, 255, 255, 0.25); }
+.toast { display: flex; align-items: center; gap: 12px; padding: 12px 16px; font: 500 17px var(--font-pixel); }
+.toast .st { width: 22px; height: 22px; background: var(--star) center / contain no-repeat; image-rendering: pixelated; animation: sparkle 1.4s steps(1) infinite; }
+.empty { padding: 30px 20px 24px; text-align: center; font: 500 19px var(--font-pixel); }
+.dog { width: 92px; height: 36px; margin: 0 auto 14px; background: var(--dog) center / contain no-repeat; image-rendering: pixelated; }
+.zz { color: var(--muted); font-size: 14px; animation: zz 2.4s steps(3) infinite; display: inline-block; }
+@keyframes zz { 0% { transform: translate(0, 0); opacity: 0.3; } 100% { transform: translate(8px, -10px); opacity: 1; } }
+.loading { display: flex; align-items: center; gap: 14px; padding: 14px 18px; font: 500 17px var(--font-pixel); }
+.loading .h { width: 18px; height: 16px; background: var(--heart) center / contain no-repeat; animation: hop 0.8s steps(2) infinite; image-rendering: pixelated; }
+@keyframes hop { 50% { transform: translateY(-5px); } }
+.toggles { padding: 14px 18px 14px 40px; font: 500 17px var(--font-pixel); }
+.trow { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 5px 0; }
+.trow .opts { display: flex; gap: 30px; }
+.trow .opts .sel { color: var(--dim); }
+.trow .opts .sel.is-on { color: var(--yellow); }
+.prev {
+  position: relative; height: 150px; overflow: hidden;
+  border: 3px solid var(--line);
+  background: radial-gradient(160px 90px at 80% 0%, rgba(255, 170, 80, 0.25), transparent 70%), var(--night);
+}
+.prev .p-sign { position: absolute; left: 12px; top: 14px; padding: 2px 8px; background: var(--wood); border: 2px solid var(--wood-dark); font: 700 11px var(--font-pixel); letter-spacing: 0.08em; color: #fff3d8; }
+.prev .p-cards { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 8px; }
+.prev .p-cards i { width: 34px; height: 50px; border: 2px solid #fff; }
+.prev .p-cards i:first-child { border-color: var(--yellow); }
+.prev .p-dlg { position: absolute; right: 12px; bottom: 12px; width: 110px; height: 44px; border: 2px solid #fff; background: #000; padding: 5px 7px; font: 500 10px var(--font-pixel); }
+.prev .p-heart { position: absolute; left: 18px; bottom: 66px; width: 12px; height: 11px; background: var(--heart) center / contain no-repeat; }
+.prev-label { display: flex; justify-content: space-between; margin-top: 8px; font: 600 16px var(--font-pixel); }
+.prev-label span { color: var(--muted); font-weight: 500; font-size: 14px; }
+
+.sfx { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px; }
+
+/* Plan section */
+.stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px; margin-top: 18px; }
+.stage { padding: 16px 20px 6px; }
+.stage h4 { margin: 0; font: 700 19px var(--font-pixel); }
+.stage h4 span { color: var(--soul); margin-right: 8px; }
+.stage ul { margin: 8px 0 10px; }
+.stage li { font-size: 15.5px; }
+
+@media (max-width: 900px) {
+  .intro, .fonts, .pieces { grid-template-columns: 1fr; }
+  .doc h1 { font-size: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <!-- ================= Intro ================= -->
+  <div class="intro">
+    <div>
+      <div class="label">A theme for Da Librarby</div>
+      <h1>Snow<em>din</em></h1>
+      <p class="lead">Cozy and warm, at night in a little snowy town underground: soft snow drifting past, string lights on the trees, warm light from the windows, a crackling fire inside.
+        The game's black-and-white text boxes and the little red heart are the frame, with normal words where they matter and game-style flavor around them.</p>
+    </div>
+    <div class="box intro-box"><p class="star-line" data-type style="margin:0">This is a plan and a mockup, not the real app yet. Point at things, try the switches below, and tell me what you'd change.</p></div>
+  </div>
+
+  <div class="knobs">
+    <div class="knob"><span>Sounds</span><button class="sel" data-knob="sound" data-v="on">ON</button><button class="sel" data-knob="sound" data-v="off">OFF</button></div>
+    <div class="knob"><span>Snow</span><button class="sel" data-knob="snow" data-v="on">ON</button><button class="sel" data-knob="snow" data-v="off">OFF</button></div>
+    <div class="knob"><span>Typing text</span><button class="sel" data-knob="type" data-v="on">ON</button><button class="sel" data-knob="type" data-v="off">OFF</button></div>
+    <div class="knob"><span>Long text</span><button class="sel" data-knob="font" data-v="pixel">PIXEL</button><button class="sel" data-knob="font" data-v="smooth">SMOOTH</button></div>
+  </div>
+  <p class="note">Sounds start after your first click on the page (browsers require that). In the app, these would be options in Settings while Snowdin is chosen.</p>
+
+  <!-- ================= Look ================= -->
+  <h2><span class="n">♥</span>The look</h2>
+  <p>Night-blue instead of pure black, so it feels like a quiet evening rather than a battle. Warm amber and ember light, snowy white, pine green and wood. Yellow is kept for one job, like in the game: it shows what you're pointing at.</p>
+  <div class="swatches" id="swatches"></div>
+
+  <h3>Fonts</h3>
+  <p>A pixel font for titles, buttons, menus and numbers. For longer text (descriptions), you can compare the pixel font with a smooth, rounded one using the "Long text" switch above. Both fonts are free to include in the project.</p>
+  <div class="fonts">
+    <div class="box font-card"><div class="label">Pixel · Pixelify Sans</div><div class="big">* DA LIBRARBY</div><div class="smp pixel">Twins Dipper and Mabel spend the summer at their great-uncle's tourist trap.</div></div>
+    <div class="box font-card"><div class="label">Smooth · Nunito</div><div class="big" style="font-family:Nunito;font-weight:800">Da Librarby</div><div class="smp" style="font-family:Nunito">Twins Dipper and Mabel spend the summer at their great-uncle's tourist trap.</div></div>
+  </div>
+
+  <!-- ================= Home ================= -->
+  <h2><span class="n">♥</span>Home</h2>
+  <p>The app's name on a snowy wooden town sign. The spotlight gets string lights, pine trees and a snow drift along its bottom edge, so the artwork melts into the night. Its description is a text box that types itself out (click it to finish at once). Continue watching becomes <strong>save files</strong> with the twinkling save star. Covers get white pixel frames, and pointing at anything brings the heart.</p>
+  <div class="frame-wrap"><div class="frame" id="home" style="height:1050px">
+    <canvas class="snow"></canvas>
+    <nav class="nav">
+      <div class="sign"><span class="capped-top"></span>DA LIBRARBY</div>
+      <div class="tabs">
+        <a class="sel is-on">HOME</a><a class="sel">ANIME</a><a class="sel">SHOWS</a><a class="sel">MOVIES</a>
+      </div>
+      <div class="nav-right">
+        <div class="search"><span class="ico" style="--i:var(--i-search);width:18px;height:18px;color:var(--text)"></span><span class="caret"></span>* Search...</div>
+        <button class="iconbtn"><span class="ico" style="--i:var(--i-gear)"></span></button>
+      </div>
+    </nav>
+    <section class="hero">
+      <div class="art art--falls"></div>
+      <div class="art-tag">[ SHOW ARTWORK ]</div>
+      <div class="hero-shade"></div>
+      <div class="lights"><svg viewBox="0 0 1280 60" preserveAspectRatio="none" class="lights-svg"></svg></div>
+      <div class="pines"></div><div class="drift"></div>
+      <div class="hero-body">
+        <div class="label">Shows · 2012 · Animation · Mystery</div>
+        <div class="hero-title">Gravity Falls</div>
+        <div class="box dlg"><p class="star-line" data-type>Twins Dipper and Mabel are sent to spend the summer with their great-uncle in Gravity Falls, a little town in Oregon that's full of mysteries.</p><span class="skip">CLICK ▸</span></div>
+        <div class="hero-actions">
+          <button class="bbtn bbtn--main" data-sfx="select"><span class="ico" style="--i:var(--i-play)"></span>Resume <small>S1 E3</small></button>
+          <button class="bbtn" data-sfx="select"><span class="ico" style="--i:var(--i-info)"></span>More info</button>
+        </div>
+      </div>
+      <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    </section>
+    <div class="rows">
+      <div class="row-head"><span class="save-star"></span><h3>Continue watching</h3></div>
+      <div class="row" id="saves"></div>
+      <div class="row-head"><h3>Anime</h3><span class="count">11</span><span class="more sel">SEE ALL</span></div>
+      <div class="row" id="covers"></div>
+    </div>
+  </div></div>
+  <div class="frame-cap"><span>Home, at the app's normal window size</span><span>The artwork and covers here are stand-ins; the real ones come from your library</span></div>
+
+  <!-- ================= Show page ================= -->
+  <h2><span class="n">♥</span>A show's page</h2>
+  <p>Laid out a little like a battle screen: the artwork above, the description in the big text box, and orange battle-style buttons with normal words. The season tabs work like the game's menus: the heart marks the one you're on. Episodes get framed pictures, yellow-over-red progress bars, and a yellow "NEW!" tag.</p>
+  <div class="frame-wrap"><div class="frame" id="title" style="height:1010px">
+    <canvas class="snow"></canvas>
+    <nav class="nav">
+      <div class="sign"><span class="capped-top"></span>DA LIBRARBY</div>
+      <div class="tabs"><a class="sel">HOME</a><a class="sel">ANIME</a><a class="sel is-on">SHOWS</a><a class="sel">MOVIES</a></div>
+      <div class="nav-right"><div class="search"><span class="ico" style="--i:var(--i-search);width:18px;height:18px;color:var(--text)"></span>* Search...</div><button class="iconbtn"><span class="ico" style="--i:var(--i-gear)"></span></button></div>
+    </nav>
+    <section class="tp-hero">
+      <div class="art art--falls"></div>
+      <div class="hero-shade"></div>
+      <div class="lights"><svg viewBox="0 0 1280 60" preserveAspectRatio="none" class="lights-svg"></svg></div>
+      <div class="pines"></div><div class="drift"></div>
+    </section>
+    <div class="tp-body">
+      <div class="tp-cover capped"><i style="background:linear-gradient(160deg,#f4a259,#5b8e7d 55%,#2b3a55)"></i></div>
+      <div>
+        <div class="tp-meta"><span><b>★ 8.9</b></span><span>2012</span><span>2 SEASONS</span><span>ANIMATION · MYSTERY</span></div>
+        <div class="tp-title">Gravity Falls</div>
+        <div class="box dlg" style="max-width:760px"><p class="star-line" data-type>Twins Dipper and Mabel are sent to spend the summer with their great-uncle Stan, who runs a tourist trap called the Mystery Shack. Nothing in Gravity Falls is quite what it seems.</p><span class="skip">CLICK ▸</span></div>
+        <div class="tp-actions">
+          <button class="bbtn bbtn--main" data-sfx="select"><span class="ico" style="--i:var(--i-play)"></span>Resume <small>S1 E3 · 12 min left</small></button>
+          <button class="bbtn" data-sfx="save"><span class="ico" style="--i:var(--i-check)"></span>Mark watched</button>
+          <button class="bbtn" data-sfx="select"><span class="ico" style="--i:var(--i-folder)"></span>Folder</button>
+          <button class="bbtn" data-sfx="select"><span class="ico" style="--i:var(--i-pencil)"></span>Fix match</button>
+        </div>
+      </div>
+    </div>
+    <div class="season-tabs"><span class="sel">Movies & Specials</span><span class="sel is-on">Season 1</span><span class="sel">Season 2</span></div>
+    <div class="eps" id="eps"></div>
+  </div></div>
+  <div class="frame-cap"><span>A show's page, scrolled to the top</span><span>Point at an episode to see the heart and the frame</span></div>
+
+  <!-- ================= Player ================= -->
+  <h2><span class="n">♥</span>The player</h2>
+  <p>The video stays the star, so the player only changes a little: pixel font, pixel icons, the seek bar as a <strong>yellow-over-red HP bar</strong> with the heart as its handle, and menus and the next-episode card as text boxes. No sounds while a video plays.</p>
+  <div class="frame-wrap"><div class="frame" id="player" style="height:720px">
+    <div class="player">
+      <div class="video"></div>
+      <div class="p-top">
+        <button class="p-btn"><span class="ico" style="--i:var(--i-back)"></span></button>
+        <div><div class="show">Gravity Falls</div><div class="ttl"><b>S1 E3</b>Headhunters</div></div>
+        <div class="clock">21:42<small>Ends at 21:55</small></div>
+      </div>
+      <div class="box upnext"><div class="star-line">Next up: <span style="color:var(--amber)">S1 E4</span> · The Hand That Rocks the Mabel</div><div class="row2"><span class="cd">Playing in 7...</span><span style="display:flex;gap:12px"><button class="bbtn" style="height:38px;font-size:16px" data-sfx="back">Cancel</button><button class="bbtn bbtn--main" style="height:38px;font-size:16px" data-sfx="select"><span class="ico" style="--i:var(--i-play)"></span>Play</button></span></div></div>
+      <div class="box act">
+        <div><h4>Audio</h4><span class="sel is-on">Japanese</span><span class="sel">English · 5.1</span></div>
+        <div><h4>Subtitles</h4><span class="sel">Off</span><span class="sel is-on">English</span><span class="sel">English · Signs</span></div>
+      </div>
+      <div class="p-controls">
+        <div class="seek"><span class="hp-l">HP</span><div class="hp"><i style="width:57%"></i><span class="tick" style="left:8%"></span><span class="tick" style="left:15%"></span><span class="tick" style="left:91%"></span><span class="knob" style="left:57%"></span></div></div>
+        <div class="p-bar">
+          <button class="p-btn main"><span class="ico" style="--i:var(--i-pause)"></span></button>
+          <button class="p-btn"><span class="ico" style="--i:var(--i-next)"></span></button>
+          <button class="p-btn"><span class="ico" style="--i:var(--i-vol)"></span></button>
+          <span class="time">12:41 / 22:10</span>
+          <span class="sp"></span>
+          <button class="p-btn" style="border-color:var(--yellow);color:var(--yellow)"><span class="ico" style="--i:var(--i-subs)"></span></button>
+          <button class="p-btn"><span class="ico" style="--i:var(--i-full)"></span></button>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <div class="frame-cap"><span>The player with the audio & subtitles menu and the next-episode card open</span><span>The picture is a stand-in</span></div>
+
+  <!-- ================= Pieces ================= -->
+  <h2><span class="n">♥</span>Small pieces</h2>
+  <p>Right-click menus, messages, empty and loading screens, settings switches, and the little preview in Settings → Appearance.</p>
+  <div class="pieces">
+    <div><div class="box ctx"><span class="sel">Play S1 E3</span><span class="sel">Mark watched</span><span class="sel">Show in folder</span><hr /><span class="sel">Remove from Continue</span></div><div class="piece-cap">Right-click menu</div></div>
+    <div>
+      <div class="box toast"><span class="st"></span><span class="star-line">Progress saved.</span></div>
+      <div class="piece-cap">A message, here after marking an episode as watched (with the little save jingle)</div>
+      <div class="box loading" style="margin-top:22px"><span class="h"></span><span class="star-line">Looking through the shelves...</span></div>
+      <div class="piece-cap">Loading / scanning</div>
+    </div>
+    <div><div class="box empty"><div class="dog"></div><div class="star-line">But nobody came.</div><div class="zz">z z z</div></div><div class="piece-cap">A search with no results (a little dog of my own drawing naps there)</div></div>
+    <div><div class="box toggles">
+      <div class="trow"><span>Snow</span><span class="opts"><span class="sel is-on">ON</span><span class="sel">OFF</span></span></div>
+      <div class="trow"><span>Sounds</span><span class="opts"><span class="sel is-on">ON</span><span class="sel">OFF</span></span></div>
+      <div class="trow"><span>Typing text</span><span class="opts"><span class="sel">ON</span><span class="sel is-on">OFF</span></span></div>
+    </div><div class="piece-cap">Settings switches</div></div>
+    <div><div class="prev"><div class="p-sign">DA LIBRARBY</div><div class="p-heart"></div><div class="p-cards"><i style="background:linear-gradient(#f4a259,#2b3a55)"></i><i style="background:linear-gradient(#e56b6f,#355070)"></i><i style="background:linear-gradient(#80ed99,#22577a)"></i></div><div class="p-dlg">* Cozy in here.</div></div><div class="prev-label">Snowdin <span>Dark</span></div><div class="piece-cap">The preview card in Settings → Appearance</div></div>
+    <div>
+      <div class="box" style="padding:14px 18px;font:500 17px var(--font-pixel)"><span class="star-line">The shelves are full of shows. It fills you with DETERMINATION.</span></div>
+      <div class="piece-cap">Flavor lines, now and then, in quiet spots (empty rows, the end of a list, Settings → About)</div>
+    </div>
+  </div>
+
+  <!-- ================= Sounds ================= -->
+  <h2><span class="n">♥</span>Sounds</h2>
+  <p>Little chiptune blips I'd make myself: soft and short, never during a video, with an on/off switch and a volume. Try them:</p>
+  <div class="sfx">
+    <button class="bbtn" data-sfx="move">Point at something</button>
+    <button class="bbtn" data-sfx="select">Pick something</button>
+    <button class="bbtn" data-sfx="back">Go back</button>
+    <button class="bbtn" data-sfx="textdemo">Text typing</button>
+    <button class="bbtn" data-sfx="save">Saved / watched</button>
+    <button class="bbtn" data-sfx="nope">Nothing found</button>
+  </div>
+
+  <!-- ================= Plan ================= -->
+  <h2><span class="n">♥</span>The plan</h2>
+  <h3>The theme system grows</h3>
+  <p>Today a theme can only change colours, fonts and shapes. Snowdin needs a few new abilities. They'll be built so the other four themes stay exactly as they are, and future themes can use them too:</p>
+  <ul>
+    <li><strong>Decorations:</strong> a theme can add things like the snow, string lights and trees.</li>
+    <li><strong>A pointer:</strong> a theme can show something (the heart) next to whatever you point at or pick with the keyboard.</li>
+    <li><strong>Its own words:</strong> a theme can replace texts like empty-page messages, loading lines and flavor text.</li>
+    <li><strong>Typing text:</strong> descriptions and messages can type themselves out.</li>
+    <li><strong>Sounds:</strong> a theme can bring its own sounds.</li>
+    <li><strong>Its own icons</strong> (pixel ones here) and <strong>its own settings</strong> (snow, sounds, typing, long-text font).</li>
+  </ul>
+
+  <h3>Building it, in stages</h3>
+  <p>After each stage you get screenshots and can try it in the app.</p>
+  <div class="stages">
+    <div class="box stage"><h4><span>1</span>Foundation</h4><ul><li>The new theme abilities above</li><li>Colours, fonts, pixel art (heart, save star, snow caps, trees, lights, sign, dog)</li><li>Snowdin appears in Settings with its preview</li></ul></div>
+    <div class="box stage"><h4><span>2</span>Library screens</h4><ul><li>Town sign, navigation, search</li><li>Spotlight with lights, trees and snow</li><li>Save-file cards, covers, rows, "NEW!"</li><li>Right-click menus, messages, empty and loading screens</li></ul></div>
+    <div class="box stage"><h4><span>3</span>Show pages</h4><ul><li>Battle-screen layout, text box, buttons</li><li>Season tabs, episode rows</li><li>The "Fix match" window</li></ul></div>
+    <div class="box stage"><h4><span>4</span>Settings</h4><ul><li>Boxes and switches in the game's style</li><li>Snowdin's own options</li><li>Its card in Appearance</li></ul></div>
+    <div class="box stage"><h4><span>5</span>Player</h4><ul><li>HP-bar seek bar with the heart</li><li>Text-box menus and next-episode card</li><li>Mini player frame</li></ul></div>
+    <div class="box stage"><h4><span>6</span>Sounds, Easter eggs, polish</h4><ul><li>All the sounds, tuned quiet</li><li>Easter eggs (below)</li><li>A last check of every screen, and that the other themes are unchanged</li></ul></div>
+  </div>
+
+  <h3>Easter eggs (secret until you find them in the app)</h3>
+  <ul>
+    <li>Something happens when you search for a certain very determined word.</li>
+    <li>The town sign has something to say about its spelling if you click it.</li>
+    <li>Late at night, a certain motherly goat has opinions about your bedtime.</li>
+    <li>In December, the town gets more festive.</li>
+    <li>The little dog shows up where you don't expect it, very rarely.</li>
+  </ul>
+
+  <h3>Keeping it comfy</h3>
+  <ul>
+    <li>Snow is slow and sparse, and stays behind text. Nothing flashes.</li>
+    <li>Typing text is quick, a click finishes it, and it only types the first time you see something.</li>
+    <li>If Windows is set to reduce animations, the snow and typing stop on their own.</li>
+    <li>Everything stays easy to read: if pixel text tires your eyes, long text can switch to the smooth font.</li>
+  </ul>
+
+  <h3>About copyright</h3>
+  <p>Everything in this theme (pixel art, sounds, wording, fonts) would be made by me or freely licensed, so it can be on GitHub. Nothing is taken from the game's files. The flavor lines are written in the game's style, with a couple of famous short phrases like "But nobody came."</p>
+
+  <h3>Questions for you</h3>
+  <ul>
+    <li>Pixel or smooth font for long text?</li>
+    <li>Should the heart, the snow caps on covers, and the string lights all be there, or is anything too much?</li>
+    <li>Navigation at the top (as shown), or a sidebar like in Neon, perhaps as a wooden bookshelf?</li>
+    <li>Do the sounds feel right? Louder, softer, fewer?</li>
+  </ul>
+</div>
+
+<script>
+// Fills an element with markup built from the fixed data in this file.
+function fill(el, markup) {
+  el.replaceChildren();
+  el.insertAdjacentHTML("beforeend", markup);
+}
+
+// ---------- Pixel art: drawn from little character grids ----------
+const PAL = {
+  R: "#ff2b2b", Y: "#fff200", y: "#ffd23a", W: "#ffffff", S: "#eef4ff", s: "#c9d9f0", G: "#2b5a72", g: "#1f4459",
+  D: "#10202e", d: "#a9bdd8", T: "#5a3a24", K: "#14141c", X: "#000", k: "#3a3a4a",
+};
+function pix(rows) {
+  const h = rows.length, w = Math.max(...rows.map((r) => r.length));
+  let r = "";
+  rows.forEach((row, y) => [...row].forEach((c, x) => { if (PAL[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${PAL[c]}"/>`; }));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * 8}" height="${h * 8}" shape-rendering="crispEdges">${r}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+const ART = {
+  heart: [".RR.RR.", "RRRRRRR", "RRRRRRR", ".RRRRR.", "..RRR..", "...R..."],
+  star: ["....Y....", "....Y....", "...YYY...", "YYYYYYYYY", ".YYYYYYY.", "..YYyYY..", "..YY.YY..", ".YY...YY.", ".Y.....Y."],
+  cap: [
+    "...SSSS..........SSSSSS..........SSS....",
+    ".SSSSSSSS......SSSSSSSSSS......SSSSSSS..",
+    "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+    "SSSSSSsSSSSSSSSSSsSSSSSSSSSSSsSSSSSSSSSS",
+    ".sSSs....sSSSs.....ssSs....sSSs...sSs...",
+    "..ss......ss........s.......ss.....s....",
+  ],
+  drift: [
+    "..................................SSSSSSS.........",
+    "...........SSSSS...............SSSSSSSSSSSS.......",
+    "........SSSSSSSSSSS.........SSSSSSSSSSSSSSSSSS....",
+    "SSS..SSSSSSSSSSSSSSSSS...SSSSSSSSSSSSSSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+  ],
+  tree: [".........S.........", "........SSS........", "........gSg........", ".......SgggS.......", ".......ggggg.......", "......SSgggSS......", "......ggggggg......", ".....SgggggggS.....", ".....ggggggggg.....", "....SSgggggggSS....", "....ggggggggggg....", "...SgggggggggggS...", "...ggggggggggggg...", "..SSgggggggggggSS..", "..ggggggggggggggg..", ".SggggggggggggggggS", ".ggggggggggggggggg.", "SSgggggggggggggggSS", "ggggggggggggggggggg", "........TTT........", "........TTT........"],
+  treeFar: ["......d......", ".....dDd.....", ".....DDD.....", "....dDDDd....", "....DDDDD....", "...dDDDDDd...", "...DDDDDDD...", "..dDDDDDDDd..", "..DDDDDDDDD..", ".dDDDDDDDDDd.", ".DDDDDDDDDDD.", "dDDDDDDDDDDDd", "DDDDDDDDDDDDD", ".....DDD.....", ".....DDD....."],
+  dog: [
+    "...KK..................",
+    "..KWWK.................",
+    ".KWWWWKKKKKKKKKKKK.....",
+    "KWWKWWWWWWWWWWWWWWK..K.",
+    "KWWWWWWWWWWWWWWWWWWKKWK",
+    "KKWWWWWWWWWWWWWWWWWWWK.",
+    ".KWWWWWWWWWWWWWWWWWWK..",
+    ".KKWWKKKKKKKKKKWWKKK...",
+    "..KKK..........KKK.....",
+  ],
+};
+// Icons are drawn in black and used as masks, so they take the text colour.
+const ICONS = {
+  play: ["X......", "XXX....", "XXXXX..", "XXXXXXX", "XXXXX..", "XXX....", "X......"],
+  info: ["...X...", ".......", "..XX...", "...X...", "...X...", "...X...", "..XXX.."],
+  check: ["......X", ".....XX", "X...XX.", "XX.XX..", ".XXX...", "..X....", "......."],
+  folder: ["XXX....", "X..XXXX", "XXXXXXX", "X.....X", "X.....X", "X.....X", "XXXXXXX"],
+  pencil: [".....XX", "....XXX", "...XXX.", "..XXX..", ".XXX...", "XXX....", "XX....."],
+  search: [".XXX...", "X...X..", "X...X..", "X...X..", ".XXX...", "....XX.", ".....XX"],
+  gear: ["...X...", ".XXXXX.", ".XX.XX.", "XX...XX", ".XX.XX.", ".XXXXX.", "...X..."],
+  back: ["..X....", ".XX....", "XXXXXXX", ".XX....", "..X...."],
+  pause: ["XX.XX", "XX.XX", "XX.XX", "XX.XX", "XX.XX", "XX.XX"],
+  next: ["X....X", "XX...X", "XXX..X", "XXXX.X", "XXX..X", "XX...X", "X....X"],
+  vol: ["...X...", "..XX.X.", "XXXX..X", "XXXX..X", "XXXX..X", "..XX.X.", "...X..."],
+  subs: ["XXXXXXXXX", "X.......X", "X.......X", "X.XX.XXXX", "X.......X", "X.XXXX..X", "XXXXXXXXX"],
+  full: ["XX...XX", "X.....X", ".......", ".......", ".......", "X.....X", "XX...XX"],
+};
+const root = document.documentElement.style;
+root.setProperty("--heart", pix(ART.heart));
+root.setProperty("--star", pix(ART.star));
+root.setProperty("--cap", pix(ART.cap));
+root.setProperty("--drift", pix(ART.drift));
+root.setProperty("--trees", pix(ART.tree));
+root.setProperty("--trees-far", pix(ART.treeFar));
+root.setProperty("--dog", pix(ART.dog));
+for (const [k, v] of Object.entries(ICONS)) root.setProperty(`--i-${k}`, pix(v));
+
+// ---------- Palette ----------
+const SW = [
+  ["Night", "#0c0d1b", "background"], ["Dusk", "#1b1e38", "panels"], ["Box", "#06060c", "text boxes"], ["Snow", "#eef4ff", "frames, text"],
+  ["Lantern", "#ffbe5c", "labels, warm light"], ["Battle orange", "#ff8d2b", "buttons"], ["Yellow", "#fff200", "what you point at"],
+  ["SOUL", "#ff2b2b", "the heart"], ["Pine", "#1f4459", "trees"], ["Wood", "#7a5236", "the sign"], ["Ice", "#8fcbff", "cold accents"], ["Toriel", "#8a6fc9", "evening glow"],
+];
+fill(document.getElementById("swatches"), SW.map(([n, c, u]) => `<div class="sw"><i style="background:${c}"></i><div>${n}<small>${c} · ${u}</small></div></div>`).join(""));
+
+// ---------- String lights ----------
+function lights(svg) {
+  const cols = ["#ff5a4f", "#ffd23a", "#5fd38a", "#7fc4ff", "#ff9f43"];
+  let s = `<path d="M0 6 Q 160 44 320 10 T 640 10 T 960 10 T 1280 8" fill="none" stroke="#0c0c14" stroke-width="3"/>`;
+  for (let i = 0; i < 26; i++) {
+    const x = 20 + i * 49.5;
+    const t = (x % 320) / 320;
+    const y = 8 + Math.sin(t * Math.PI) * 26 * (x < 320 ? 1.2 : 1);
+    const c = cols[i % cols.length];
+    s += `<g class="bulb"><rect x="${x - 3}" y="${y}" width="6" height="4" fill="#0c0c14"/><rect x="${x - 4}" y="${y + 4}" width="8" height="10" fill="${c}"/><rect x="${x - 2}" y="${y + 6}" width="2" height="3" fill="#fff" opacity=".6"/><circle cx="${x}" cy="${y + 9}" r="16" fill="${c}" opacity=".18"/></g>`;
+  }
+  fill(svg, s);
+}
+document.querySelectorAll(".lights-svg").forEach(lights);
+
+// ---------- Stand-in covers and episodes ----------
+const COVERS = [
+  ["Chainsaw Man", "#e85d4a", "#2b2d42"], ["Jujutsu Kaisen", "#5e60ce", "#1b1b3a"], ["Kaiji", "#d9a441", "#4a1f1f"],
+  ["Mushoku Tensei", "#7cc6a4", "#2c4a52"], ["Naruto", "#f9844a", "#33415c"], ["One Pace", "#ffcb47", "#1d4e89"],
+];
+fill(document.getElementById("covers"), COVERS.map(([n, a, b], i) =>
+  `<button class="card sel" data-sfx="select">${i === 1 ? '<span class="new">NEW!</span>' : ""}<div class="cover capped"><i style="background:linear-gradient(165deg,${a},${b})"></i><span class="t">${n}</span>${i === 3 ? '<div class="hp bar"><i style="width:40%"></i></div>' : ""}</div><div class="name">${n}</div><div class="sub">${[24, 47, 26, 48, 220, 211][i]} episodes</div></button>`
+).join(""));
+const SAVES = [
+  ["Gravity Falls", "S1 E3", "Headhunters", 57, "9 min left", "#f4a259", "#2b3a55"],
+  ["Mushoku Tensei", "S2 E7", "The Fragrance of Spring", 30, "16 min left", "#7cc6a4", "#2c4a52"],
+  ["One Pace", "E104", "Arlong Park 7", 0, "Up next", "#ffcb47", "#1d4e89"],
+];
+fill(document.getElementById("saves"), SAVES.map(([n, c, e, p, l, a, b]) =>
+  `<button class="box save sel" data-sfx="select"><div class="still" style="background:linear-gradient(160deg,${a},${b})"></div><div class="meta"><div class="l1"><span>${n}</span><b>${c}</b></div><div class="l2">${e}</div><div class="l3">${p ? `<div class="hp"><i style="width:${p}%"></i></div>` : ""}<span>${l}</span></div></div></button>`
+).join(""));
+const EPS = [
+  ["S1 E1", "Tourist Trapped", "Dipper and Mabel arrive in Gravity Falls. Dipper finds a strange journal in the woods and starts to suspect that Mabel's new boyfriend is not what he seems.", "done", "#f4a259", "#3d5a80"],
+  ["S1 E2", "The Legend of the Gobblewonker", "On a fishing trip with Grunkle Stan, the twins and Soos go hunting for a lake monster to win a prize.", "done", "#9bc1bc", "#2d4a5a"],
+  ["S1 E3", "Headhunters", "A wax figure of Grunkle Stan is found beheaded, and Dipper and Mabel turn detective to find the culprit.", 57, "#e9c46a", "#6d597a"],
+  ["S1 E4", "The Hand That Rocks the Mabel", "Mabel's new crush, Gideon, turns out to be more trouble than she bargained for.", "new", "#e56b6f", "#355070"],
+];
+fill(document.getElementById("eps"), EPS.map(([c, t, d, s, a, b]) =>
+  `<button class="ep sel" data-sfx="select"><div class="thumb" style="background:linear-gradient(160deg,${a},${b})">${typeof s === "number" ? `<div class="hp"><i style="width:${s}%"></i></div>` : ""}</div><div><div class="code">${c}</div><div class="title">${t}</div><div class="desc">${d}</div></div><div class="side">${s === "done" ? '<span class="done"><span class="ico" style="--i:var(--i-check)"></span>WATCHED</span>' : s === "new" ? '<span class="tag">NEW!</span>' : '<span style="color:var(--amber)">9 MIN LEFT</span>'}<span>22 min</span></div></button>`
+).join(""));
+
+// ---------- Scale the 1280-wide frames to fit ----------
+function fit() {
+  document.querySelectorAll(".frame").forEach((f) => {
+    const w = f.parentElement.clientWidth;
+    f.style.zoom = Math.min(1, w / 1280);
+  });
+}
+addEventListener("resize", fit);
+fit();
+
+// ---------- Sounds (made here, from simple tones) ----------
+const opts = { sound: "on", snow: "on", type: "on", font: "pixel" };
+let ctx;
+function tone(notes, dur = 0.05, type = "square", vol = 0.035) {
+  if (opts.sound !== "on") return;
+  try {
+    ctx ||= new AudioContext();
+    let t = ctx.currentTime + 0.01;
+    for (const f of notes) {
+      const o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+      o.type = type; o.frequency.value = f;
+      lp.type = "lowpass"; lp.frequency.value = 3200;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(lp).connect(g).connect(ctx.destination);
+      o.start(t); o.stop(t + dur + 0.02);
+      t += dur * 0.9;
+    }
+  } catch {}
+}
+const SFX = {
+  move: () => tone([988], 0.035, "square", 0.018),
+  select: () => tone([659, 988], 0.055, "square", 0.03),
+  back: () => tone([587, 440], 0.06, "square", 0.028),
+  text: () => tone([180 + Math.random() * 25], 0.025, "square", 0.012),
+  save: () => tone([523, 659, 784, 1047, 1319], 0.075, "square", 0.028),
+  nope: () => tone([330, 247, 196], 0.09, "triangle", 0.05),
+  textdemo: () => { let i = 0; const t = setInterval(() => { SFX.text(); if (++i > 14) clearInterval(t); }, 45); },
+};
+let lastMove = 0;
+document.addEventListener("mouseover", (e) => {
+  const el = e.target.closest(".sel, .bbtn, .iconbtn, .p-btn");
+  if (!el || el.contains(e.relatedTarget)) return;
+  const now = performance.now();
+  if (now - lastMove > 70) { lastMove = now; SFX.move(); }
+});
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-sfx]");
+  if (el) SFX[el.dataset.sfx]?.();
+});
+
+// ---------- Typing text ----------
+const typers = [...document.querySelectorAll("[data-type]")];
+typers.forEach((el) => (el.dataset.full = el.textContent));
+function typeOut(el) {
+  clearInterval(el._t);
+  const full = el.dataset.full;
+  if (opts.type !== "on" || matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = full; return; }
+  let i = 0;
+  el.textContent = "";
+  el._t = setInterval(() => {
+    i += 1;
+    el.textContent = full.slice(0, i);
+    if (i % 3 === 0 && full[i] !== " ") SFX.text();
+    if (i >= full.length) clearInterval(el._t);
+  }, 22);
+}
+typers.forEach((el) => {
+  const box = el.closest(".box") || el;
+  box.style.cursor = "pointer";
+  box.addEventListener("click", () => {
+    if (el.textContent.length < el.dataset.full.length) { clearInterval(el._t); el.textContent = el.dataset.full; }
+    else typeOut(el);
+  });
+});
+const seen = new IntersectionObserver((entries) => entries.forEach((en) => { if (en.isIntersecting) { typeOut(en.target); seen.unobserve(en.target); } }), { threshold: 0.6 });
+typers.forEach((el) => seen.observe(el));
+
+// ---------- Snow ----------
+const flakesFor = new Map();
+function snowLoop() {
+  document.querySelectorAll(".snow").forEach((cv) => {
+    const w = cv.parentElement.offsetWidth, h = cv.parentElement.offsetHeight;
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; flakesFor.delete(cv); }
+    if (!flakesFor.has(cv)) flakesFor.set(cv, Array.from({ length: Math.round((w * h) / 9000) }, () => ({ x: Math.random() * w, y: Math.random() * h, s: Math.random() < 0.7 ? 3 : 4, v: 0.25 + Math.random() * 0.45, p: Math.random() * 6.28, a: 0.35 + Math.random() * 0.5 })));
+    const g = cv.getContext("2d");
+    g.clearRect(0, 0, w, h);
+    if (opts.snow !== "on") return;
+    for (const f of flakesFor.get(cv)) {
+      f.y += f.v; f.p += 0.01; f.x += Math.sin(f.p) * 0.25;
+      if (f.y > h) { f.y = -4; f.x = Math.random() * w; }
+      g.fillStyle = `rgba(238,244,255,${f.a})`;
+      g.fillRect(Math.round(f.x), Math.round(f.y), f.s, f.s);
+    }
+  });
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) requestAnimationFrame(snowLoop);
+}
+snowLoop();
+
+// ---------- The switches ----------
+function setKnob(k, v) {
+  opts[k] = v;
+  document.querySelectorAll(`[data-knob="${k}"]`).forEach((b) => b.classList.toggle("is-on", b.dataset.v === v));
+  if (k === "font") document.body.classList.toggle("smooth", v === "smooth");
+  if (k === "type") typers.forEach((el) => { clearInterval(el._t); el.textContent = el.dataset.full; });
+}
+document.querySelectorAll("[data-knob]").forEach((b) => b.addEventListener("click", () => { setKnob(b.dataset.knob, b.dataset.v); SFX.select(); }));
+Object.entries(opts).forEach(([k, v]) => setKnob(k, v));
+</script>
+</body>
+</html>
