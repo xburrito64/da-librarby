@@ -10,6 +10,7 @@ import {
   upNext,
   canResume,
   watch,
+  reveal,
   KIND_LABELS,
   type FileRow,
   type MatchSource,
@@ -17,7 +18,8 @@ import {
   type TitleDetail,
 } from "./api";
 import MatchPicker from "./MatchPicker";
-import { BackIcon, CheckIcon, ChevronDown, EditIcon, PlayIcon } from "../ui/icons";
+import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, PlayIcon, UndoIcon } from "../ui/icons";
+import { useContextMenu, type MenuEntry } from "../ui/ContextMenu";
 
 type Picking = { kind: "title" } | { kind: "season"; season: SeasonRow } | { kind: "file"; file: FileRow };
 
@@ -35,6 +37,7 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
   const [showExtras, setShowExtras] = useState(false);
   const [fullDescription, setFullDescription] = useState(false);
   const [picking, setPicking] = useState<Picking | null>(null);
+  const openMenu = useContextMenu();
   const ref = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => {
@@ -77,6 +80,24 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
   const close = () => setPicking(null);
   const playFile = (file: FileRow) => onPlay(file.id);
   const seasonWatched = episodes.length > 0 && episodes.every((f) => f.progress?.watched);
+  // Right-click menu of an episode or movie.
+  const fileMenu = (e: React.MouseEvent, file: FileRow) => {
+    const items: MenuEntry[] = [{ label: "Play", icon: <PlayIcon />, onSelect: () => playFile(file) }];
+    if (canResume(file.progress))
+      items.push({
+        label: "Play from the beginning",
+        icon: <UndoIcon />,
+        onSelect: () => watch.save(file.id, 0, file.progress!.duration, false).then(() => playFile(file)),
+      });
+    items.push(
+      "divider",
+      file.progress?.watched
+        ? { label: "Mark as unwatched", icon: <UndoIcon />, onSelect: () => watch.set([file.id], false) }
+        : { label: "Mark as watched", icon: <CheckIcon />, onSelect: () => watch.set([file.id], true) },
+      { label: "Open file location", icon: <FolderIcon />, onSelect: () => reveal(file.path) },
+    );
+    openMenu(e, items);
+  };
 
   return (
     <div
@@ -129,6 +150,12 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
               <EditIcon />
               Fix match
             </button>
+            {title.files.length > 0 && (
+              <button className="btn" onClick={() => reveal((title.files.find((f) => f.role !== "extra") ?? title.files[0]).path)}>
+                <FolderIcon />
+                Open folder
+              </button>
+            )}
           </div>
           {upLeft != null && (
             <div className="tp__resume">
@@ -173,7 +200,12 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
               <div className="posters">
                 {movies.map((f) => (
                   <div key={f.id} className="poster">
-                    <button className="card" onClick={() => playFile(f)} title={f.meta?.name ?? f.name ?? undefined}>
+                    <button
+                      className="card"
+                      onClick={() => playFile(f)}
+                      onContextMenu={(e) => fileMenu(e, f)}
+                      title={f.meta?.name ?? f.name ?? undefined}
+                    >
                       <span className="card__art">
                         {f.meta?.thumb ? (
                           <img src={img(f.meta.thumb)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add("is-loaded")} />
@@ -219,7 +251,13 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
                   </div>
                   <div className="eps">
                     {episodes.map((f) => (
-                      <Episode key={f.id} file={f} code={episodeCode(f, season.number)} onPlay={() => playFile(f)} />
+                      <Episode
+                        key={f.id}
+                        file={f}
+                        code={episodeCode(f, season.number)}
+                        onPlay={() => playFile(f)}
+                        onMenu={(e) => fileMenu(e, f)}
+                      />
                     ))}
                   </div>
                 </>
@@ -237,7 +275,7 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
             {showExtras && (
               <div className="extras">
                 {extras.map((f) => (
-                  <button key={f.id} className="extra" onClick={() => playFile(f)}>
+                  <button key={f.id} className="extra" onClick={() => playFile(f)} onContextMenu={(e) => fileMenu(e, f)}>
                     <PlayIcon />
                     <span>{f.name ?? fileName(f.path)}</span>
                   </button>
@@ -288,7 +326,7 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
   );
 }
 
-function Episode({ file, code, onPlay }: { file: FileRow; code: string; onPlay: () => void }) {
+function Episode({ file, code, onPlay, onMenu }: { file: FileRow; code: string; onPlay: () => void; onMenu: (e: React.MouseEvent) => void }) {
   const watched = !!file.progress?.watched;
   return (
     <div
@@ -297,6 +335,7 @@ function Episode({ file, code, onPlay }: { file: FileRow; code: string; onPlay: 
       tabIndex={0}
       onClick={onPlay}
       onKeyDown={(e) => e.key === "Enter" && onPlay()}
+      onContextMenu={onMenu}
     >
       <span className="ep__still">
         {file.meta?.thumb && (
@@ -311,6 +350,7 @@ function Episode({ file, code, onPlay }: { file: FileRow; code: string; onPlay: 
         <span className="ep__top">
           {code && <span className="ep__code">{code}</span>}
           <span className="ep__name">{episodeName(file)}</span>
+          {file.isNew && <span className="ep__new">New</span>}
         </span>
         {file.meta?.description && <span className="ep__desc">{file.meta.description}</span>}
       </span>

@@ -3,11 +3,13 @@
 // the next episode near the end.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 import { mpv } from "./mpv";
-import { watch, img, itemCode, itemName, type PlayItem } from "../library/api";
+import { watch, img, itemCode, itemName, reveal, type PlayItem } from "../library/api";
 import { getSetting, setSetting } from "../ui/settings";
 import {
   BackIcon,
+  CameraIcon,
   ChaptersIcon,
   CheckIcon,
   ExitFullscreenIcon,
@@ -31,6 +33,31 @@ const UP_NEXT_SECONDS = 40;
 const AUTOPLAY_SECONDS = 10;
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const ENDING_CHAPTER = /\b(ed|ending|outro|credits|preview|next episode)\b/i;
+/** Chapters worth a "Skip intro" / "Skip credits" button. */
+const OPENING_CHAPTER = /^(op|opening|op song|opening song|opening theme|theme song)\b/i;
+const CREDITS_CHAPTER = /^(ed|ending|ending song|ending theme|end credits|credits|outro)\b/i;
+const SUB_SIZES = [
+  { scale: 0.8, label: "Small" },
+  { scale: 1, label: "Normal" },
+  { scale: 1.2, label: "Large" },
+  { scale: 1.45, label: "Huge" },
+];
+const SUB_POSITIONS = [
+  { pos: 100, label: "Bottom" },
+  { pos: 94, label: "A bit higher" },
+  { pos: 88, label: "Higher" },
+];
+/** How far subtitles move up while the controls are showing (percent of the picture). */
+const SUB_LIFT = 9;
+
+interface SubStyle {
+  scale: number;
+  pos: number;
+  /** Move up while the controls are showing, so the bar doesn't cover them. */
+  lift: boolean;
+}
+
+const DEFAULT_SUB_STYLE: SubStyle = { scale: 1, pos: 100, lift: true };
 
 interface Track {
   id: number;
@@ -59,6 +86,8 @@ interface TrackChoice {
 interface TrackPrefs {
   audio?: TrackChoice;
   sub?: TrackChoice | "off";
+  /** Playback speed for this show. */
+  speed?: number;
 }
 
 type Menu = "tracks" | "chapters" | "speed" | null;
@@ -90,6 +119,10 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [resumedAt, setResumedAt] = useState<number | null>(null);
   const [hover, setHover] = useState<{ x: number; time: number } | null>(null);
+  const [subStyle, setSubStyle] = useState<SubStyle>(DEFAULT_SUB_STYLE);
+  const [showRemaining, setShowRemaining] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  const [notice, setNotice] = useState<{ text: string; path?: string } | null>(null);
 
   const timeRef = useRef(item.resume ?? 0);
   const durationRef = useRef(item.duration ?? 0);
@@ -119,7 +152,11 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
     setResumedAt(item.resume);
 
     const start = item.resume ? `start=${item.resume.toFixed(2)}` : "start=none";
-    getSetting<TrackPrefs>(`ui.tracks.${titleId}`).then((p) => (prefsRef.current = p ?? {}));
+    getSetting<TrackPrefs>(`ui.tracks.${titleId}`).then((p) => {
+      prefsRef.current = p ?? {};
+      // Each show keeps its own speed (normal unless changed for it).
+      mpv.setProperty("speed", p?.speed ?? 1);
+    });
     mpv
       .setProperty("pause", false)
       .then(() => mpv.command("loadfile", item.path, "replace", -1, start))
@@ -247,6 +284,51 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
     setSetting(`ui.tracks.${item.titleId}`, prefsRef.current);
   };
 
+  const chooseSpeed = (value: number) => {
+    mpv.setProperty("speed", value);
+    prefsRef.current = { ...prefsRef.current, speed: value === 1 ? undefined : value };
+    setSetting(`ui.tracks.${item.titleId}`, prefsRef.current);
+  };
+
+  // ----- Subtitle look (the same for everything) -----
+
+  useEffect(() => {
+    getSetting<SubStyle>("ui.subs").then((s) => s && setSubStyle({ ...DEFAULT_SUB_STYLE, ...s }));
+  }, []);
+
+  const changeSubStyle = (change: Partial<SubStyle>) => {
+    const next = { ...subStyle, ...change };
+    setSubStyle(next);
+    setSetting("ui.subs", next);
+  };
+
+  // ----- Screenshots, clock -----
+
+  const screenshot = useCallback(async () => {
+    try {
+      const dir = await invoke<string>("player_screenshot_dir");
+      const code = itemCode(item);
+      const stamp = formatTime(timeRef.current).replace(/:/g, ".");
+      const name = [item.titleName, code, stamp].filter(Boolean).join(" ").replace(/[<>:"/\\|?*]+/g, "").trim();
+      const path = `${dir}\\${name}.jpg`;
+      await mpv.command("screenshot-to-file", path, "subtitles");
+      setNotice({ text: "Screenshot saved", path });
+    } catch (e) {
+      setNotice({ text: `Screenshot failed: ${e}` });
+    }
+  }, [item]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 15000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   // ----- Controls -----
 
   const setWindowFullscreen = useCallback(async (on: boolean) => {
@@ -310,6 +392,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
       else if (k === "ArrowDown") changeVolume(-5);
       else if (k === "m") mpv.command("cycle", "mute");
       else if (k === "n") playNext();
+      else if (k === "s") screenshot();
       else return;
       e.preventDefault();
     };
@@ -326,6 +409,14 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   // ----- Next episode -----
 
   const remaining = duration > 0 ? duration - time : Infinity;
+  const clock = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const endsAt = duration > 0 && !ended ? clock(new Date(now.getTime() + (remaining / (speed || 1)) * 1000)) : null;
+
+  // "Skip intro" / "Skip credits" while in such a chapter (not when the next-episode card covers it).
+  const chapterNow = chapter >= 0 ? chapters[chapter] : undefined;
+  const chapterTitle = chapterNow?.title ?? "";
+  const skipKind = OPENING_CHAPTER.test(chapterTitle) ? "intro" : CREDITS_CHAPTER.test(chapterTitle) ? "credits" : null;
+  const skipTo = chapter >= 0 && chapter + 1 < chapters.length ? chapters[chapter + 1].time : null;
   const inEnding = chapter >= 0 && chapter >= chapters.length - 3 && ENDING_CHAPTER.test(chapters[chapter]?.title ?? "");
   const showUpNext = !!next && !upNextClosed && !error && (ended || remaining < UP_NEXT_SECONDS || inEnding);
 
@@ -388,6 +479,12 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   // ----- Rendering -----
 
   const visible = controlsVisible || paused || menu != null || ended;
+
+  // Subtitles: size, position, and moving up while the controls are showing.
+  useEffect(() => {
+    mpv.setProperty("sub-scale", subStyle.scale).catch(() => {});
+    mpv.setProperty("sub-pos", subStyle.lift && visible ? subStyle.pos - SUB_LIFT : subStyle.pos).catch(() => {});
+  }, [subStyle, visible]);
   const audio = tracks.filter((t) => t.type === "audio");
   const subs = tracks.filter((t) => t.type === "sub");
   const code = itemCode(item);
@@ -428,7 +525,30 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
             {itemName(item)}
           </div>
         </div>
+        <span className="player__spacer" />
+        <div className="player__clock">
+          <span className="player__clock-now">{clock(now)}</span>
+          {endsAt && <span className="player__clock-end">Ends at {endsAt}</span>}
+        </div>
       </div>
+
+      {notice && (
+        <div className="player__notice">
+          {notice.text}
+          {notice.path && (
+            <button className="player__toast-btn" onClick={() => reveal(notice.path!)}>
+              Show
+            </button>
+          )}
+        </div>
+      )}
+
+      {skipKind && skipTo != null && !showUpNext && (
+        <button className="player__skip" onClick={() => mpv.command("seek", skipTo.toFixed(2), "absolute")}>
+          {skipKind === "intro" ? "Skip intro" : "Skip credits"}
+          <NextIcon />
+        </button>
+      )}
 
       {resumedAt != null && (
         <div className="player__toast">
@@ -526,9 +646,10 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
               aria-label="Volume"
             />
           </div>
-          <span className="player__time">
-            {formatTime(time)} <span className="player__time-sep">/</span> {formatTime(duration)}
-          </span>
+          <button className="player__time" onClick={() => setShowRemaining((v) => !v)} title="Show time left / total length">
+            {formatTime(time)} <span className="player__time-sep">/</span>{" "}
+            {showRemaining && duration > 0 ? `-${formatTime(duration - time)}` : formatTime(duration)}
+          </button>
           <span className="player__spacer" />
           {chapters.length > 1 && (
             <MenuButton menu={menu} id="chapters" onMenu={setMenu} title="Chapters">
@@ -538,6 +659,9 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
           <MenuButton menu={menu} id="tracks" onMenu={setMenu} title="Audio & subtitles">
             <SubtitlesIcon />
           </MenuButton>
+          <button className="player__btn" onClick={screenshot} title="Screenshot (S)">
+            <CameraIcon />
+          </button>
           <MenuButton menu={menu} id="speed" onMenu={setMenu} title="Playback speed">
             {speed === 1 ? <SpeedIcon /> : <span className="player__speed">{speed}×</span>}
           </MenuButton>
@@ -562,6 +686,21 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
                 <MenuItem key={t.id} active={!!t.selected} onClick={() => chooseTrack("sub", t)} label={trackLabel(t)} detail={trackDetail(t)} />
               ))}
             </div>
+            <div className="player__menu-col player__menu-col--style">
+              <div className="player__menu-title">Subtitle size</div>
+              {SUB_SIZES.map((o) => (
+                <MenuItem key={o.scale} active={subStyle.scale === o.scale} onClick={() => changeSubStyle({ scale: o.scale })} label={o.label} />
+              ))}
+              <div className="player__menu-title player__menu-title--gap">Position</div>
+              {SUB_POSITIONS.map((o) => (
+                <MenuItem key={o.pos} active={subStyle.pos === o.pos} onClick={() => changeSubStyle({ pos: o.pos })} label={o.label} />
+              ))}
+              <MenuItem
+                active={subStyle.lift}
+                onClick={() => changeSubStyle({ lift: !subStyle.lift })}
+                label="Move up while controls show"
+              />
+            </div>
           </div>
         )}
         {menu === "chapters" && (
@@ -585,7 +724,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
             <div className="player__menu-col">
               <div className="player__menu-title">Speed</div>
               {SPEEDS.map((s) => (
-                <MenuItem key={s} active={Math.abs(s - speed) < 0.01} onClick={() => mpv.setProperty("speed", s)} label={s === 1 ? "Normal" : `${s}×`} />
+                <MenuItem key={s} active={Math.abs(s - speed) < 0.01} onClick={() => chooseSpeed(s)} label={s === 1 ? "Normal" : `${s}×`} />
               ))}
             </div>
           </div>

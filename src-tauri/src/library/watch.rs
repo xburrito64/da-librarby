@@ -139,6 +139,17 @@ pub fn hide_from_continue(conn: &Connection, title_id: i64) -> rusqlite::Result<
     Ok(())
 }
 
+/// Marks every episode and movie of a title as watched or not.
+pub fn set_title_watched(conn: &mut Connection, title_id: i64, watched: bool) -> rusqlite::Result<()> {
+    let ids: Vec<i64> = {
+        let mut stmt =
+            conn.prepare("SELECT id FROM files WHERE title_id = ?1 AND present = 1 AND role IN ('episode', 'movie')")?;
+        let ids = stmt.query_map([title_id], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?;
+        ids
+    };
+    set_watched(conn, &ids, watched)
+}
+
 /// Number of watched files (episodes and movies) per title.
 pub fn watched_counts(conn: &Connection) -> rusqlite::Result<HashMap<i64, i64>> {
     let mut stmt = conn.prepare(

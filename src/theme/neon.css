@@ -492,3 +492,43 @@
   font-size: 13.5px;
   letter-spacing: 0.03em;
 }
+
+/* Search sits at the bottom of the sidebar, like a prompt. */
+:root[data-theme="neon"] .nav__search,
+:root[data-theme="neon"] .nav__search:focus-within,
+:root[data-theme="neon"] .nav__search.has-text {
+  flex: 1 0 100%;
+  width: auto;
+  margin: 0 0 8px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme="neon"] .nav__search input {
+  font: 500 12.5px var(--font-label);
+  text-transform: uppercase;
+}
+
+:root[data-theme="neon"] .nav__search:focus-within {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 12px rgba(47, 228, 255, 0.3);
+}
+
+:root[data-theme="neon"] .card__badge,
+:root[data-theme="neon"] .ep__new {
+  border-radius: 0;
+  background: var(--accent-2);
+  color: #021a20;
+}
+
+:root[data-theme="neon"] .ctx-menu {
+  border-radius: 0;
+  border-color: rgba(255, 63, 212, 0.45);
+  box-shadow:
+    0 0 30px rgba(255, 63, 212, 0.2),
+    0 18px 50px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="neon"] .ctx-menu__item {
+  font: 500 12.5px var(--font-label);
+  letter-spacing: 0.04em;
+}

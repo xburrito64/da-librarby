@@ -213,6 +213,18 @@ pub async fn watch_set(app: AppHandle, library: State<'_, Library>, file_ids: Ve
     Ok(())
 }
 
+#[tauri::command]
+pub async fn library_search(library: State<'_, Library>, query: String) -> Result<db::SearchResults, String> {
+    library.with_db(|c| db::search(c, &library.images_dir, &query))
+}
+
+#[tauri::command]
+pub async fn watch_set_title(app: AppHandle, library: State<'_, Library>, title_id: i64, watched: bool) -> Result<(), String> {
+    library.with_db(|c| watch::set_title_watched(c, title_id, watched))?;
+    let _ = app.emit("library:changed", json!({}));
+    Ok(())
+}
+
 /// Removes a show from "continue watching" (until something of it is watched again).
 #[tauri::command]
 pub async fn watch_hide(app: AppHandle, library: State<'_, Library>, title_id: i64) -> Result<(), String> {

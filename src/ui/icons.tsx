@@ -44,3 +44,21 @@ export const Skip10Icon = ({ forward }: { forward?: boolean }) => (
     </text>
   </svg>
 );
+
+export const SearchIcon = () => <Icon d="M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15zM16 16l5 5" />;
+export const DiceIcon = () => (
+  <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="3.5" />
+    <g fill="currentColor" stroke="none">
+      <circle cx="8.5" cy="8.5" r="1.6" />
+      <circle cx="15.5" cy="8.5" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="8.5" cy="15.5" r="1.6" />
+      <circle cx="15.5" cy="15.5" r="1.6" />
+    </g>
+  </svg>
+);
+export const UndoIcon = () => <Icon d="M4 10h11a5 5 0 0 1 0 10h-3M4 10l4-4M4 10l4 4" />;
+export const CameraIcon = () => (
+  <Icon d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
+);

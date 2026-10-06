@@ -1,6 +1,6 @@
 // The library: navigation, home screen, cover grids, show pages and settings.
 // How it looks is entirely up to the theme (src/theme); this file only lays out the pieces.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   library,
   metadata,
@@ -16,7 +16,8 @@ import {
 import Browse from "./Browse";
 import TitlePage from "./TitlePage";
 import Settings, { type SettingsSection } from "./Settings";
-import { RefreshIcon, SettingsIcon } from "../ui/icons";
+import { CloseIcon, RefreshIcon, SearchIcon, SettingsIcon } from "../ui/icons";
+import { ContextMenuProvider } from "../ui/ContextMenu";
 
 export type Tab = "home" | LibraryKind;
 
@@ -34,6 +35,8 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
   const [settings, setSettings] = useState<SettingsSection | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(() => {
     library.list().then(setLibraries).catch((e) => setError(String(e)));
@@ -74,6 +77,24 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
     };
   }, [active, openTitle, settings]);
 
+  // Typing anywhere starts a search.
+  useEffect(() => {
+    if (!active || settings) return;
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (e.ctrlKey || e.altKey || e.metaKey || e.key.length !== 1 || e.key === " ") return;
+      if (target.closest("input, textarea, select") || document.querySelector(".modal, .ctx-menu")) return;
+      searchRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, settings]);
+
+  const search = (text: string) => {
+    setQuery(text);
+    if (text.trim()) setOpenTitle(null);
+  };
+
   const sorted = useMemo(
     () => (titles ?? []).slice().sort((a, b) => sortName(a.name).localeCompare(sortName(b.name))),
     [titles],
@@ -89,10 +110,12 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
 
   const goTo = (next: Tab) => {
     setOpenTitle(null);
+    setQuery("");
     setTab(next);
   };
 
   return (
+    <ContextMenuProvider>
     <div className={`app ${scrolled ? "app--scrolled" : ""} ${openTitle != null ? "app--title" : ""}`}>
       <nav className="nav">
         <button className="nav__brand" onClick={() => goTo("home")}>
@@ -103,7 +126,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
           {(["home", ...kinds] as Tab[]).map((t) => (
             <button
               key={t}
-              className={`nav__tab ${tab === t && openTitle == null ? "is-active" : ""}`}
+              className={`nav__tab ${tab === t && openTitle == null && !query.trim() ? "is-active" : ""}`}
               onClick={() => goTo(t)}
             >
               {t === "home" ? "Home" : KIND_LABELS[t]}
@@ -111,6 +134,29 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
           ))}
         </div>
         <div className="nav__end">
+          <label className={`nav__search ${query ? "has-text" : ""}`}>
+            <SearchIcon />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => search(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.stopPropagation();
+                  setQuery("");
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder="Search"
+              spellCheck={false}
+              aria-label="Search the library"
+            />
+            {query && (
+              <button className="nav__search-clear" onClick={() => setQuery("")} title="Clear search">
+                <CloseIcon />
+              </button>
+            )}
+          </label>
           {status && (
             <span className="nav__status" title={fetching?.running ? (fetching.current ?? status) : status}>
               <span className="nav__pulse" />
@@ -129,6 +175,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
       <Browse
         tab={tab}
         titles={sorted}
+        query={query.trim()}
         continueList={continueList}
         loaded={titles != null && libraries != null}
         hasLibraries={(libraries?.length ?? 0) > 0}
@@ -166,5 +213,6 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
         </button>
       )}
     </div>
+    </ContextMenuProvider>
   );
 }

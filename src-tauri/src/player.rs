@@ -96,6 +96,14 @@ pub async fn player_get_property(player: State<'_, Player>, name: String) -> Res
     player.get()?.get_property(&name)
 }
 
+/// The folder screenshots go to (Pictures\Da Librarby), created if needed.
+#[tauri::command]
+pub async fn player_screenshot_dir(app: AppHandle) -> Result<String, String> {
+    let dir = app.path().picture_dir().map_err(|e| e.to_string())?.join("Da Librarby");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.to_string_lossy().into_owned())
+}
+
 /// Called when the main window is asked to close. If mpv is running, asks it to
 /// quit and returns true (the window must stay open until mpv has let go of it;
 /// the event thread closes the window once mpv has shut down).
@@ -146,6 +154,7 @@ fn start_mpv(app: &AppHandle, window: &WebviewWindow) -> Result<Mpv, String> {
         // Subtitle files next to the video with a similar name are picked up too.
         ("sub-auto", "fuzzy".into()),
         ("volume-max", "100".into()),
+        ("screenshot-jpeg-quality", "92".into()),
     ]
     .into_iter()
     .collect();

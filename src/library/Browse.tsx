@@ -8,13 +8,19 @@ import {
   itemName,
   upNext,
   watch,
+  reveal,
+  revealTitle,
   KIND_LABELS,
   type ContinueItem,
+  type FoundFile,
   type LibraryKind,
+  type SearchResults,
   type TitleSummary,
 } from "./api";
+import { useContextMenu } from "../ui/ContextMenu";
+import { getSetting, setSetting } from "../ui/settings";
 import type { Tab } from "./LibraryView";
-import { ChevronLeft, ChevronRight, CloseIcon, InfoIcon, PlayIcon } from "../ui/icons";
+import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, UndoIcon } from "../ui/icons";
 
 const KINDS: LibraryKind[] = ["anime", "shows", "movies"];
 const SPOTLIGHT_SIZE = 6;
@@ -23,6 +29,8 @@ const SPOTLIGHT_SECONDS = 9;
 interface Props {
   tab: Tab;
   titles: TitleSummary[];
+  /** Search text; when set, search results replace the page. */
+  query: string;
   continueList: ContinueItem[];
   loaded: boolean;
   hasLibraries: boolean;
@@ -35,13 +43,35 @@ interface Props {
   onAddFolder: () => void;
 }
 
-export default function Browse({ tab, titles, continueList, loaded, hasLibraries, active, onTab, onOpen, onPlay, onScrolled, onAddFolder }: Props) {
+type SortKey = "name" | "added" | "watched" | "year";
+
+const SORTS: { id: SortKey; label: string }[] = [
+  { id: "name", label: "A–Z" },
+  { id: "added", label: "Recently added" },
+  { id: "watched", label: "Recently watched" },
+  { id: "year", label: "Newest first" },
+];
+
+function sortTitles(titles: TitleSummary[], sort: SortKey) {
+  const list = titles.slice();
+  if (sort === "added") list.sort((a, b) => b.addedAt - a.addedAt);
+  else if (sort === "watched") list.sort((a, b) => (b.lastWatched ?? 0) - (a.lastWatched ?? 0));
+  else if (sort === "year") list.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+  return list;
+}
+
+export default function Browse({ tab, titles, query, continueList, loaded, hasLibraries, active, onTab, onOpen, onPlay, onScrolled, onAddFolder }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const [sort, setSort] = useState<SortKey>("name");
+
+  useEffect(() => {
+    getSetting<SortKey>("ui.sort").then((s) => s && SORTS.some((x) => x.id === s) && setSort(s));
+  }, []);
 
   useEffect(() => {
     ref.current?.scrollTo(0, 0);
     onScrolled(false);
-  }, [tab, onScrolled]);
+  }, [tab, query === "", onScrolled]);
 
   useEffect(() => {
     if (active) onScrolled((ref.current?.scrollTop ?? 0) > 8);
@@ -53,7 +83,7 @@ export default function Browse({ tab, titles, continueList, loaded, hasLibraries
     return map;
   }, [titles]);
 
-  // Play from the spotlight: pick up where the show was left, like its own Play button.
+  // Play a whole show: pick up where it was left, like its own Play button.
   const play = (id: number) =>
     library.title(id).then((detail) => {
       const up = detail && upNext(detail);
@@ -61,9 +91,22 @@ export default function Browse({ tab, titles, continueList, loaded, hasLibraries
       else onOpen(id);
     });
 
+  const changeSort = (next: SortKey) => {
+    setSort(next);
+    setSetting("ui.sort", next);
+  };
+
+  // "Surprise me": something of this kind that isn't finished yet.
+  const surprise = (list: TitleSummary[]) => {
+    const open = list.filter((t) => t.online && t.watched < Math.max(1, t.episodes + t.movies));
+    const pool = open.length > 0 ? open : list;
+    if (pool.length > 0) play(pool[Math.floor(Math.random() * pool.length)].id);
+  };
+
   let content;
   if (!loaded) content = null;
   else if (!hasLibraries || titles.length === 0) content = <Empty hasLibraries={hasLibraries} onAddFolder={onAddFolder} />;
+  else if (query) content = <Search query={query} titles={titles} onOpen={onOpen} onPlay={onPlay} onPlayTitle={play} />;
   else if (tab === "home")
     content = (
       <>
@@ -79,40 +122,151 @@ export default function Browse({ tab, titles, continueList, loaded, hasLibraries
           {KINDS.filter((k) => byKind.has(k)).map((k) => (
             <Row key={k} label={KIND_LABELS[k]} count={byKind.get(k)!.length} onMore={() => onTab(k)}>
               {byKind.get(k)!.map((t) => (
-                <Card key={t.id} title={t} onOpen={onOpen} />
+                <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
               ))}
             </Row>
           ))}
         </div>
       </>
     );
-  else
+  else {
+    const list = sortTitles(byKind.get(tab) ?? [], sort);
     content = (
       <section className="grid-page">
         <header className="grid-page__head">
           <h1 className="grid-page__title">{KIND_LABELS[tab]}</h1>
           <span className="grid-page__count">
-            {byKind.get(tab)?.length ?? 0} title{byKind.get(tab)?.length === 1 ? "" : "s"}
+            {list.length} title{list.length === 1 ? "" : "s"}
           </span>
+          <span className="spacer" />
+          <button className="btn btn--small" onClick={() => surprise(list)} title="Play something you haven't finished">
+            <DiceIcon />
+            Surprise me
+          </button>
+          <select className="input sort-select" value={sort} onChange={(e) => changeSort(e.target.value as SortKey)} aria-label="Sort by">
+            {SORTS.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </header>
         <div className="grid">
-          {(byKind.get(tab) ?? []).map((t) => (
-            <Card key={t.id} title={t} onOpen={onOpen} />
+          {list.map((t) => (
+            <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
           ))}
         </div>
       </section>
     );
+  }
 
   return (
     <div
       ref={ref}
-      className={`view browse ${tab === "home" ? "view--hero" : ""} ${active ? "" : "is-covered"}`}
+      className={`view browse ${tab === "home" && !query ? "view--hero" : ""} ${active ? "" : "is-covered"}`}
       onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}
     >
-      <div className="page-in" key={tab}>
+      <div className="page-in" key={query ? "search" : tab}>
         {content}
       </div>
     </div>
+  );
+}
+
+/** Search results: shows and movies, then matching episodes. */
+function Search({
+  query,
+  titles,
+  onOpen,
+  onPlay,
+  onPlayTitle,
+}: {
+  query: string;
+  titles: TitleSummary[];
+  onOpen: (id: number) => void;
+  onPlay: (fileId: number) => void;
+  onPlayTitle: (id: number) => void;
+}) {
+  const [results, setResults] = useState<SearchResults | null>(null);
+  const openMenu = useContextMenu();
+
+  useEffect(() => {
+    let current = true;
+    const timer = window.setTimeout(() => {
+      library.search(query).then((r) => current && setResults(r)).catch(() => {});
+    }, 120);
+    return () => {
+      current = false;
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  const byId = new Map(titles.map((t) => [t.id, t]));
+  const shows = (results?.titles ?? []).map((id) => byId.get(id)).filter((t): t is TitleSummary => !!t);
+  const files = results?.files ?? [];
+  const code = (f: FoundFile) =>
+    f.episode == null
+      ? ""
+      : `${f.seasonNumber != null && f.seasonNumber > 0 ? `S${f.seasonNumber}` : ""}E${f.episodeEnd != null ? `${f.episode}-${f.episodeEnd}` : f.episode}`;
+
+  return (
+    <section className="grid-page search">
+      <header className="grid-page__head">
+        <h1 className="grid-page__title">“{query}”</h1>
+        {results && (
+          <span className="grid-page__count">
+            {shows.length} show{shows.length === 1 ? "" : "s"} · {files.length}
+            {files.length === 60 ? "+" : ""} episode{files.length === 1 ? "" : "s"}
+          </span>
+        )}
+      </header>
+      {results && shows.length === 0 && files.length === 0 && <p className="search__none">Nothing found. Try another word.</p>}
+      {shows.length > 0 && (
+        <>
+          <h2 className="section-title">Shows & movies</h2>
+          <div className="grid search__titles">
+            {shows.map((t) => (
+              <Card key={t.id} title={t} onOpen={onOpen} onPlay={onPlayTitle} />
+            ))}
+          </div>
+        </>
+      )}
+      {files.length > 0 && (
+        <>
+          <h2 className="section-title">Episodes</h2>
+          <div className="search__files">
+            {files.map((f) => (
+              <button
+                key={f.fileId}
+                className="found"
+                onClick={() => onPlay(f.fileId)}
+                onContextMenu={(e) =>
+                  openMenu(e, [
+                    { label: "Play", icon: <PlayIcon />, onSelect: () => onPlay(f.fileId) },
+                    { label: "Show details", icon: <InfoIcon />, onSelect: () => onOpen(f.titleId) },
+                    { label: "Mark as watched", icon: <CheckIcon />, onSelect: () => watch.set([f.fileId], true) },
+                  ])
+                }
+              >
+                <span className="found__still">
+                  {f.thumb && <img src={img(f.thumb)} alt="" loading="lazy" decoding="async" />}
+                  <span className="found__play">
+                    <PlayIcon />
+                  </span>
+                </span>
+                <span className="found__text">
+                  <span className="found__show">{f.titleName}</span>
+                  <span className="found__name">
+                    {code(f) && <span className="found__code">{code(f)}</span>}
+                    {f.name ?? (f.episode != null ? `Episode ${f.episode}` : "Movie")}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -247,10 +401,24 @@ function Row({ label, count, wide, onMore, children }: { label: string; count: n
 
 /** "Continue watching": a wide card that plays straight away. */
 function ContinueCard({ item, onPlay, onOpen }: { item: ContinueItem; onPlay: (fileId: number) => void; onOpen: (id: number) => void }) {
+  const openMenu = useContextMenu();
   const code = itemCode(item);
   const left = item.reason === "resume" && item.resume != null && item.duration ? Math.max(1, Math.round((item.duration - item.resume) / 60)) : null;
   return (
-    <div className="ccard">
+    <div
+      className="ccard"
+      onContextMenu={(e) =>
+        openMenu(e, [
+          { label: item.reason === "resume" ? "Resume" : "Play", icon: <PlayIcon />, onSelect: () => onPlay(item.fileId) },
+          { label: "Show details", icon: <InfoIcon />, onSelect: () => onOpen(item.titleId) },
+          "divider",
+          { label: "Mark episode as watched", icon: <CheckIcon />, onSelect: () => watch.set([item.fileId], true) },
+          { label: "Open file location", icon: <FolderIcon />, onSelect: () => reveal(item.path) },
+          "divider",
+          { label: "Remove from Continue watching", icon: <CloseIcon />, onSelect: () => watch.hide(item.titleId) },
+        ])
+      }
+    >
       <button className="ccard__main" onClick={() => onPlay(item.fileId)} title={`Play ${itemName(item)}`}>
         <span className="ccard__art">
           {item.image && <img src={img(item.image)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add("is-loaded")} />}
@@ -285,13 +453,27 @@ function ContinueCard({ item, onPlay, onOpen }: { item: ContinueItem; onPlay: (f
   );
 }
 
-export function Card({ title, onOpen }: { title: TitleSummary; onOpen: (id: number) => void }) {
+export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (id: number) => void; onPlay: (id: number) => void }) {
+  const openMenu = useContextMenu();
   const total = Math.max(1, title.episodes + title.movies);
+  const finished = title.watched >= total;
+  const badge = title.isNew ? "New" : title.newCount > 0 ? `${title.newCount} new` : null;
   return (
     <button
       className={`card ${title.online ? "" : "card--offline"}`}
       style={{ "--c": title.color ?? undefined } as React.CSSProperties}
       onClick={() => onOpen(title.id)}
+      onContextMenu={(e) =>
+        openMenu(e, [
+          { label: "Play", icon: <PlayIcon />, onSelect: () => onPlay(title.id) },
+          { label: "Show details", icon: <InfoIcon />, onSelect: () => onOpen(title.id) },
+          "divider",
+          finished
+            ? { label: "Mark all as unwatched", icon: <UndoIcon />, onSelect: () => watch.setTitle(title.id, false) }
+            : { label: "Mark all as watched", icon: <CheckIcon />, onSelect: () => watch.setTitle(title.id, true) },
+          { label: "Open folder", icon: <FolderIcon />, onSelect: () => revealTitle(title.id) },
+        ])
+      }
       title={title.name}
     >
       <span className="card__art">
@@ -306,6 +488,7 @@ export function Card({ title, onOpen }: { title: TitleSummary; onOpen: (id: numb
         ) : (
           <span className="card__placeholder">{title.name}</span>
         )}
+        {badge && <span className="card__badge">{badge}</span>}
         {title.watched > 0 && (
           <span className="progress card__progress" title={`${title.watched} of ${total} watched`}>
             <span style={{ width: `${Math.min(100, (title.watched / total) * 100)}%` }} />

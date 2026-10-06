@@ -1,6 +1,7 @@
 // Frontend side of the library (see src-tauri/src/library).
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
 export type LibraryKind = "anime" | "shows" | "movies";
 
@@ -37,6 +38,13 @@ export interface TitleSummary {
   score: number | null;
   /** Episodes and movies watched. */
   watched: number;
+  /** Episodes and movies added recently and not started yet. */
+  newCount: number;
+  /** The show itself was added recently. */
+  isNew: boolean;
+  /** When its newest file was added / something of it was last watched (seconds). */
+  addedAt: number;
+  lastWatched: number | null;
 }
 
 /** Information from AniList/TMDB. */
@@ -82,6 +90,8 @@ export interface FileRow {
   meta: Meta | null;
   providerEpisode: number | null;
   progress: Progress | null;
+  /** Added recently and not started yet. */
+  isNew: boolean;
 }
 
 /** How far a file has been played. Times in seconds. */
@@ -112,6 +122,7 @@ export const library = {
   scanning: () => invoke<boolean>("library_scanning"),
   titles: () => invoke<TitleSummary[]>("library_titles"),
   title: (id: number) => invoke<TitleDetail | null>("library_title", { id }),
+  search: (query: string) => invoke<SearchResults>("library_search", { query }),
 
   onScan: (callback: (status: { running: boolean; library: string | null }) => void) =>
     listen<{ running: boolean; library: string | null }>("library:scan", (e) => callback(e.payload)),
@@ -235,6 +246,7 @@ export const watch = {
   continueList: () => invoke<ContinueItem[]>("watch_continue"),
   /** Removes a show from "continue watching" until something of it is watched again. */
   hide: (titleId: number) => invoke<void>("watch_hide", { titleId }),
+  setTitle: (titleId: number, watched: boolean) => invoke<void>("watch_set_title", { titleId, watched }),
 };
 
 /** "S1E3" / "E3" / "" for a play item. */
@@ -284,4 +296,33 @@ export function upNext(title: TitleDetail): { file: FileRow; mode: "resume" | "n
     return { file: latest, mode: "next" };
   }
   return { file: ordered[0], mode: "start" };
+}
+
+export interface FoundFile {
+  fileId: number;
+  titleId: number;
+  titleName: string;
+  role: "episode" | "movie";
+  seasonNumber: number | null;
+  episode: number | null;
+  episodeEnd: number | null;
+  name: string | null;
+  thumb: string | null;
+}
+
+export interface SearchResults {
+  titles: number[];
+  files: FoundFile[];
+}
+
+/** Opens Explorer at a file (selected) or folder. */
+export function reveal(path: string) {
+  return revealItemInDir(path);
+}
+
+/** Shows a title's folder in Explorer (with its first video selected). */
+export async function revealTitle(titleId: number) {
+  const detail = await library.title(titleId);
+  const file = detail?.files.find((f) => f.role !== "extra") ?? detail?.files[0];
+  if (file) await reveal(file.path);
 }

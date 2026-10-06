@@ -450,6 +450,31 @@ pub struct TitleSummary {
     pub score: Option<i32>,
     /// Episodes and movies watched.
     pub watched: i64,
+    /// Episodes and movies that are new (see `new_files`).
+    pub new_count: i64,
+    /// The title itself showed up recently.
+    pub is_new: bool,
+    /// When its newest file was added, and when something of it was last watched.
+    pub added_at: i64,
+    pub last_watched: Option<i64>,
+}
+
+/// Things count as new for two weeks after they show up...
+const NEW_FOR_SECONDS: i64 = 14 * 24 * 60 * 60;
+/// ...unless they came with the library's first scan (a freshly added drive isn't all "new").
+const FIRST_SCAN_SECONDS: i64 = 60 * 60;
+
+/// Episodes and movies that are new and not started yet: (file id, title id).
+pub fn new_files(conn: &Connection) -> rusqlite::Result<Vec<(i64, i64)>> {
+    let mut stmt = conn.prepare(
+        "WITH first_scan AS (SELECT library_id, MIN(added_at) AS at FROM files GROUP BY library_id)
+         SELECT f.id, f.title_id FROM files f JOIN first_scan s ON s.library_id = f.library_id
+         WHERE f.present = 1 AND f.role IN ('episode', 'movie')
+           AND f.added_at > s.at + ?1 AND f.added_at > ?2
+           AND NOT EXISTS (SELECT 1 FROM watch w WHERE w.file_id = f.id AND (w.watched = 1 OR w.position > 0))",
+    )?;
+    let rows = stmt.query_map(params![FIRST_SCAN_SECONDS, now() - NEW_FOR_SECONDS], |r| Ok((r.get(0)?, r.get(1)?)))?;
+    rows.collect()
 }
 
 pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSummary>> {
@@ -461,13 +486,21 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                 (SELECT COUNT(*) FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'movie'),
                 (SELECT COUNT(*) FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'extra'),
                 m.thumb, m.color, m.title_id IS NOT NULL, m.provider_id IS NOT NULL,
-                m.genres, m.banner, m.score
+                m.genres, m.banner, m.score,
+                (SELECT MAX(f.added_at) FROM files f WHERE f.title_id = t.id AND f.present = 1),
+                (SELECT MAX(w.updated_at) FROM watch w JOIN files f ON f.id = w.file_id WHERE f.title_id = t.id),
+                t.added_at > (SELECT MIN(f.added_at) FROM files f WHERE f.library_id = t.library_id) + ?1
+                  AND t.added_at > ?2
          FROM titles t JOIN libraries l ON l.id = t.library_id
          LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
     )?;
     let watched = super::watch::watched_counts(conn)?;
-    let rows = stmt.query_map([], |r| {
+    let mut new_counts: HashMap<i64, i64> = HashMap::new();
+    for (_, title_id) in new_files(conn)? {
+        *new_counts.entry(title_id).or_default() += 1;
+    }
+    let rows = stmt.query_map(params![FIRST_SCAN_SECONDS, now() - NEW_FOR_SECONDS], |r| {
         let looked_up: bool = r.get(14)?;
         let id: i64 = r.get(0)?;
         Ok(TitleSummary {
@@ -490,6 +523,10 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
             banner: image_path(images, r.get(17)?),
             score: r.get(18)?,
             watched: watched.get(&id).copied().unwrap_or(0),
+            new_count: new_counts.get(&id).copied().unwrap_or(0),
+            added_at: r.get::<_, Option<i64>>(19)?.unwrap_or(0),
+            last_watched: r.get(20)?,
+            is_new: r.get::<_, Option<bool>>(21)?.unwrap_or(false),
         })
     })?;
     rows.collect()
@@ -540,6 +577,7 @@ pub struct FileRow {
     /// Episode number within the AniList entry in `meta.provider_ids[0]`.
     pub provider_episode: Option<i32>,
     pub progress: Option<super::watch::Progress>,
+    pub is_new: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -645,6 +683,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
         .collect::<rusqlite::Result<_>>()?;
 
     let progress = super::watch::progress_for_title(conn, id)?;
+    let new: HashSet<i64> = new_files(conn)?.into_iter().filter(|(_, t)| *t == id).map(|(f, _)| f).collect();
     let mut stmt = conn.prepare(
         "SELECT f.id, f.path, f.role, f.season_id, f.episode, f.episode_end, f.name, f.year, f.size,
                 fm.file_id IS NOT NULL, fm.provider_id, fm.locked, fm.name, fm.description, fm.year,
@@ -683,6 +722,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
                 meta,
                 provider_episode: r.get(17)?,
                 progress: progress.get(&r.get::<_, i64>(0)?).cloned(),
+                is_new: new.contains(&r.get::<_, i64>(0)?),
             })
         })?
         .collect::<rusqlite::Result<_>>()?;
@@ -797,4 +837,80 @@ mod category_tests {
         drop(conn);
         let _ = fs::remove_dir_all(&root);
     }
+}
+
+/// An episode or movie found by search.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FoundFile {
+    pub file_id: i64,
+    pub title_id: i64,
+    pub title_name: String,
+    pub role: String,
+    pub season_number: Option<i32>,
+    pub episode: Option<f64>,
+    pub episode_end: Option<f64>,
+    pub name: Option<String>,
+    pub thumb: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchResults {
+    /// Matching shows and movies (ids of `titles`), names starting with the search first.
+    pub titles: Vec<i64>,
+    pub files: Vec<FoundFile>,
+}
+
+/// Shows by their name (or the name AniList/TMDB knows them by), episodes and movies by
+/// their title. Every word typed must appear.
+pub fn search(conn: &Connection, images: &Path, query: &str) -> rusqlite::Result<SearchResults> {
+    let words: Vec<String> =
+        query.split_whitespace().take(6).map(|w| format!("%{}%", w.replace(['%', '_'], ""))).collect();
+    if words.is_empty() {
+        return Ok(SearchResults { titles: Vec::new(), files: Vec::new() });
+    }
+    let all = |column: &str| -> String {
+        (1..=words.len()).map(|i| format!("{column} LIKE ?{i}")).collect::<Vec<_>>().join(" AND ")
+    };
+    let prefix = format!("{}%", query.trim().replace(['%', '_'], ""));
+
+    let sql = format!(
+        "SELECT t.id FROM titles t LEFT JOIN title_meta m ON m.title_id = t.id
+         WHERE t.present = 1 AND (({}) OR ({}))
+         ORDER BY t.name LIKE ?{} DESC, t.name",
+        all("t.name"),
+        all("COALESCE(m.name, '')"),
+        words.len() + 1,
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let titles = stmt
+        .query_map(rusqlite::params_from_iter(words.iter().chain(std::iter::once(&prefix))), |r| r.get(0))?
+        .collect::<rusqlite::Result<_>>()?;
+
+    let sql = format!(
+        "SELECT f.id, f.title_id, t.name, f.role, s.number, f.episode, f.episode_end, COALESCE(f.name, fm.name), fm.thumb
+         FROM files f JOIN titles t ON t.id = f.title_id
+         LEFT JOIN seasons s ON s.id = f.season_id LEFT JOIN file_meta fm ON fm.file_id = f.id
+         WHERE f.present = 1 AND t.present = 1 AND f.role IN ('episode', 'movie') AND ({})
+         ORDER BY t.name, f.sort LIMIT 60",
+        all("(COALESCE(fm.name, '') || ' ' || COALESCE(f.name, ''))"),
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let files = stmt
+        .query_map(rusqlite::params_from_iter(words.iter()), |r| {
+            Ok(FoundFile {
+                file_id: r.get(0)?,
+                title_id: r.get(1)?,
+                title_name: r.get(2)?,
+                role: r.get(3)?,
+                season_number: r.get(4)?,
+                episode: r.get(5)?,
+                episode_end: r.get(6)?,
+                name: r.get(7)?,
+                thumb: image_path(images, r.get(8)?),
+            })
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+    Ok(SearchResults { titles, files })
 }
