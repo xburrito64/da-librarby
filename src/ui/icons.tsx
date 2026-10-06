@@ -33,6 +33,15 @@ export const ChaptersIcon = () => <Icon d="M9 6h11M9 12h11M9 18h11M4.5 6h.5M4.5 
 export const SpeedIcon = () => <Icon d="M5 18.5a8.5 8.5 0 1 1 14 0M12 13.5l4-4.5" />;
 export const FullscreenIcon = () => <Icon d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />;
 export const ExitFullscreenIcon = () => <Icon d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />;
+/** A screen with a small picture in its corner: the mini player. */
+export const MiniPlayerIcon = () => (
+  <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor">
+    <path d="M20.5 11V6a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 6v12A1.5 1.5 0 0 0 5 19.5h5" />
+    <rect x="13" y="13.5" width="8" height="6" rx="1" fill="currentColor" />
+  </svg>
+);
+/** Back from the mini player to the big one. */
+export const LeaveMiniIcon = () => <Icon d="M4 10V4h6M4 4l7 7M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5V14" />;
 export const EyeIcon = () => <Icon d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />;
 
 /** Circular arrow with "10" inside: jump back (or forward) ten seconds. */

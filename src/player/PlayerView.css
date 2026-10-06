@@ -652,3 +652,162 @@
 .player__menu-title--gap {
   margin-top: 14px;
 }
+
+/* ----- Mini player: a small video on top of other windows ----- */
+
+.player__center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s ease;
+}
+
+.player--hidden .player__center {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.player--mini {
+  font-size: 13px;
+}
+
+.player--mini .player__top {
+  padding: 6px 6px 20px;
+}
+
+.player--mini .player__btn {
+  width: 34px;
+  height: 34px;
+}
+
+.player--mini .player__btn .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.player--mini .player__center .player__btn {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.player--mini .player__center .player__btn:hover {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.player--mini .player__btn--main,
+.player--mini .player__center .player__btn--main {
+  width: 46px;
+  height: 46px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.player--mini .player__btn--main .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.player--mini .player__controls {
+  padding: 24px 10px 4px;
+}
+
+.player--mini .player__bar {
+  margin-top: 0;
+  gap: 2px;
+}
+
+.player--mini .player__time {
+  margin-left: 2px;
+  padding: 0;
+  font-size: 12px;
+  cursor: default;
+}
+
+.player--mini .player__time:hover {
+  background: none;
+}
+
+.player--mini .player__tip {
+  bottom: 22px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.player--mini .player__skip {
+  right: 10px;
+  bottom: 88px;
+  gap: 6px;
+  padding: 6px 10px 6px 12px;
+  font-size: 12.5px !important;
+}
+
+.player--mini .player__skip .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.player--mini .player__notice {
+  top: 46px;
+  max-width: calc(100% - 20px);
+  padding: 6px 8px 6px 12px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.player--mini .player__error {
+  max-width: calc(100% - 20px);
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+.player--mini .player__spinner {
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border-width: 3px;
+}
+
+.player--mini .upnext {
+  right: 10px;
+  bottom: 88px;
+  width: min(280px, calc(100% - 20px));
+  gap: 5px;
+}
+
+.player--mini .upnext__still {
+  display: none;
+}
+
+.player--mini .upnext__card {
+  padding: 8px 10px;
+}
+
+.player--mini .upnext__name {
+  -webkit-line-clamp: 1;
+  font-size: 13px;
+}
+
+.player--mini .upnext__dismiss {
+  padding: 4px 10px;
+  font-size: 12px !important;
+}
+
+/* A really small mini player keeps just play/pause and the seek bar. */
+@media (max-height: 210px) {
+  .player--mini .player__center .player__btn:not(.player__btn--main),
+  .player--mini .player__bar,
+  .player--mini .upnext__card {
+    display: none;
+  }
+
+  .player--mini .player__controls {
+    padding-bottom: 2px;
+  }
+
+  .player--mini .upnext,
+  .player--mini .player__skip {
+    bottom: 34px;
+  }
+}

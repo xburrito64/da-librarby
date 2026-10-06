@@ -1,5 +1,6 @@
 mod library;
 mod metadata;
+mod mini_player;
 mod mpv;
 mod player;
 
@@ -42,10 +43,16 @@ pub fn run() {
             }
         }))
         // Remembers the window's size, position and maximized state (not fullscreen: the app
-        // should never start in fullscreen just because it was closed during playback).
+        // should never start in fullscreen just because it was closed during playback; nor the
+        // mini player's borderless look).
         .plugin(
             tauri_plugin_window_state::Builder::default()
-                .with_state_flags(StateFlags::all() - StateFlags::FULLSCREEN - StateFlags::VISIBLE)
+                .with_state_flags(
+                    StateFlags::all()
+                        - StateFlags::FULLSCREEN
+                        - StateFlags::VISIBLE
+                        - StateFlags::DECORATIONS,
+                )
                 .build(),
         )
         // "Start with Windows" (off unless turned on in Settings); such starts begin minimized.
@@ -82,6 +89,7 @@ pub fn run() {
             player::player_set_property,
             player::player_get_property,
             player::player_screenshot_dir,
+            mini_player::player_mini,
             library::library_list,
             library::library_add,
             library::library_remove,
@@ -111,6 +119,10 @@ pub fn run() {
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" {
+                    // Closed from the mini player: the normal window is what gets remembered.
+                    mini_player::restore(window.app_handle());
+                }
                 if window.label() == "main" && player::begin_close(window.app_handle()) {
                     api.prevent_close();
                 }

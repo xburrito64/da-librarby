@@ -12,8 +12,11 @@ import {
   CameraIcon,
   ChaptersIcon,
   CheckIcon,
+  CloseIcon,
   ExitFullscreenIcon,
   FullscreenIcon,
+  LeaveMiniIcon,
+  MiniPlayerIcon,
   MuteIcon,
   NextIcon,
   PauseIcon,
@@ -49,6 +52,8 @@ const SUB_POSITIONS = [
 ];
 /** How far subtitles move up while the controls are showing (percent of the picture). */
 const SUB_LIFT = 9;
+/** How far the mouse moves on the mini player before it counts as dragging the window. */
+const DRAG_THRESHOLD = 4;
 
 interface SubStyle {
   scale: number;
@@ -111,6 +116,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const [ended, setEnded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
+  const [mini, setMini] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [menu, setMenu] = useState<Menu>(null);
@@ -132,6 +138,9 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const hideTimer = useRef<number | undefined>(undefined);
   const clickTimer = useRef<number | undefined>(undefined);
   const seekRef = useRef<HTMLDivElement>(null);
+  const miniRef = useRef(false);
+  const pressRef = useRef<{ x: number; y: number } | null>(null);
+  const draggedRef = useRef(false);
 
   // ----- Loading a file -----
 
@@ -336,11 +345,35 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
     setFullscreen(on);
   }, []);
 
+  /** The mini player: the window becomes a small video on top of everything, in a corner. */
+  const setMiniPlayer = useCallback(async (on: boolean) => {
+    if (on === miniRef.current) return;
+    let aspect: number | undefined;
+    if (on) {
+      const size = await Promise.all([mpv.getProperty<number>("dwidth"), mpv.getProperty<number>("dheight")]).catch(() => null);
+      if (size && size[0] > 0 && size[1] > 0) aspect = size[0] / size[1];
+    }
+    miniRef.current = on;
+    setMini(on);
+    setMenu(null);
+    await invoke("player_mini", { on, aspect }).catch(() => {});
+    setFullscreen(await getCurrentWindow().isFullscreen());
+  }, []);
+
+  // Leaving the player some other way still brings the big window back.
+  useEffect(
+    () => () => {
+      if (miniRef.current) invoke("player_mini", { on: false });
+    },
+    [],
+  );
+
   const back = useCallback(async () => {
     await mpv.command("stop").catch(() => {});
+    await setMiniPlayer(false);
     if (await getCurrentWindow().isFullscreen()) await setWindowFullscreen(false);
     onBack();
-  }, [onBack, setWindowFullscreen]);
+  }, [onBack, setMiniPlayer, setWindowFullscreen]);
 
   const togglePause = useCallback(() => {
     if (ended) mpv.command("seek", 0, "absolute");
@@ -348,8 +381,11 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   }, [ended]);
 
   const toggleFullscreen = useCallback(async () => {
-    await setWindowFullscreen(!(await getCurrentWindow().isFullscreen()));
-  }, [setWindowFullscreen]);
+    // From the mini player straight to fullscreen.
+    const fromMini = miniRef.current;
+    if (fromMini) await setMiniPlayer(false);
+    await setWindowFullscreen(fromMini || !(await getCurrentWindow().isFullscreen()));
+  }, [setMiniPlayer, setWindowFullscreen]);
 
   const seekBy = (seconds: number) => mpv.command("seek", seconds, "relative");
   const changeVolume = (delta: number) => {
@@ -380,8 +416,10 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
       const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if (k === " " || k === "k") togglePause();
       else if (k === "f") toggleFullscreen();
+      else if (k === "p") setMiniPlayer(!miniRef.current);
       else if (k === "Escape") {
         if (menu) setMenu(null);
+        else if (miniRef.current) setMiniPlayer(false);
         else if (await getCurrentWindow().isFullscreen()) setWindowFullscreen(false);
         else back();
       } else if (k === "ArrowLeft") seekBy(e.shiftKey ? -30 : -5);
@@ -490,9 +528,14 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const code = itemCode(item);
   const played = duration ? (time / duration) * 100 : 0;
 
-  // A single click pauses; a double click goes fullscreen (so the click waits a moment).
+  // A single click pauses; a double click goes fullscreen, or from the mini player back to the
+  // big one (so the click waits a moment).
   const onStageClick = (e: React.MouseEvent) => {
     if (e.target !== e.currentTarget) return;
+    if (draggedRef.current) {
+      draggedRef.current = false;
+      return;
+    }
     if (menu) return setMenu(null);
     window.clearTimeout(clickTimer.current);
     clickTimer.current = window.setTimeout(togglePause, 220);
@@ -500,13 +543,31 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const onStageDoubleClick = (e: React.MouseEvent) => {
     if (e.target !== e.currentTarget) return;
     window.clearTimeout(clickTimer.current);
-    toggleFullscreen();
+    if (miniRef.current) setMiniPlayer(false);
+    else toggleFullscreen();
+  };
+
+  // The mini player moves by dragging the picture.
+  const onStagePointerDown = (e: React.PointerEvent) => {
+    draggedRef.current = false;
+    pressRef.current = mini && e.button === 0 && e.target === e.currentTarget ? { x: e.screenX, y: e.screenY } : null;
+  };
+  const onStagePointerMove = (e: React.PointerEvent) => {
+    const press = pressRef.current;
+    if (!press || !(e.buttons & 1)) return;
+    if (Math.abs(e.screenX - press.x) + Math.abs(e.screenY - press.y) < DRAG_THRESHOLD) return;
+    pressRef.current = null;
+    draggedRef.current = true;
+    getCurrentWindow().startDragging();
   };
 
   return (
     <div
-      className={`player ${visible ? "" : "player--hidden"}`}
+      className={`player ${visible ? "" : "player--hidden"} ${mini ? "player--mini" : ""}`}
       onMouseMove={showControls}
+      onMouseLeave={() => mini && setControlsVisible(false)}
+      onPointerDown={onStagePointerDown}
+      onPointerMove={onStagePointerMove}
       onClick={onStageClick}
       onDoubleClick={onStageDoubleClick}
       onWheel={(e) => e.target === e.currentTarget && changeVolume(e.deltaY < 0 ? 5 : -5)}
@@ -514,23 +575,51 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
       {loading && !error && <div className="player__spinner" />}
       {error && <div className="player__error">{error}</div>}
 
-      <div className="player__top">
-        <button className="player__btn" onClick={back} title="Back (Esc)">
-          <BackIcon />
-        </button>
-        <div className="player__heading">
-          <div className="player__show">{item.role === "movie" ? "" : item.titleName}</div>
-          <div className="player__title">
-            {code && <span className="player__code">{code}</span>}
-            {itemName(item)}
+      {mini ? (
+        <>
+          <div className="player__top">
+            <button className="player__btn" onClick={() => setMiniPlayer(false)} title="Back to the big player (Esc)">
+              <LeaveMiniIcon />
+            </button>
+            <span className="player__spacer" />
+            <button className="player__btn" onClick={back} title="Stop and go back to the library">
+              <CloseIcon />
+            </button>
+          </div>
+          {/* Makes way for the next-episode card, which doesn't fit beside it. */}
+          {!showUpNext && (
+            <div className="player__center">
+              <button className="player__btn" onClick={() => seekBy(-10)} title="Back 10 seconds (J)">
+                <Skip10Icon />
+              </button>
+              <button className="player__btn player__btn--main" onClick={togglePause} title="Play / pause (Space)">
+                {paused || ended ? <PlayIcon /> : <PauseIcon />}
+              </button>
+              <button className="player__btn" onClick={() => seekBy(10)} title="Forward 10 seconds (L)">
+                <Skip10Icon forward />
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="player__top">
+          <button className="player__btn" onClick={back} title="Back (Esc)">
+            <BackIcon />
+          </button>
+          <div className="player__heading">
+            <div className="player__show">{item.role === "movie" ? "" : item.titleName}</div>
+            <div className="player__title">
+              {code && <span className="player__code">{code}</span>}
+              {itemName(item)}
+            </div>
+          </div>
+          <span className="player__spacer" />
+          <div className="player__clock">
+            <span className="player__clock-now">{clock(now)}</span>
+            {endsAt && <span className="player__clock-end">Ends at {endsAt}</span>}
           </div>
         </div>
-        <span className="player__spacer" />
-        <div className="player__clock">
-          <span className="player__clock-now">{clock(now)}</span>
-          {endsAt && <span className="player__clock-end">Ends at {endsAt}</span>}
-        </div>
-      </div>
+      )}
 
       {notice && (
         <div className="player__notice">
@@ -550,7 +639,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
         </button>
       )}
 
-      {resumedAt != null && (
+      {resumedAt != null && !mini && (
         <div className="player__toast">
           Picked up where you left off ({formatTime(resumedAt)})
           <button
@@ -613,62 +702,82 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
           )}
         </div>
 
-        <div className="player__bar">
-          <button className="player__btn player__btn--main" onClick={togglePause} title="Play / pause (Space)">
-            {paused || ended ? <PlayIcon /> : <PauseIcon />}
-          </button>
-          <button className="player__btn" onClick={() => seekBy(-10)} title="Back 10 seconds (J)">
-            <Skip10Icon />
-          </button>
-          <button className="player__btn" onClick={() => seekBy(10)} title="Forward 10 seconds (L)">
-            <Skip10Icon forward />
-          </button>
-          {next && (
-            <button className="player__btn" onClick={playNext} title={`Next episode: ${itemName(next)} (N)`}>
-              <NextIcon />
-            </button>
-          )}
-          <div className="player__volume">
+        {mini ? (
+          <div className="player__bar">
+            <span className="player__time">
+              {formatTime(time)} <span className="player__time-sep">/</span> {formatTime(duration)}
+            </span>
+            <span className="player__spacer" />
+            {next && (
+              <button className="player__btn" onClick={playNext} title={`Next episode: ${itemName(next)} (N)`}>
+                <NextIcon />
+              </button>
+            )}
             <button className="player__btn" onClick={() => mpv.command("cycle", "mute")} title="Mute (M)">
               {muted || volume === 0 ? <MuteIcon /> : volume < 50 ? <VolumeLowIcon /> : <VolumeIcon />}
             </button>
-            <input
-              className="player__slider"
-              type="range"
-              min={0}
-              max={100}
-              value={muted ? 0 : volume}
-              style={{ "--v": `${muted ? 0 : volume}%` } as React.CSSProperties}
-              onChange={(e) => {
-                mpv.setProperty("volume", Number(e.target.value));
-                if (muted) mpv.setProperty("mute", false);
-              }}
-              aria-label="Volume"
-            />
           </div>
-          <button className="player__time" onClick={() => setShowRemaining((v) => !v)} title="Show time left / total length">
-            {formatTime(time)} <span className="player__time-sep">/</span>{" "}
-            {showRemaining && duration > 0 ? `-${formatTime(duration - time)}` : formatTime(duration)}
-          </button>
-          <span className="player__spacer" />
-          {chapters.length > 1 && (
-            <MenuButton menu={menu} id="chapters" onMenu={setMenu} title="Chapters">
-              <ChaptersIcon />
+        ) : (
+          <div className="player__bar">
+            <button className="player__btn player__btn--main" onClick={togglePause} title="Play / pause (Space)">
+              {paused || ended ? <PlayIcon /> : <PauseIcon />}
+            </button>
+            <button className="player__btn" onClick={() => seekBy(-10)} title="Back 10 seconds (J)">
+              <Skip10Icon />
+            </button>
+            <button className="player__btn" onClick={() => seekBy(10)} title="Forward 10 seconds (L)">
+              <Skip10Icon forward />
+            </button>
+            {next && (
+              <button className="player__btn" onClick={playNext} title={`Next episode: ${itemName(next)} (N)`}>
+                <NextIcon />
+              </button>
+            )}
+            <div className="player__volume">
+              <button className="player__btn" onClick={() => mpv.command("cycle", "mute")} title="Mute (M)">
+                {muted || volume === 0 ? <MuteIcon /> : volume < 50 ? <VolumeLowIcon /> : <VolumeIcon />}
+              </button>
+              <input
+                className="player__slider"
+                type="range"
+                min={0}
+                max={100}
+                value={muted ? 0 : volume}
+                style={{ "--v": `${muted ? 0 : volume}%` } as React.CSSProperties}
+                onChange={(e) => {
+                  mpv.setProperty("volume", Number(e.target.value));
+                  if (muted) mpv.setProperty("mute", false);
+                }}
+                aria-label="Volume"
+              />
+            </div>
+            <button className="player__time" onClick={() => setShowRemaining((v) => !v)} title="Show time left / total length">
+              {formatTime(time)} <span className="player__time-sep">/</span>{" "}
+              {showRemaining && duration > 0 ? `-${formatTime(duration - time)}` : formatTime(duration)}
+            </button>
+            <span className="player__spacer" />
+            {chapters.length > 1 && (
+              <MenuButton menu={menu} id="chapters" onMenu={setMenu} title="Chapters">
+                <ChaptersIcon />
+              </MenuButton>
+            )}
+            <MenuButton menu={menu} id="tracks" onMenu={setMenu} title="Audio & subtitles">
+              <SubtitlesIcon />
             </MenuButton>
-          )}
-          <MenuButton menu={menu} id="tracks" onMenu={setMenu} title="Audio & subtitles">
-            <SubtitlesIcon />
-          </MenuButton>
-          <button className="player__btn" onClick={screenshot} title="Screenshot (S)">
-            <CameraIcon />
-          </button>
-          <MenuButton menu={menu} id="speed" onMenu={setMenu} title="Playback speed">
-            {speed === 1 ? <SpeedIcon /> : <span className="player__speed">{speed}×</span>}
-          </MenuButton>
-          <button className="player__btn" onClick={toggleFullscreen} title="Fullscreen (F)">
-            {fullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
-          </button>
-        </div>
+            <button className="player__btn" onClick={screenshot} title="Screenshot (S)">
+              <CameraIcon />
+            </button>
+            <MenuButton menu={menu} id="speed" onMenu={setMenu} title="Playback speed">
+              {speed === 1 ? <SpeedIcon /> : <span className="player__speed">{speed}×</span>}
+            </MenuButton>
+            <button className="player__btn" onClick={() => setMiniPlayer(true)} title="Mini player (P)">
+              <MiniPlayerIcon />
+            </button>
+            <button className="player__btn" onClick={toggleFullscreen} title="Fullscreen (F)">
+              {fullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
+            </button>
+          </div>
+        )}
 
         {menu === "tracks" && (
           <div className="player__menu player__menu--tracks">
