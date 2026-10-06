@@ -470,18 +470,25 @@
   pointer-events: none;
 }
 
+/* Every other bulb glows, taking turns. */
+:root[data-theme="snowdin"] :is(.hero__decor--top, .tp__decor--top)::before,
 :root[data-theme="snowdin"] :is(.hero__decor--top, .tp__decor--top)::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--sd-lights-glow) 0 0 / 192px 66px repeat-x;
+  background: var(--sd-lights-glow-a) 0 0 / 192px 66px repeat-x;
   image-rendering: pixelated;
   animation: sd-twinkle 2.6s steps(1) infinite;
 }
 
+:root[data-theme="snowdin"] :is(.hero__decor--top, .tp__decor--top)::after {
+  background-image: var(--sd-lights-glow-b);
+  animation-delay: -1.3s;
+}
+
 @keyframes sd-twinkle {
   50% {
-    background-position-x: 48px;
+    opacity: 0;
   }
 }
 
@@ -1819,10 +1826,10 @@
 /* The heart is the handle. */
 :root[data-theme="snowdin"] .player__knob,
 :root[data-theme="snowdin"] .player__seek:hover .player__knob {
-  width: 21px;
-  height: 18px;
+  width: 27px;
+  height: 24px;
   border-radius: 0;
-  background: var(--sd-heart) center / contain no-repeat;
+  background: var(--sd-heart-outlined) center / contain no-repeat;
   box-shadow: none;
   image-rendering: pixelated;
   transform: translate(-50%, -50%);

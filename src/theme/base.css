@@ -2409,6 +2409,22 @@ select.input {
   visibility: hidden;
 }
 
+/* While typing, descriptions that end in "..." are cut at the same line count without it. */
+.hero__desc.is-typing,
+.tp__desc.is-typing:not(.is-open) {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: hidden;
+}
+
+.hero__desc.is-typing {
+  max-height: 3lh;
+}
+
+.tp__desc.is-typing:not(.is-open) {
+  max-height: 4lh;
+}
+
 /* A theme's pixel icons. */
 .icon--pixel {
   stroke: none;

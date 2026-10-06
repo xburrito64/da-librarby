@@ -13,6 +13,20 @@ const PALETTE: Record<string, string> = {
   K: "#14141c",
 };
 
+/** Puts a dark one-pixel outline around a sprite, so it stands out on busy backgrounds. */
+function outlined(rows: string[]) {
+  const h = rows.length + 2;
+  const w = Math.max(...rows.map((r) => r.length)) + 2;
+  const at = (x: number, y: number) => rows[y - 1]?.[x - 1] ?? ".";
+  return Array.from({ length: h }, (_, y) =>
+    Array.from({ length: w }, (_, x) => {
+      if (at(x, y) !== ".") return at(x, y);
+      const near = [[-1, 0], [1, 0], [0, -1], [0, 1]].some(([dx, dy]) => at(x + dx, y + dy) !== ".");
+      return near ? "K" : ".";
+    }).join(""),
+  );
+}
+
 /** Draws a sprite from rows of palette letters ("." is see-through). */
 function sprite(rows: string[]) {
   const w = Math.max(...rows.map((r) => r.length));
@@ -63,7 +77,7 @@ const SKIP_BACK = ["..........", "....#....#", "...##...##", "..###..###", ".###
 
 /** Pixel versions of the app's icons (names as in src/ui/icons.tsx). */
 export const ICONS: Record<string, string[]> = {
-  play: [".#........", ".##.......", ".###......", ".####.....", ".#####....", ".#####....", ".####.....", ".###......", ".##.......", ".#........"],
+  play: ["...#......", "...##.....", "...###....", "...####...", "...#####..", "...#####..", "...####...", "...###....", "...##.....", "...#......"],
   back: ["..........", "...#......", "..##......", ".#########", "##########", ".#########", "..##......", "...#......", "..........", ".........."],
   chevronLeft: CHEVRON_LEFT,
   chevronRight: mirror(CHEVRON_LEFT),
@@ -110,11 +124,13 @@ export function drawScenes(width: number) {
 }
 
 setVar("--sd-heart", sprite(HEART));
+setVar("--sd-heart-outlined", sprite(outlined(HEART)));
 setVar("--sd-star", sprite(STAR));
 setVar("--sd-cap", sprite(CAP));
 setVar("--sd-dog", sprite(DOG));
 setVar("--sd-asterisk", sprite(ASTERISK));
 setVar("--sd-lights", lightsTile());
-setVar("--sd-lights-glow", lightsTile(true));
+setVar("--sd-lights-glow-a", lightsTile("a"));
+setVar("--sd-lights-glow-b", lightsTile("b"));
 setVar("--sd-town-small", townScene(0, festive()));
 drawScenes(window.innerWidth);

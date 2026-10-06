@@ -1,7 +1,9 @@
 // Text that types itself out, letter by letter, in themes that ask for it (and while their
 // "typing" option is on). Only the first time a text is seen; a click finishes it at once.
 // The rest of the text is already there, invisibly, so nothing jumps around while it types.
-import { useEffect, useState, type ElementType } from "react";
+// In a box that only shows a few lines, typing stops at the bottom of the box (class "is-typing"
+// lets the box hide its "..." meanwhile).
+import { useEffect, useRef, useState, type ElementType } from "react";
 import { useThemeInfo } from "../theme/theme";
 import { useThemeOption } from "../theme/options";
 import { playSound } from "../theme/sound";
@@ -34,6 +36,13 @@ export default function Typed({ text: full, as: Tag = "span", className, title, 
   const option = useThemeOption("typing");
   const on = !!theme?.extras?.typing && option !== false;
   const [shown, setShown] = useState(() => (on && !typedBefore.has(text) ? 0 : text.length));
+  const box = useRef<HTMLElement>(null);
+  const caret = useRef<HTMLSpanElement>(null);
+
+  const finish = () => {
+    typedBefore.add(text);
+    setShown(text.length);
+  };
 
   useEffect(() => {
     if (!on || typedBefore.has(text) || reducedMotion()) {
@@ -54,20 +63,28 @@ export default function Typed({ text: full, as: Tag = "span", className, title, 
   }, [text, on]);
 
   useEffect(() => {
-    if (shown > 0 && shown < text.length && shown % BLIP_EVERY === 0 && text[shown] !== " ") playSound("text");
+    if (shown <= 0 || shown >= text.length) return;
+    // Reached a line the box doesn't show: the rest is cut off anyway.
+    const bottom = box.current?.getBoundingClientRect().bottom;
+    const at = caret.current?.getBoundingClientRect().top;
+    if (bottom != null && at != null && at >= bottom - 1) {
+      finish();
+      return;
+    }
+    if (shown % BLIP_EVERY === 0 && text[shown] !== " ") playSound("text");
   }, [shown, text]);
 
   const typing = shown < text.length;
   return (
     <Tag
-      className={className}
+      ref={box}
+      className={[className, typing && "is-typing"].filter(Boolean).join(" ") || undefined}
       title={title}
       onClick={(e: React.MouseEvent) => {
         if (typing) {
           // The first click only finishes the text.
           e.stopPropagation();
-          typedBefore.add(text);
-          setShown(text.length);
+          finish();
         } else onClick?.();
       }}
     >
@@ -79,6 +96,7 @@ export default function Typed({ text: full, as: Tag = "span", className, title, 
       {typing ? (
         <>
           {text.slice(0, shown)}
+          <span ref={caret} />
           <span className="typed__rest" aria-hidden="true">
             {text.slice(shown)}
           </span>
