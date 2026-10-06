@@ -30,7 +30,8 @@ interface Props {
 
 export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
   const [title, setTitle] = useState<TitleDetail | null>(null);
-  const [seasonId, setSeasonId] = useState<number | null>(null);
+  /** The open tab: a season's id, or the movies. null = pick automatically. */
+  const [tab, setTab] = useState<number | "movies" | null>(null);
   const [showExtras, setShowExtras] = useState(false);
   const [fullDescription, setFullDescription] = useState(false);
   const [picking, setPicking] = useState<Picking | null>(null);
@@ -57,11 +58,16 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
   const anime = title.kind === "anime";
   const titleSource: MatchSource = anime ? "anilist" : title.isMovie ? "tmdb-movie" : "tmdb-tv";
   const movieSource: MatchSource = anime ? "anilist" : "tmdb-movie";
-  const season = title.seasons.find((s) => s.id === seasonId) ?? title.seasons[0];
-  const episodes = season ? title.files.filter((f) => f.role === "episode" && f.seasonId === season.id) : [];
-  const movies = title.files.filter((f) => f.role === "movie");
+  const movies = title.isMovie ? [] : title.files.filter((f) => f.role === "movie");
   const extras = title.files.filter((f) => f.role === "extra");
   const up = upNext(title);
+  // Opens on the season being watched (else the first season, else the movies).
+  const current =
+    tab ?? (up?.file.role === "episode" ? up.file.seasonId : null) ?? title.seasons[0]?.id ?? (movies.length > 0 ? "movies" : null);
+  const season = current === "movies" ? undefined : (title.seasons.find((s) => s.id === current) ?? title.seasons[0]);
+  const showMovies = current === "movies" || (!season && movies.length > 0);
+  const tabCount = title.seasons.length + (movies.length > 0 ? 1 : 0);
+  const episodes = season && !showMovies ? title.files.filter((f) => f.role === "episode" && f.seasonId === season.id) : [];
   const upCode = up && up.file.role === "episode" ? episodeCode(up.file, title.seasons.find((s) => s.id === up.file.seasonId)?.number ?? null) : "";
   const upLeft =
     up?.mode === "resume" && up.file.progress && up.file.progress.duration > 0
@@ -139,82 +145,86 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
       </header>
 
       <div className="tp__body">
-        {season && (
+        {tabCount > 0 && (
           <section className="tp__section">
-            {title.seasons.length > 1 ? (
+            {tabCount > 1 ? (
               <div className="seasons" role="tablist">
+                {movies.length > 0 && (
+                  <button role="tab" className={`seasons__tab ${showMovies ? "is-active" : ""}`} onClick={() => setTab("movies")}>
+                    Movies & Specials
+                  </button>
+                )}
                 {title.seasons.map((s) => (
                   <button
                     key={s.id}
                     role="tab"
-                    className={`seasons__tab ${s.id === season.id ? "is-active" : ""}`}
-                    onClick={() => setSeasonId(s.id)}
+                    className={`seasons__tab ${!showMovies && s.id === season?.id ? "is-active" : ""}`}
+                    onClick={() => setTab(s.id)}
                   >
                     {s.label}
                   </button>
                 ))}
               </div>
             ) : (
-              <h2 className="section-title">{season.label}</h2>
+              <h2 className="section-title">{showMovies ? "Movies & Specials" : season?.label}</h2>
             )}
-            <div className="tp__seasonbar">
-            {anime && (
-              <p className="tp__seasonnote">
-                {season.meta?.providerIds.length
-                  ? `AniList: ${season.meta.name ?? ""}${season.meta.providerIds.length > 1 ? ` + ${season.meta.providerIds.length - 1} more part${season.meta.providerIds.length > 2 ? "s" : ""}` : ""}`
-                  : season.meta
-                    ? "No AniList entry"
-                    : "Looking up…"}
-                {season.meta?.locked && " (set by hand)"} ·{" "}
-                <button className="link" onClick={() => setPicking({ kind: "season", season })}>
-                  Change
-                </button>
-              </p>
-            )}
-              <button
-                className="link tp__markall"
-                onClick={() => watch.set(episodes.map((f) => f.id), !seasonWatched)}
-              >
-                {seasonWatched ? "Mark season as unwatched" : "Mark season as watched"}
-              </button>
-            </div>
-            <div className="eps">
-              {episodes.map((f) => (
-                <Episode key={f.id} file={f} code={episodeCode(f, season.number)} onPlay={() => playFile(f)} />
-              ))}
-            </div>
-          </section>
-        )}
 
-        {movies.length > 0 && !title.isMovie && (
-          <section className="tp__section">
-            <h2 className="section-title">Movies & Specials</h2>
-            <div className="posters">
-              {movies.map((f) => (
-                <div key={f.id} className="poster">
-                  <button className="card" onClick={() => playFile(f)} title={f.meta?.name ?? f.name ?? undefined}>
-                    <span className="card__art">
-                      {f.meta?.thumb ? (
-                        <img src={img(f.meta.thumb)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add("is-loaded")} />
-                      ) : (
-                        <span className="card__placeholder">{f.meta?.name ?? f.name ?? fileName(f.path)}</span>
-                      )}
-                      <span className="card__play">
-                        <PlayIcon />
+            {showMovies ? (
+              <div className="posters">
+                {movies.map((f) => (
+                  <div key={f.id} className="poster">
+                    <button className="card" onClick={() => playFile(f)} title={f.meta?.name ?? f.name ?? undefined}>
+                      <span className="card__art">
+                        {f.meta?.thumb ? (
+                          <img src={img(f.meta.thumb)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add("is-loaded")} />
+                        ) : (
+                          <span className="card__placeholder">{f.meta?.name ?? f.name ?? fileName(f.path)}</span>
+                        )}
+                        <span className="card__play">
+                          <PlayIcon />
+                        </span>
+                        <WatchMarks file={f} />
                       </span>
-                      <WatchMarks file={f} />
-                    </span>
-                    <span className="card__text">
-                      <span className="card__name">{f.meta?.name ?? f.name ?? fileName(f.path)}</span>
-                      <span className="card__sub">{f.meta?.year ?? f.year ?? ""}</span>
-                    </span>
-                  </button>
-                  <button className="link poster__change" onClick={() => setPicking({ kind: "file", file: f })}>
-                    Change match
-                  </button>
-                </div>
-              ))}
-            </div>
+                      <span className="card__text">
+                        <span className="card__name">{f.meta?.name ?? f.name ?? fileName(f.path)}</span>
+                        <span className="card__sub">{f.meta?.year ?? f.year ?? ""}</span>
+                      </span>
+                    </button>
+                    <button className="link poster__change" onClick={() => setPicking({ kind: "file", file: f })}>
+                      Change match
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              season && (
+                <>
+                  <div className="tp__seasonbar">
+                    {anime && (
+                      <p className="tp__seasonnote">
+                        {season.meta?.providerIds.length
+                          ? `AniList: ${season.meta.name ?? ""}${season.meta.providerIds.length > 1 ? ` + ${season.meta.providerIds.length - 1} more part${season.meta.providerIds.length > 2 ? "s" : ""}` : ""}`
+                          : season.meta
+                            ? "No AniList entry"
+                            : "Looking up…"}
+                        {season.meta?.locked && " (set by hand)"} ·{" "}
+                        <button className="link" onClick={() => setPicking({ kind: "season", season })}>
+                          Change
+                        </button>
+                      </p>
+                    )}
+                    <button className="link tp__markall" onClick={() => watch.set(episodes.map((f) => f.id), !seasonWatched)}>
+                      {seasonWatched ? "Mark season as unwatched" : "Mark season as watched"}
+                    </button>
+                  </div>
+                  <div className="eps">
+                    {episodes.map((f) => (
+                      <Episode key={f.id} file={f} code={episodeCode(f, season.number)} onPlay={() => playFile(f)} />
+                    ))}
+                  </div>
+                </>
+              )
+            )}
           </section>
         )}
 

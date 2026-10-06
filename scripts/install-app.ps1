@@ -30,6 +30,8 @@ try {
         $lnk.WorkingDirectory = Split-Path $exe
         $lnk.Save()
     }
+    # Windows keeps old icons in a cache (the taskbar especially); ask it to refresh.
+    Start-Process "$env:WINDIR\System32\ie4uinit.exe" -ArgumentList "-show" -WindowStyle Hidden -ErrorAction SilentlyContinue
     Say "OK $exe"
 } catch {
     Say "FAILED $_"
