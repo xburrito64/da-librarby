@@ -148,7 +148,8 @@ fn pick(results: Vec<SearchResult>, names: &[&str], year: Option<i32>, anime: bo
 
 /// Finds the TMDB episode(s) for every episode file, in this order of trust:
 ///   1. by title (survives different numbering, e.g. SpongeBob's files numbered by segment
-///      while TMDB numbers whole episodes),
+///      while TMDB numbers whole episodes), also among TMDB's specials: OVAs and episode 0s
+///      that are part of a season on disk often sit there (Mushoku Tensei S01E16.5, S02E00),
 ///   2. in order, when a season has exactly one TMDB entry per file but numbered differently,
 ///   3. by number in the same season (a file "E01-E03" gets episodes 1 to 3),
 ///   4. by counting episodes across the whole run (anime numbered from episode 1 to 220).
@@ -160,6 +161,7 @@ pub fn map_episodes(ours: &[SeasonInput], theirs: &[Season]) -> Vec<(i64, Vec<Ep
     run.sort_by_key(|s| s.season_number);
     let flat: Vec<&Episode> = run.iter().flat_map(|s| s.episodes.iter()).collect();
     let everything: Vec<Episode> = flat.iter().map(|e| (*e).clone()).collect();
+    let specials: Vec<Episode> = by_number.get(&0).map(|s| s.episodes.clone()).unwrap_or_default();
     let globals = global_numbers(ours);
     let same = |a: &Episode, b: &Episode| a.season_number == b.season_number && a.episode_number == b.episode_number;
 
@@ -198,8 +200,11 @@ pub fn map_episodes(ours: &[SeasonInput], theirs: &[Season]) -> Vec<(i64, Vec<Ep
         let counting_agrees = pairs.len() >= 3 && pairs.iter().filter(|a| **a).count() * 10 >= pairs.len() * 7;
 
         for (i, ep) in season.episodes.iter().enumerate() {
+            let special = || ep.name.as_deref().map(|name| match_by_name(name, &specials)).unwrap_or_default();
             let found: Vec<Episode> = if !by_name[i].is_empty() {
                 by_name[i].clone()
+            } else if let found @ [_, ..] = special().as_slice() {
+                found.to_vec()
             } else if let Some(ts) = in_order {
                 vec![ts.episodes[i].clone()]
             } else {
@@ -409,5 +414,17 @@ mod tests {
         ours1.number = Some(2); // a season before it, so counting starts at 3
         let out = map_episodes(&[ours1, ours3], &[tmdb_season(2, 2), seasons_theirs.remove(0), seasons_theirs.remove(0)]);
         assert_eq!(names(&out, 308), ["S3E9"]);
+    }
+
+    #[test]
+    fn specials_listed_separately_match_by_title() {
+        // Mushoku Tensei: our season 2 starts with "S02E00 - Guardian Fitz", which TMDB lists as a special.
+        let mut specials = tmdb_season(0, 3);
+        specials.episodes[2].name = Some("Guardian Fitz".into());
+        let mut season = ours(2, 2, &[(0.0, None), (1.0, None), (2.0, None)]);
+        season.episodes[0].name = Some("Guardian Fitz".into());
+        let out = map_episodes(&[season], &[specials, tmdb_season(2, 2)]);
+        assert_eq!(names(&out, 200), ["Guardian Fitz"]);
+        assert_eq!(names(&out, 201), ["S2E1"]);
     }
 }

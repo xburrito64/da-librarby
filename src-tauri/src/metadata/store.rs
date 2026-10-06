@@ -362,7 +362,7 @@ pub fn set_setting(conn: &Connection, key: &str, value: Option<&str>) -> rusqlit
 
 /// Bumped when TMDB matching improves, so existing matches are redone once (hand-made choices
 /// are kept; images already on disk are reused).
-const TMDB_MATCH_VERSION: &str = "5";
+const TMDB_MATCH_VERSION: &str = "6";
 
 pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "tmdb_match_version")?.as_deref() == Some(TMDB_MATCH_VERSION) {
