@@ -2506,3 +2506,44 @@ select.input {
   margin: 0 0 28px;
   font-size: 16px;
 }
+
+/* A theme's own-files folder, in Settings → Appearance. */
+.own-files {
+  margin-top: 34px;
+}
+
+.own-files__list {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.own-files__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 14px;
+  font-size: 14px;
+}
+
+.own-files__row + .own-files__row {
+  border-top: 1px solid var(--line);
+}
+
+.own-files__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-family: var(--font-label);
+}
+
+.own-files__state {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.own-files__state.is-found {
+  color: var(--accent);
+  font-weight: 700;
+}

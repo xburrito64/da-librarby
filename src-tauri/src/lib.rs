@@ -3,6 +3,7 @@ mod metadata;
 mod mini_player;
 mod mpv;
 mod player;
+mod theme_files;
 
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_window_state::StateFlags;
@@ -69,6 +70,10 @@ pub fn run() {
             // The configured image scope only covers folders that existed at launch; the images
             // folder is created on first run, so allow it explicitly as well.
             app.asset_protocol_scope().allow_directory(&library.images_dir, true)?;
+            // Fonts and sounds the owner adds for a theme (see theme_files.rs).
+            let own_files = theme_files::root(app.handle())?;
+            std::fs::create_dir_all(&own_files)?;
+            app.asset_protocol_scope().allow_directory(&own_files, true)?;
             app.manage(library);
             // Pick up anything that changed on disk since last time, in the background.
             library::request_scan(app.handle(), None);
@@ -89,6 +94,8 @@ pub fn run() {
             player::player_set_property,
             player::player_get_property,
             player::player_screenshot_dir,
+            theme_files::theme_files,
+            theme_files::theme_files_open,
             mini_player::player_mini,
             library::library_list,
             library::library_add,

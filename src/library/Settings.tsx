@@ -7,7 +7,8 @@ import { library, metadata, guessKind, img, KIND_LABELS, type Library, type Libr
 import { THEMES } from "../theme/themes";
 import { setTheme, useTheme, useThemeInfo } from "../theme/theme";
 import { setThemeOption, useThemeOptions } from "../theme/options";
-import { CheckIcon, CloseIcon } from "../ui/icons";
+import { loadOwnFiles, openOwnFolder, useOwnFiles } from "../theme/ownFiles";
+import { CheckIcon, CloseIcon, FolderIcon, RefreshIcon } from "../ui/icons";
 
 export type SettingsSection = "appearance" | "general" | "library" | "online" | "shortcuts" | "about";
 
@@ -116,6 +117,7 @@ function Appearance({ titles }: { titles: TitleSummary[] }) {
         ))}
       </div>
       <ThemeOptions />
+      <OwnFiles />
     </section>
   );
 }
@@ -166,6 +168,48 @@ function ThemeOptions() {
           </button>
         ),
       )}
+    </div>
+  );
+}
+
+/** The current theme's own-files folder: which of the files it looks for are there. */
+function OwnFiles() {
+  const theme = useThemeInfo();
+  const own = useOwnFiles();
+  const wanted = theme?.extras?.ownFiles;
+  if (!theme || !wanted) return null;
+  const rows = [...(wanted.font ? [{ name: "font", label: "Font" }] : []), ...(wanted.sounds ?? [])];
+  const found = (name: string) => own?.files.find((f) => f.name === name);
+  return (
+    <div className="own-files">
+      <h3 className="settings__title">Your own files</h3>
+      <p className="settings__text">
+        Want a different font or sounds in {theme.name}? Put the files in its folder, named as below (a font as .ttf, .otf or
+        .woff2; sounds as .wav, .ogg or .mp3), then press Reload. They're used instead of the built-in ones and stay on this
+        PC only.
+      </p>
+      <div className="own-files__list">
+        {rows.map((r) => {
+          const file = found(r.name);
+          return (
+            <div key={r.name} className="own-files__row">
+              <span className="own-files__label">{r.label}</span>
+              <span className="own-files__name">{file ? file.path.split(/[\\/]/).pop() : `${r.name}.…`}</span>
+              <span className={`own-files__state ${file ? "is-found" : ""}`}>{file ? "In use" : "Built-in"}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="field-row">
+        <button className="btn btn--small" onClick={() => openOwnFolder(theme.id)}>
+          <FolderIcon />
+          Open folder
+        </button>
+        <button className="btn btn--small" onClick={() => loadOwnFiles(theme.id)}>
+          <RefreshIcon />
+          Reload
+        </button>
+      </div>
     </div>
   );
 }

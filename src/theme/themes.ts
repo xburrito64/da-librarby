@@ -42,6 +42,9 @@ export interface ThemeExtras {
   typing?: boolean;
   /** Replacement icons, by name (see src/ui/icons.tsx), drawn from rows of "#" and ".". */
   icons?: Record<string, string[]>;
+  /** A folder on this PC where the owner can add their own font ("font.*") and sound files
+   *  (named after the sounds below), used instead of the theme's. Shown in Settings → Appearance. */
+  ownFiles?: { font?: boolean; sounds?: { name: SoundName; label: string }[] };
   /** Drawn behind the library screens (e.g. falling snow); gets the theme's option values. */
   Decor?: ComponentType<{ active: boolean; options: Record<string, boolean | string | undefined> }>;
 }

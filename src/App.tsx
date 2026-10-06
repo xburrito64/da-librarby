@@ -4,6 +4,8 @@ import PlayerView from "./player/PlayerView";
 import { mpv } from "./player/mpv";
 import { watch, type PlayItem } from "./library/api";
 import { setSoundsMuted } from "./theme/sound";
+import { useTheme } from "./theme/theme";
+import { loadOwnFiles } from "./theme/ownFiles";
 
 const OBSERVED = [
   "pause",
@@ -21,6 +23,12 @@ const OBSERVED = [
 export default function App() {
   const [playing, setPlaying] = useState<PlayItem | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // The current theme's own-files folder (a font and sounds the owner added), if it has one.
+  const theme = useTheme();
+  useEffect(() => {
+    loadOwnFiles(theme);
+  }, [theme]);
 
   // A theme's interface sounds stay quiet over a video.
   useEffect(() => setSoundsMuted(playing != null), [playing]);

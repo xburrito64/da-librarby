@@ -73,6 +73,17 @@ export const SNOWDIN: Theme = {
       ],
     },
     sounds: SOUNDS,
+    ownFiles: {
+      font: true,
+      sounds: [
+        { name: "move", label: "Pointing at something" },
+        { name: "select", label: "Picking something" },
+        { name: "back", label: "Going back" },
+        { name: "save", label: "Saved / marked watched" },
+        { name: "nope", label: "Nothing found" },
+        { name: "text", label: "Text typing" },
+      ],
+    },
     typing: true,
     icons: ICONS,
     Decor,

@@ -44,6 +44,12 @@
     radial-gradient(900px 600px at 0% 40%, rgba(138, 111, 201, 0.1), transparent 60%);
 }
 
+/* Your own font, if you added one (see ownFiles.ts); pixel fonts have one weight, so no fake bold. */
+:root.own-font[data-theme="snowdin"] {
+  --font-body: "Theme Own Font", "Pixelify Sans Variable", ui-monospace, monospace;
+  font-synthesis: none;
+}
+
 :root[data-theme="snowdin"] {
   /* The town and forest scenes (scenes.ts: 94 art pixels tall, ground 31 from the bottom, x3). */
   --sd-scene-h: 282px;
@@ -2099,4 +2105,22 @@
 
 :root[data-theme="snowdin"] .player--mini .player__center .player__btn:hover {
   border-color: var(--accent);
+}
+
+/* ---------- Your own files (Settings → Appearance) ---------- */
+
+:root[data-theme="snowdin"] .own-files__list {
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+:root[data-theme="snowdin"] .own-files__row {
+  font-size: 16px;
+}
+
+:root[data-theme="snowdin"] .own-files__row + .own-files__row {
+  border-top: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme="snowdin"] .own-files__state {
+  font-size: 15px;
 }
