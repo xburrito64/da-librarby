@@ -273,7 +273,13 @@ fn match_by_name(name: &str, episodes: &[Episode]) -> Vec<Episode> {
 }
 
 fn split_title(title: &str) -> Vec<String> {
-    title.split(" & ").flat_map(|p| p.split(" / ")).map(|p| p.trim().to_string()).filter(|p| !p.is_empty()).collect()
+    title
+        .split(" & ")
+        .flat_map(|p| p.split(" / "))
+        .flat_map(|p| p.split(" + "))
+        .map(|p| p.trim().to_string())
+        .filter(|p| !p.is_empty())
+        .collect()
 }
 
 /// Like `similarity`, but also matches one segment of a combined title

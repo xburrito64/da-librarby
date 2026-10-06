@@ -33,19 +33,22 @@ re!(RELEASE_TAIL, r"(?i)[ .(\[](2160p|1080p|720p|480p|blu-?ray|web-?dl|webrip|bd
 re!(YEAR_PARENS, r"\((19\d{2}|20[0-3]\d)\)");
 re!(YEAR_TRAILING, r"\s(19\d{2}|20[0-3]\d)$");
 re!(EPISODE_RANGE_PARENS, r"\(\s*\d+\s*-\s*\d+[^)]*\)");
-re!(SEASON_SUFFIX, r"(?i)\s+(S\d{1,3}|season\s*\d{1,3})(\s*\+.*)?$");
+re!(SEASON_SUFFIX, r"(?i)\s+(S\d{1,3}(\s*-\s*S?\d{1,3})?|seasons?\s*\d{1,3}(\s*-\s*\d{1,3})?)(\s*\+.*)?$");
 re!(COMPLETE_SUFFIX, r"(?i)\s+(complete|the complete series)$");
 re!(SEASON_TOKEN, r"(?i)(?:^|[\s._\-])S(\d{1,3})(?:$|[\s._\-+])");
 re!(SEASON_WORD, r"(?i)\bseason[\s._\-]*(\d{1,3})\b");
 re!(SPECIALS, r"(?i)\b(specials?|sp)\b");
 re!(EXTRAS, r"(?i)\b(extras?|featurettes?|bonus|behind the scenes|nc|ncop|nced|creditless|artworks?|screens|screenshots|soundtracks?|ost|samples?|trailers?|interviews?|deleted scenes|making of|menus?)\b");
 re!(MOVIES_FOLDER, r"(?i)^(movies|films)$");
-re!(SXXEYY, r"(?i)\bS(\d{1,3})\s*E(\d{1,4}(?:\.\d+)?)(?:-?E(\d{1,4}(?:\.\d+)?))?");
+re!(SXXEYY, r"(?i)\bS(\d{1,3})\s*E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?(?:-?E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?)?");
 re!(EPISODE_ONLY, r"(?i)(?:^|[\s\-_.])E(?:p|pisode)?\s?(\d{1,4}(?:\.\d+)?)(?:$|[\s\-_.])");
 re!(ABSOLUTE, r"(?:^|\s-\s)(\d{1,4})(?:\s-\s|$)");
 re!(TRAILING_NUMBER, r"\s(\d{1,3})$");
 re!(LEADING_NUMBER, r"^(\d{1,3})(½)?\s*[.\-]\s+");
 re!(SPACES, r"\s+");
+// "Fear.Of.A.Krabby.Patty" (dots for spaces) and "A+B" (segments joined without spaces).
+re!(WORD_DOT, r"([\p{L}\d])\.([\p{L}])");
+re!(TIGHT_PLUS, r"\s*\+\s*");
 
 /// Normalises display text: turns the look-alike characters used in place of
 /// characters Windows forbids in file names back into the real ones, and tidies spacing.
@@ -69,6 +72,16 @@ pub fn clean_text(s: &str) -> String {
     collapsed
         .trim_matches(|c: char| c.is_whitespace() || matches!(c, '-' | '.' | '[' | ']' | ','))
         .to_string()
+}
+
+/// An episode title as shown: dotted release-style names get their spaces back, and
+/// segments joined with "+" are spaced out ("Krusty.Koncessionaires+Dream.Hoppers").
+fn episode_title(s: &str) -> String {
+    let s = clean_text(s);
+    let s = WORD_DOT.replace_all(&s, "$1 $2");
+    // Twice: "A.B.C" overlaps.
+    let s = WORD_DOT.replace_all(&s, "$1 $2");
+    clean_text(&TIGHT_PLUS.replace_all(&s, " + "))
 }
 
 /// Removes release tags: `[Group]`, `(1080p BluRay x265)`, `.1080p.BluRay.x264-GROUP` tails, stray brackets.
@@ -185,7 +198,7 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
 
     if let Some(c) = SXXEYY.captures(s) {
         let m = c.get(0).unwrap();
-        let after = clean_text(&s[m.end()..]);
+        let after = episode_title(&s[m.end()..]);
         let before = clean_text(&s[..m.start()]);
         let title = if !after.is_empty() {
             Some(after)
@@ -204,7 +217,7 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
 
     if let Some(c) = EPISODE_ONLY.captures(s) {
         let m = c.get(0).unwrap();
-        let after = clean_text(&s[m.end()..]);
+        let after = episode_title(&s[m.end()..]);
         return EpisodeName {
             episode: c[1].parse().ok(),
             title: (!after.is_empty()).then_some(after),
@@ -214,7 +227,7 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
 
     if let Some(c) = ABSOLUTE.captures(s) {
         let m = c.get(0).unwrap();
-        let after = clean_text(&s[m.end()..]);
+        let after = episode_title(&s[m.end()..]);
         return EpisodeName {
             episode: c[1].parse().ok(),
             absolute: true,
@@ -278,6 +291,8 @@ mod tests {
         assert_eq!(show_title("Chainsaw Man"), ("Chainsaw Man".into(), None));
         assert_eq!(show_title("Ping Pong the Animation S01"), ("Ping Pong the Animation".into(), None));
         assert_eq!(show_title("Naruto Complete (001-220 + Movies)"), ("Naruto".into(), None));
+        assert_eq!(show_title("SpongeBob SquarePants Season 1-13 1080p COMPLETE"), ("SpongeBob SquarePants".into(), None));
+        assert_eq!(show_title("Some Show S01-S05"), ("Some Show".into(), None));
         assert_eq!(show_title("Adventure Time∶ Fionna and Cake"), ("Adventure Time: Fionna and Cake".into(), None));
         assert_eq!(show_title("SpongeBob SquarePants"), ("SpongeBob SquarePants".into(), None));
     }
@@ -391,5 +406,23 @@ mod tests {
         let mut v = vec!["E10", "E2", "E1"];
         v.sort_by(|a, b| natural_cmp(a, b));
         assert_eq!(v, ["E1", "E2", "E10"]);
+    }
+
+    #[test]
+    fn segment_letters_after_the_episode_number() {
+        // One file per broadcast, holding segments a, b (and c).
+        let e = parse_episode(file_stem("SpongeBob SquarePants - S01E01abc - Help Wanted + Reef Blower + Tea at the Treedome WEBDL-1080p.mkv"));
+        assert_eq!((e.season, e.episode), (Some(1), Some(1.0)));
+        assert_eq!(e.title.as_deref(), Some("Help Wanted + Reef Blower + Tea at the Treedome"));
+        let e = parse_episode(file_stem("SpongeBob SquarePants - S01E04ab- Naughty Nautical Neighbors + Boating School WEBDL-1080p.mkv"));
+        assert_eq!(e.title.as_deref(), Some("Naughty Nautical Neighbors + Boating School"));
+        let e = parse_episode(file_stem("SpongeBob SquarePants - S13E02b - Squidward's Sick Daze WEBRip-1080p.mkv"));
+        assert_eq!((e.season, e.episode, e.title.as_deref()), (Some(13), Some(2.0), Some("Squidward's Sick Daze")));
+        let e = parse_episode(file_stem("SpongeBob SquarePants - S04E01ab - Fear.Of.A.Krabby.Patty.and.Shell.Of.A.Man WEBDL-1080p.mkv"));
+        assert_eq!(e.title.as_deref(), Some("Fear Of A Krabby Patty and Shell Of A Man"));
+        let e = parse_episode(file_stem("SpongeBob SquarePants - S12E26ab - Krusty.Koncessionaires+Dream.Hoppers WEBDL-1080p.mkv"));
+        assert_eq!(e.title.as_deref(), Some("Krusty Koncessionaires + Dream Hoppers"));
+        let e = parse_episode(file_stem("SpongeBob SquarePants - S08E09 - Mr. Krabs Takes a Vacation.mkv"));
+        assert_eq!(e.title.as_deref(), Some("Mr. Krabs Takes a Vacation"));
     }
 }
