@@ -1,6 +1,7 @@
 [package]
 name = "da-librarby"
 version = "0.1.0"
+license = "GPL-3.0-or-later"
 description = "A personal media library and player"
 authors = ["xburrito64"]
 edition = "2021"

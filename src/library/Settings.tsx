@@ -229,7 +229,11 @@ function About() {
           one-pace-metadata project.
         </p>
         <p>
-          <strong>Playback</strong> is done by mpv. Fonts: Manrope, Fraunces, Inter, Chakra Petch, JetBrains Mono, Fredoka and
+          <strong>Da Librarby</strong> is free software under the GNU General Public License, version 3 or later. Its source code
+          is on GitHub at xburrito64/da-librarby.
+        </p>
+        <p>
+          <strong>Playback</strong> is done by mpv (GPL), whose source code is at github.com/mpv-player/mpv. Fonts: Manrope, Fraunces, Inter, Chakra Petch, JetBrains Mono, Fredoka and
           Nunito.
         </p>
       </div>
