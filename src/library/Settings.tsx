@@ -124,7 +124,7 @@ const SHORTCUTS: { group: string; keys: [string, string][] }[] = [
       ["↑ / ↓", "Volume up / down"],
       ["M", "Mute"],
       ["N", "Next episode"],
-      ["S", "Screenshot (saved to Pictures\Da Librarby)"],
+      ["S", "Screenshot (saved to Pictures › Da Librarby)"],
       ["F", "Fullscreen"],
       ["Esc", "Leave fullscreen, then back to the library"],
       ["Click / double-click", "Pause / fullscreen"],
