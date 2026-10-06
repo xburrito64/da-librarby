@@ -458,3 +458,37 @@
   border-color: var(--accent-2);
   box-shadow: 0 0 18px rgba(47, 228, 255, 0.35);
 }
+
+/* ----- Player and watch progress ----- */
+
+:root[data-theme="neon"] .player__played,
+:root[data-theme="neon"] .progress > span {
+  box-shadow: 0 0 10px var(--accent);
+}
+
+:root[data-theme="neon"] .player__title {
+  text-shadow: 0 0 18px rgba(255, 63, 212, 0.6);
+}
+
+:root[data-theme="neon"] .player__code,
+:root[data-theme="neon"] .ccard__code {
+  color: var(--accent-2);
+}
+
+:root[data-theme="neon"] .player__menu,
+:root[data-theme="neon"] .upnext__card {
+  border-color: rgba(255, 63, 212, 0.45);
+  box-shadow:
+    0 0 40px rgba(255, 63, 212, 0.2),
+    0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="neon"] .ccard:hover {
+  filter: drop-shadow(0 0 10px rgba(255, 63, 212, 0.7));
+}
+
+:root[data-theme="neon"] .ccard__ep {
+  text-transform: uppercase;
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
+}

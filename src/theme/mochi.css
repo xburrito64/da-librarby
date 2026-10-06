@@ -474,3 +474,30 @@
 :root[data-theme="mochi"] .theme-card__preview {
   border-radius: 16px;
 }
+
+/* Continue watching */
+:root[data-theme="mochi"] .ccard__main {
+  border-radius: 22px;
+  box-shadow: 0 10px 24px -14px rgba(120, 80, 170, 0.5);
+  transition:
+    transform 0.45s var(--spring),
+    box-shadow 0.35s var(--ease);
+}
+
+:root[data-theme="mochi"] .ccard:hover .ccard__main {
+  transform: translateY(-6px) rotate(-1deg);
+  box-shadow: 0 22px 34px -16px rgba(255, 111, 174, 0.6);
+}
+
+:root[data-theme="mochi"] .ccard:hover .ccard__art {
+  transform: none;
+}
+
+:root[data-theme="mochi"] .ccard__text {
+  padding: 10px 8px 4px;
+}
+
+:root[data-theme="mochi"] .ccard__ep {
+  font-family: var(--font-display);
+  font-weight: 600;
+}

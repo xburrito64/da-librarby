@@ -119,3 +119,9 @@
   background: rgba(22, 22, 27, 0.92);
   backdrop-filter: blur(30px);
 }
+
+/* Continue watching */
+:root[data-theme="velvet"] .ccard:hover .ccard__art {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 24px 44px -20px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.14);
+}

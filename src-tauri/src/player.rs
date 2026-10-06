@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use serde::Serialize;
@@ -143,6 +143,9 @@ fn start_mpv(app: &AppHandle, window: &WebviewWindow) -> Result<Mpv, String> {
         ("input-vo-keyboard", "no".into()),
         ("input-cursor", "no".into()),
         ("cursor-autohide", "no".into()),
+        // Subtitle files next to the video with a similar name are picked up too.
+        ("sub-auto", "fuzzy".into()),
+        ("volume-max", "100".into()),
     ]
     .into_iter()
     .collect();
@@ -169,11 +172,23 @@ fn spawn_event_thread(app: AppHandle, mpv: Arc<Mpv>) {
     std::thread::Builder::new()
         .name("mpv-events".into())
         .spawn(move || {
+            // The playback position changes every frame; a few updates a second are plenty
+            // for the interface (jumps, like after seeking, still go through right away).
+            let mut last_time: Option<(Instant, f64)> = None;
             loop {
                 let event = match mpv.wait_event(-1.0) {
                     Event::Shutdown => break,
                     Event::Nothing => continue,
                     Event::PropertyChange { name, value } => {
+                        if name == "time-pos" {
+                            let t = value.as_f64().unwrap_or(0.0);
+                            if let Some((at, prev)) = last_time {
+                                if at.elapsed() < Duration::from_millis(250) && (t - prev).abs() < 1.5 {
+                                    continue;
+                                }
+                            }
+                            last_time = Some((Instant::now(), t));
+                        }
                         let _ = app.emit("mpv:property", PropertyPayload { name, value });
                         continue;
                     }

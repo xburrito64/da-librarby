@@ -6,10 +6,11 @@ import {
   metadata,
   sortName,
   KIND_LABELS,
+  watch,
+  type ContinueItem,
   type Library,
   type LibraryKind,
   type MetadataStatus,
-  type PlayRequest,
   type TitleSummary,
 } from "./api";
 import Browse from "./Browse";
@@ -17,15 +18,15 @@ import TitlePage from "./TitlePage";
 import Settings, { type SettingsSection } from "./Settings";
 import { RefreshIcon, SettingsIcon } from "../ui/icons";
 
-export type { PlayRequest };
 export type Tab = "home" | LibraryKind;
 
 const KINDS: LibraryKind[] = ["anime", "shows", "movies"];
 
 /** `active` is false while the player is showing on top. */
-export default function LibraryView({ active, onPlay }: { active: boolean; onPlay: (request: PlayRequest) => void }) {
+export default function LibraryView({ active, onPlay }: { active: boolean; onPlay: (fileId: number) => void }) {
   const [libraries, setLibraries] = useState<Library[] | null>(null);
   const [titles, setTitles] = useState<TitleSummary[] | null>(null);
+  const [continueList, setContinueList] = useState<ContinueItem[]>([]);
   const [scanning, setScanning] = useState<string | null>(null);
   const [fetching, setFetching] = useState<MetadataStatus | null>(null);
   const [tab, setTab] = useState<Tab>("home");
@@ -37,10 +38,15 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
   const refresh = useCallback(() => {
     library.list().then(setLibraries).catch((e) => setError(String(e)));
     library.titles().then(setTitles).catch((e) => setError(String(e)));
+    watch.continueList().then(setContinueList).catch(() => {});
   }, []);
 
+  // Back from the player: progress and "continue watching" have changed.
   useEffect(() => {
-    refresh();
+    if (active) refresh();
+  }, [active, refresh]);
+
+  useEffect(() => {
     library.scanning().then((running) => running && setScanning(""));
     metadata.status().then(setFetching);
     const offs = [
@@ -123,6 +129,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
       <Browse
         tab={tab}
         titles={sorted}
+        continueList={continueList}
         loaded={titles != null && libraries != null}
         hasLibraries={(libraries?.length ?? 0) > 0}
         active={openTitle == null}

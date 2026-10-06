@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 4;
+const SCHEMA_VERSION: i32 = 5;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -156,6 +156,9 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
             "ALTER TABLE title_meta ADD COLUMN tmdb_id TEXT;
              ALTER TABLE file_meta ADD COLUMN details_at INTEGER;",
         )?;
+    }
+    if version < 5 {
+        conn.execute_batch(super::watch::SCHEMA_V5)?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
@@ -442,6 +445,8 @@ pub struct TitleSummary {
     /// Full path of the wide artwork, if downloaded.
     pub banner: Option<String>,
     pub score: Option<i32>,
+    /// Episodes and movies watched.
+    pub watched: i64,
 }
 
 pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSummary>> {
@@ -458,8 +463,10 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
          LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
     )?;
+    let watched = super::watch::watched_counts(conn)?;
     let rows = stmt.query_map([], |r| {
         let looked_up: bool = r.get(14)?;
+        let id: i64 = r.get(0)?;
         Ok(TitleSummary {
             id: r.get(0)?,
             library_id: r.get(1)?,
@@ -479,6 +486,7 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
             genres: r.get::<_, Option<String>>(16)?.and_then(|g| serde_json::from_str(&g).ok()).unwrap_or_default(),
             banner: image_path(images, r.get(17)?),
             score: r.get(18)?,
+            watched: watched.get(&id).copied().unwrap_or(0),
         })
     })?;
     rows.collect()
@@ -528,6 +536,7 @@ pub struct FileRow {
     pub meta: Option<Meta>,
     /// Episode number within the AniList entry in `meta.provider_ids[0]`.
     pub provider_episode: Option<i32>,
+    pub progress: Option<super::watch::Progress>,
 }
 
 #[derive(Debug, Serialize)]
@@ -632,6 +641,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
         })?
         .collect::<rusqlite::Result<_>>()?;
 
+    let progress = super::watch::progress_for_title(conn, id)?;
     let mut stmt = conn.prepare(
         "SELECT f.id, f.path, f.role, f.season_id, f.episode, f.episode_end, f.name, f.year, f.size,
                 fm.file_id IS NOT NULL, fm.provider_id, fm.locked, fm.name, fm.description, fm.year,
@@ -669,6 +679,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
                 size: r.get(8)?,
                 meta,
                 provider_episode: r.get(17)?,
+                progress: progress.get(&r.get::<_, i64>(0)?).cloned(),
             })
         })?
         .collect::<rusqlite::Result<_>>()?;

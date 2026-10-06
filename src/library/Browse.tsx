@@ -1,6 +1,17 @@
-// Home screen (spotlight + one row per kind) and the full cover grid of each kind.
+// Home screen (spotlight, continue watching, one row per kind) and the full cover grid of each kind.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { library, img, describe, firstPlayable, KIND_LABELS, type LibraryKind, type PlayRequest, type TitleSummary } from "./api";
+import {
+  library,
+  img,
+  describe,
+  itemCode,
+  itemName,
+  upNext,
+  KIND_LABELS,
+  type ContinueItem,
+  type LibraryKind,
+  type TitleSummary,
+} from "./api";
 import type { Tab } from "./LibraryView";
 import { ChevronLeft, ChevronRight, InfoIcon, PlayIcon } from "../ui/icons";
 
@@ -11,18 +22,19 @@ const SPOTLIGHT_SECONDS = 9;
 interface Props {
   tab: Tab;
   titles: TitleSummary[];
+  continueList: ContinueItem[];
   loaded: boolean;
   hasLibraries: boolean;
   /** False while a show page covers it; it stays put underneath so its scroll position is kept. */
   active: boolean;
   onTab: (tab: Tab) => void;
   onOpen: (id: number) => void;
-  onPlay: (request: PlayRequest) => void;
+  onPlay: (fileId: number) => void;
   onScrolled: (scrolled: boolean) => void;
   onAddFolder: () => void;
 }
 
-export default function Browse({ tab, titles, loaded, hasLibraries, active, onTab, onOpen, onPlay, onScrolled, onAddFolder }: Props) {
+export default function Browse({ tab, titles, continueList, loaded, hasLibraries, active, onTab, onOpen, onPlay, onScrolled, onAddFolder }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,10 +52,11 @@ export default function Browse({ tab, titles, loaded, hasLibraries, active, onTa
     return map;
   }, [titles]);
 
+  // Play from the spotlight: pick up where the show was left, like its own Play button.
   const play = (id: number) =>
     library.title(id).then((detail) => {
-      const first = detail && firstPlayable(detail);
-      if (first) onPlay(first.request);
+      const up = detail && upNext(detail);
+      if (up) onPlay(up.file.id);
       else onOpen(id);
     });
 
@@ -55,8 +68,19 @@ export default function Browse({ tab, titles, loaded, hasLibraries, active, onTa
       <>
         <Spotlight titles={titles} onOpen={onOpen} onPlay={play} />
         <div className="home__rows">
+          {continueList.length > 0 && (
+            <Row label="Continue watching" count={continueList.length} wide>
+              {continueList.map((c) => (
+                <ContinueCard key={c.fileId} item={c} onPlay={onPlay} onOpen={onOpen} />
+              ))}
+            </Row>
+          )}
           {KINDS.filter((k) => byKind.has(k)).map((k) => (
-            <Row key={k} label={KIND_LABELS[k]} titles={byKind.get(k)!} onOpen={onOpen} onMore={() => onTab(k)} />
+            <Row key={k} label={KIND_LABELS[k]} count={byKind.get(k)!.length} onMore={() => onTab(k)}>
+              {byKind.get(k)!.map((t) => (
+                <Card key={t.id} title={t} onOpen={onOpen} />
+              ))}
+            </Row>
           ))}
         </div>
       </>
@@ -170,8 +194,8 @@ function Spotlight({ titles, onOpen, onPlay }: { titles: TitleSummary[]; onOpen:
   );
 }
 
-/** A sideways-scrolling row of covers. */
-function Row({ label, titles, onOpen, onMore }: { label: string; titles: TitleSummary[]; onOpen: (id: number) => void; onMore: () => void }) {
+/** A sideways-scrolling row of cards. */
+function Row({ label, count, wide, onMore, children }: { label: string; count: number; wide?: boolean; onMore?: () => void; children: React.ReactNode }) {
   const track = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
 
@@ -185,7 +209,7 @@ function Row({ label, titles, onOpen, onMore }: { label: string; titles: TitleSu
     const observer = new ResizeObserver(measure);
     if (track.current) observer.observe(track.current);
     return () => observer.disconnect();
-  }, [titles.length]);
+  }, [count]);
 
   const page = (direction: number) => {
     const el = track.current;
@@ -193,22 +217,22 @@ function Row({ label, titles, onOpen, onMore }: { label: string; titles: TitleSu
   };
 
   return (
-    <section className="row">
+    <section className={`row ${wide ? "row--wide" : ""}`}>
       <div className="row__head">
         <h2 className="row__title">{label}</h2>
-        <span className="row__count">{titles.length}</span>
-        <button className="row__more" onClick={onMore}>
-          See all
-        </button>
+        <span className="row__count">{count}</span>
+        {onMore && (
+          <button className="row__more" onClick={onMore}>
+            See all
+          </button>
+        )}
       </div>
       <div className="row__wrap">
         <button className="row__arrow row__arrow--left" disabled={edges.start} onClick={() => page(-1)} aria-label="Scroll left">
           <ChevronLeft />
         </button>
         <div className="row__track" ref={track} onScroll={measure}>
-          {titles.map((t) => (
-            <Card key={t.id} title={t} onOpen={onOpen} />
-          ))}
+          {children}
         </div>
         <button className="row__arrow row__arrow--right" disabled={edges.end} onClick={() => page(1)} aria-label="Scroll right">
           <ChevronRight />
@@ -218,7 +242,43 @@ function Row({ label, titles, onOpen, onMore }: { label: string; titles: TitleSu
   );
 }
 
+/** "Continue watching": a wide card that plays straight away. */
+function ContinueCard({ item, onPlay, onOpen }: { item: ContinueItem; onPlay: (fileId: number) => void; onOpen: (id: number) => void }) {
+  const code = itemCode(item);
+  const left = item.reason === "resume" && item.resume != null && item.duration ? Math.max(1, Math.round((item.duration - item.resume) / 60)) : null;
+  return (
+    <div className="ccard">
+      <button className="ccard__main" onClick={() => onPlay(item.fileId)} title={`Play ${itemName(item)}`}>
+        <span className="ccard__art">
+          {item.image && <img src={img(item.image)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add("is-loaded")} />}
+          <span className="ccard__play">
+            <PlayIcon />
+          </span>
+          {item.reason === "next" && <span className="ccard__badge">Up next</span>}
+          {item.reason === "resume" && item.resume != null && item.duration ? (
+            <span className="progress ccard__progress">
+              <span style={{ width: `${(item.resume / item.duration) * 100}%` }} />
+            </span>
+          ) : null}
+        </span>
+        <span className="ccard__text">
+          <span className="ccard__show">{item.titleName}</span>
+          <span className="ccard__ep">
+            {code && <span className="ccard__code">{code}</span>}
+            {itemName(item)}
+          </span>
+          {left != null && <span className="ccard__left">{left} min left</span>}
+        </span>
+      </button>
+      <button className="icon-btn ccard__info" onClick={() => onOpen(item.titleId)} title="Show details">
+        <InfoIcon />
+      </button>
+    </div>
+  );
+}
+
 export function Card({ title, onOpen }: { title: TitleSummary; onOpen: (id: number) => void }) {
+  const total = Math.max(1, title.episodes + title.movies);
   return (
     <button
       className={`card ${title.online ? "" : "card--offline"}`}
@@ -237,6 +297,11 @@ export function Card({ title, onOpen }: { title: TitleSummary; onOpen: (id: numb
           />
         ) : (
           <span className="card__placeholder">{title.name}</span>
+        )}
+        {title.watched > 0 && (
+          <span className="progress card__progress" title={`${title.watched} of ${total} watched`}>
+            <span style={{ width: `${Math.min(100, (title.watched / total) * 100)}%` }} />
+          </span>
         )}
       </span>
       <span className="card__text">

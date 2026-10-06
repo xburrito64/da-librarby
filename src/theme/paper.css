@@ -458,3 +458,19 @@
 :root[data-theme="paper"] .theme-card.is-active {
   border-color: var(--accent);
 }
+
+/* Continue watching */
+:root[data-theme="paper"] .ccard__art {
+  box-shadow: 0 0 0 1px rgba(28, 22, 14, 0.15);
+}
+
+:root[data-theme="paper"] .ccard:hover .ccard__art {
+  transform: translate(-4px, -4px);
+  box-shadow: 7px 7px 0 var(--line);
+}
+
+:root[data-theme="paper"] .ccard__ep {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+}

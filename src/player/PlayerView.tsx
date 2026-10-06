@@ -1,45 +1,257 @@
-// Plays one file through the embedded mpv, with our controls layered on top.
-// The full player UI (chapters, tracks, volume, next episode...) comes in step 5.
+// The player: mpv draws the video underneath the page; these are the controls on top.
+// Saves watch progress, remembers volume and each show's audio/subtitle choice, and offers
+// the next episode near the end.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { mpv } from "./mpv";
+import { watch, img, itemCode, itemName, type PlayItem } from "../library/api";
+import { getSetting, setSetting } from "../ui/settings";
+import {
+  BackIcon,
+  ChaptersIcon,
+  CheckIcon,
+  ExitFullscreenIcon,
+  FullscreenIcon,
+  MuteIcon,
+  NextIcon,
+  PauseIcon,
+  PlayIcon,
+  Skip10Icon,
+  SpeedIcon,
+  SubtitlesIcon,
+  VolumeIcon,
+  VolumeLowIcon,
+} from "../ui/icons";
 import "./PlayerView.css";
 
-const HIDE_CONTROLS_AFTER_MS = 2500;
+const HIDE_CONTROLS_AFTER_MS = 2800;
+const SAVE_EVERY_MS = 5000;
+/** The "next episode" card shows up this close to the end. */
+const UP_NEXT_SECONDS = 40;
+const AUTOPLAY_SECONDS = 10;
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+const ENDING_CHAPTER = /\b(ed|ending|outro|credits|preview|next episode)\b/i;
 
-export default function PlayerView({ path, label, onBack }: { path: string; label: string; onBack: () => void }) {
+interface Track {
+  id: number;
+  type: "audio" | "sub" | "video";
+  title?: string;
+  lang?: string;
+  selected?: boolean;
+  default?: boolean;
+  forced?: boolean;
+  external?: boolean;
+  codec?: string;
+  "demux-channel-count"?: number;
+}
+
+interface Chapter {
+  title?: string;
+  time: number;
+}
+
+/** A remembered track choice, matched by language and name on the next file. */
+interface TrackChoice {
+  lang?: string;
+  title?: string;
+}
+
+interface TrackPrefs {
+  audio?: TrackChoice;
+  sub?: TrackChoice | "off";
+}
+
+type Menu = "tracks" | "chapters" | "speed" | null;
+
+interface Props {
+  item: PlayItem;
+  onNext: (next: PlayItem) => void;
+  onBack: () => void;
+}
+
+export default function PlayerView({ item, onNext, onBack }: Props) {
   const [paused, setPaused] = useState(false);
-  const [time, setTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [time, setTime] = useState(item.resume ?? 0);
+  const [duration, setDuration] = useState(item.duration ?? 0);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [chapter, setChapter] = useState(-1);
+  const [volume, setVolume] = useState(100);
+  const [muted, setMuted] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [ended, setEnded] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [menu, setMenu] = useState<Menu>(null);
+  const [next, setNext] = useState<PlayItem | null>(null);
+  const [upNextClosed, setUpNextClosed] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [resumedAt, setResumedAt] = useState<number | null>(null);
+  const [hover, setHover] = useState<{ x: number; time: number } | null>(null);
+
+  const timeRef = useRef(item.resume ?? 0);
+  const durationRef = useRef(item.duration ?? 0);
+  const pausedRef = useRef(false);
+  const draggingRef = useRef(false);
+  const prefsRef = useRef<TrackPrefs>({});
   const hideTimer = useRef<number | undefined>(undefined);
+  const clickTimer = useRef<number | undefined>(undefined);
+  const seekRef = useRef<HTMLDivElement>(null);
+
+  // ----- Loading a file -----
+
+  useEffect(() => {
+    const { fileId, titleId } = item;
+    timeRef.current = item.resume ?? 0;
+    durationRef.current = item.duration ?? 0;
+    setTime(item.resume ?? 0);
+    setDuration(item.duration ?? 0);
+    setLoading(true);
+    setEnded(false);
+    setError(null);
+    setNext(null);
+    setUpNextClosed(false);
+    setCountdown(null);
+    setChapters([]);
+    setChapter(-1);
+    setResumedAt(item.resume);
+
+    const start = item.resume ? `start=${item.resume.toFixed(2)}` : "start=none";
+    getSetting<TrackPrefs>(`ui.tracks.${titleId}`).then((p) => (prefsRef.current = p ?? {}));
+    mpv
+      .setProperty("pause", false)
+      .then(() => mpv.command("loadfile", item.path, "replace", -1, start))
+      .catch((e) => setError(String(e)));
+    watch.next(fileId).then(setNext).catch(() => {});
+
+    return () => {
+      // Leaving this file (back, next episode or closing): remember where it stopped.
+      if (durationRef.current > 0) watch.save(fileId, timeRef.current, durationRef.current, true);
+    };
+  }, [item]);
+
+  // ----- What mpv reports -----
 
   useEffect(() => {
     const offs = [
       mpv.onProperty((name, value) => {
-        if (name === "pause") setPaused(value === true);
-        else if (name === "time-pos") setTime(typeof value === "number" ? value : 0);
-        else if (name === "duration") setDuration(typeof value === "number" ? value : 0);
+        switch (name) {
+          case "pause":
+            pausedRef.current = value === true;
+            setPaused(value === true);
+            break;
+          case "time-pos":
+            if (typeof value === "number") {
+              timeRef.current = value;
+              if (!draggingRef.current) setTime(value);
+            }
+            break;
+          case "duration":
+            if (typeof value === "number") {
+              durationRef.current = value;
+              setDuration(value);
+            }
+            break;
+          case "track-list":
+            setTracks(Array.isArray(value) ? (value as Track[]) : []);
+            break;
+          case "chapter-list":
+            setChapters(Array.isArray(value) ? (value as Chapter[]) : []);
+            break;
+          case "chapter":
+            setChapter(typeof value === "number" ? value : -1);
+            break;
+          case "volume":
+            if (typeof value === "number") setVolume(value);
+            break;
+          case "mute":
+            setMuted(value === true);
+            break;
+          case "speed":
+            if (typeof value === "number") setSpeed(value);
+            break;
+          case "eof-reached":
+            setEnded(value === true);
+            break;
+        }
       }),
       mpv.onEvent((e) => {
-        if (e.event === "end-file" && e.reason === "error") setError(e.error ?? "This file could not be played.");
-        if (e.event === "file-loaded") setError(null);
+        if (e.event === "start-file") setLoading(true);
+        else if (e.event === "playback-restart") setLoading(false);
+        else if (e.event === "file-loaded") {
+          setError(null);
+          mpv.getProperty<Track[]>("track-list").then(applyTrackPrefs).catch(() => {});
+        } else if (e.event === "end-file" && e.reason === "error") {
+          setLoading(false);
+          setError(e.error ?? "This file could not be played.");
+        }
       }),
     ];
-    setTime(0);
-    setDuration(0);
-    mpv
-      .setProperty("pause", false)
-      .then(() => mpv.command("loadfile", path))
-      .catch((e) => setError(String(e)));
+    // Values that don't change on their own still need a first reading.
+    mpv.getProperty<number>("volume").then((v) => typeof v === "number" && setVolume(v)).catch(() => {});
+    mpv.getProperty<boolean>("mute").then((v) => setMuted(v === true)).catch(() => {});
+    mpv.getProperty<number>("speed").then((v) => typeof v === "number" && setSpeed(v)).catch(() => {});
     return () => offs.forEach((p) => p.then((off) => off()));
-  }, [path]);
+  }, []);
 
-  const setWindowFullscreen = useCallback(async (next: boolean) => {
-    await getCurrentWindow().setFullscreen(next);
-    setFullscreen(next);
+  // The volume is remembered between sessions.
+  useEffect(() => {
+    getSetting<number>("ui.volume").then((v) => {
+      if (v != null) mpv.setProperty("volume", v);
+    });
+  }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSetting("ui.volume", Math.round(volume)), 600);
+    return () => window.clearTimeout(timer);
+  }, [volume]);
+
+  // Save progress regularly while playing, and whenever playback pauses.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (!pausedRef.current && durationRef.current > 0) watch.save(item.fileId, timeRef.current, durationRef.current, false);
+    }, SAVE_EVERY_MS);
+    return () => window.clearInterval(timer);
+  }, [item.fileId]);
+  useEffect(() => {
+    if (paused && durationRef.current > 0) watch.save(item.fileId, timeRef.current, durationRef.current, false);
+  }, [paused, item.fileId]);
+
+  // ----- Tracks -----
+
+  const applyTrackPrefs = (list: Track[]) => {
+    const prefs = prefsRef.current;
+    const find = (type: "audio" | "sub", choice: TrackChoice) => {
+      const ofType = list.filter((t) => t.type === type);
+      return (
+        ofType.find((t) => (t.lang ?? "") === (choice.lang ?? "") && (t.title ?? "") === (choice.title ?? "")) ??
+        (choice.lang ? ofType.find((t) => t.lang === choice.lang) : undefined)
+      );
+    };
+    if (prefs.audio) {
+      const t = find("audio", prefs.audio);
+      if (t && !t.selected) mpv.setProperty("aid", t.id);
+    }
+    if (prefs.sub === "off") mpv.setProperty("sid", "no");
+    else if (prefs.sub) {
+      const t = find("sub", prefs.sub);
+      if (t && !t.selected) mpv.setProperty("sid", t.id);
+    }
+  };
+
+  const chooseTrack = (type: "audio" | "sub", track: Track | null) => {
+    mpv.setProperty(type === "audio" ? "aid" : "sid", track ? track.id : "no");
+    const choice: TrackChoice | "off" = track ? { lang: track.lang, title: track.title } : "off";
+    prefsRef.current = { ...prefsRef.current, [type]: choice };
+    setSetting(`ui.tracks.${item.titleId}`, prefsRef.current);
+  };
+
+  // ----- Controls -----
+
+  const setWindowFullscreen = useCallback(async (on: boolean) => {
+    await getCurrentWindow().setFullscreen(on);
+    setFullscreen(on);
   }, []);
 
   const back = useCallback(async () => {
@@ -49,19 +261,24 @@ export default function PlayerView({ path, label, onBack }: { path: string; labe
   }, [onBack, setWindowFullscreen]);
 
   const togglePause = useCallback(() => {
+    if (ended) mpv.command("seek", 0, "absolute");
     mpv.command("cycle", "pause").catch((e) => setError(String(e)));
-  }, []);
+  }, [ended]);
 
   const toggleFullscreen = useCallback(async () => {
     await setWindowFullscreen(!(await getCurrentWindow().isFullscreen()));
   }, [setWindowFullscreen]);
 
-  const seekTo = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!duration) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const fraction = (event.clientX - rect.left) / rect.width;
-    mpv.command("seek", (fraction * 100).toFixed(3), "absolute-percent");
+  const seekBy = (seconds: number) => mpv.command("seek", seconds, "relative");
+  const changeVolume = (delta: number) => {
+    const v = Math.max(0, Math.min(100, volume + delta));
+    mpv.setProperty("volume", v);
+    if (muted && delta > 0) mpv.setProperty("mute", false);
   };
+
+  const playNext = useCallback(() => {
+    if (next) onNext(next);
+  }, [next, onNext]);
 
   const showControls = useCallback(() => {
     setControlsVisible(true);
@@ -71,61 +288,362 @@ export default function PlayerView({ path, label, onBack }: { path: string; labe
 
   useEffect(() => {
     showControls();
+  }, [item, showControls]);
+
+  // Keyboard shortcuts.
+  useEffect(() => {
     const onKey = async (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT" && e.key !== "Escape") return;
       showControls();
-      if (e.key === " ") togglePause();
-      else if (e.key === "f" || e.key === "F") toggleFullscreen();
-      else if (e.key === "Escape") {
-        if (await getCurrentWindow().isFullscreen()) setWindowFullscreen(false);
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (k === " " || k === "k") togglePause();
+      else if (k === "f") toggleFullscreen();
+      else if (k === "Escape") {
+        if (menu) setMenu(null);
+        else if (await getCurrentWindow().isFullscreen()) setWindowFullscreen(false);
         else back();
-      } else if (e.key === "ArrowLeft") mpv.command("seek", -5);
-      else if (e.key === "ArrowRight") mpv.command("seek", 5);
+      } else if (k === "ArrowLeft") seekBy(e.shiftKey ? -30 : -5);
+      else if (k === "ArrowRight") seekBy(e.shiftKey ? 30 : 5);
+      else if (k === "j") seekBy(-10);
+      else if (k === "l") seekBy(10);
+      else if (k === "ArrowUp") changeVolume(5);
+      else if (k === "ArrowDown") changeVolume(-5);
+      else if (k === "m") mpv.command("cycle", "mute");
+      else if (k === "n") playNext();
       else return;
       e.preventDefault();
     };
+    const onMouse = (e: MouseEvent) => e.button === 3 && back();
     window.addEventListener("keydown", onKey);
+    window.addEventListener("mouseup", onMouse);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.clearTimeout(hideTimer.current);
+      window.removeEventListener("mouseup", onMouse);
     };
-  }, [showControls, togglePause, toggleFullscreen, setWindowFullscreen, back]);
+  });
+  useEffect(() => () => window.clearTimeout(hideTimer.current), []);
 
-  const visible = controlsVisible || paused;
+  // ----- Next episode -----
+
+  const remaining = duration > 0 ? duration - time : Infinity;
+  const inEnding = chapter >= 0 && chapter >= chapters.length - 3 && ENDING_CHAPTER.test(chapters[chapter]?.title ?? "");
+  const showUpNext = !!next && !upNextClosed && !error && (ended || remaining < UP_NEXT_SECONDS || inEnding);
+
+  // When the file ends, count down and move on.
+  useEffect(() => {
+    if (!ended || !next || upNextClosed) {
+      setCountdown(null);
+      return;
+    }
+    setCountdown(AUTOPLAY_SECONDS);
+    const timer = window.setInterval(() => setCountdown((c) => (c == null ? null : c - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [ended, next, upNextClosed]);
+  useEffect(() => {
+    if (countdown != null && countdown <= 0) playNext();
+  }, [countdown, playNext]);
+
+  // The "resumed at" note disappears after a few seconds.
+  useEffect(() => {
+    if (resumedAt == null) return;
+    const timer = window.setTimeout(() => setResumedAt(null), 7000);
+    return () => window.clearTimeout(timer);
+  }, [resumedAt]);
+
+  // ----- Seek bar -----
+
+  const fractionAt = (clientX: number) => {
+    const rect = seekRef.current!.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  };
+  const onSeekDown = (e: React.PointerEvent) => {
+    if (!duration) return;
+    draggingRef.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const t = fractionAt(e.clientX) * duration;
+    setTime(t);
+    mpv.command("seek", t.toFixed(2), "absolute+keyframes");
+  };
+  const onSeekMove = (e: React.PointerEvent) => {
+    if (!duration) return;
+    const f = fractionAt(e.clientX);
+    const rect = seekRef.current!.getBoundingClientRect();
+    setHover({ x: f * rect.width, time: f * duration });
+    if (draggingRef.current) {
+      setTime(f * duration);
+      mpv.command("seek", (f * duration).toFixed(2), "absolute+keyframes");
+    }
+  };
+  const onSeekUp = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    mpv.command("seek", (fractionAt(e.clientX) * duration).toFixed(2), "absolute");
+  };
+  const chapterAt = (t: number) => {
+    let found: Chapter | undefined;
+    for (const c of chapters) if (c.time <= t) found = c;
+    return found?.title;
+  };
+
+  // ----- Rendering -----
+
+  const visible = controlsVisible || paused || menu != null || ended;
+  const audio = tracks.filter((t) => t.type === "audio");
+  const subs = tracks.filter((t) => t.type === "sub");
+  const code = itemCode(item);
+  const played = duration ? (time / duration) * 100 : 0;
+
+  // A single click pauses; a double click goes fullscreen (so the click waits a moment).
+  const onStageClick = (e: React.MouseEvent) => {
+    if (e.target !== e.currentTarget) return;
+    if (menu) return setMenu(null);
+    window.clearTimeout(clickTimer.current);
+    clickTimer.current = window.setTimeout(togglePause, 220);
+  };
+  const onStageDoubleClick = (e: React.MouseEvent) => {
+    if (e.target !== e.currentTarget) return;
+    window.clearTimeout(clickTimer.current);
+    toggleFullscreen();
+  };
 
   return (
     <div
       className={`player ${visible ? "" : "player--hidden"}`}
       onMouseMove={showControls}
-      onDoubleClick={(e) => e.target === e.currentTarget && toggleFullscreen()}
+      onClick={onStageClick}
+      onDoubleClick={onStageDoubleClick}
+      onWheel={(e) => e.target === e.currentTarget && changeVolume(e.deltaY < 0 ? 5 : -5)}
     >
+      {loading && !error && <div className="player__spinner" />}
       {error && <div className="player__error">{error}</div>}
 
       <div className="player__top">
         <button className="player__btn" onClick={back} title="Back (Esc)">
           <BackIcon />
         </button>
-        <span className="player__title">{label}</span>
+        <div className="player__heading">
+          <div className="player__show">{item.role === "movie" ? "" : item.titleName}</div>
+          <div className="player__title">
+            {code && <span className="player__code">{code}</span>}
+            {itemName(item)}
+          </div>
+        </div>
       </div>
 
-      <div className="player__controls" onDoubleClick={(e) => e.stopPropagation()}>
-        <div className="player__progress" onClick={seekTo}>
-          <div className="player__fill" style={{ width: `${duration ? (time / duration) * 100 : 0}%` }} />
-        </div>
-        <div className="player__row">
-          <button className="player__btn player__btn--main" onClick={togglePause} title="Play / pause (Space)">
-            {paused ? <PlayIcon /> : <PauseIcon />}
+      {resumedAt != null && (
+        <div className="player__toast">
+          Picked up where you left off ({formatTime(resumedAt)})
+          <button
+            className="player__toast-btn"
+            onClick={() => {
+              mpv.command("seek", 0, "absolute");
+              setResumedAt(null);
+            }}
+          >
+            Start over
           </button>
+        </div>
+      )}
+
+      {showUpNext && next && (
+        <div className="upnext">
+          <div className="upnext__label">{countdown != null ? `Next episode in ${Math.max(countdown, 0)}` : "Next episode"}</div>
+          <button className="upnext__card" onClick={playNext}>
+            <span className="upnext__still">
+              {next.image && <img src={img(next.image)} alt="" />}
+              <span className="upnext__play">
+                <PlayIcon />
+              </span>
+              {countdown != null && (
+                <span className="upnext__timer" style={{ "--p": `${(1 - countdown / AUTOPLAY_SECONDS) * 100}%` } as React.CSSProperties} />
+              )}
+            </span>
+            <span className="upnext__text">
+              <span className="upnext__code">{itemCode(next)}</span>
+              <span className="upnext__name">{itemName(next)}</span>
+            </span>
+          </button>
+          <button className="upnext__dismiss" onClick={() => setUpNextClosed(true)}>
+            {countdown != null ? "Cancel" : "Hide"}
+          </button>
+        </div>
+      )}
+
+      <div className="player__controls">
+        <div
+          className="player__seek"
+          ref={seekRef}
+          onPointerDown={onSeekDown}
+          onPointerMove={onSeekMove}
+          onPointerUp={onSeekUp}
+          onPointerLeave={() => setHover(null)}
+        >
+          <div className="player__rail">
+            {hover && <div className="player__hover" style={{ width: hover.x }} />}
+            <div className="player__played" style={{ width: `${played}%` }} />
+          </div>
+          {duration > 0 &&
+            chapters.slice(1).map((c, i) => <span key={i} className="player__tick" style={{ left: `${(c.time / duration) * 100}%` }} />)}
+          <div className="player__knob" style={{ left: `${played}%` }} />
+          {hover && (
+            <div className="player__tip" style={{ left: hover.x }}>
+              {chapterAt(hover.time) && <span className="player__tip-chapter">{chapterAt(hover.time)}</span>}
+              {formatTime(hover.time)}
+            </div>
+          )}
+        </div>
+
+        <div className="player__bar">
+          <button className="player__btn player__btn--main" onClick={togglePause} title="Play / pause (Space)">
+            {paused || ended ? <PlayIcon /> : <PauseIcon />}
+          </button>
+          <button className="player__btn" onClick={() => seekBy(-10)} title="Back 10 seconds (J)">
+            <Skip10Icon />
+          </button>
+          <button className="player__btn" onClick={() => seekBy(10)} title="Forward 10 seconds (L)">
+            <Skip10Icon forward />
+          </button>
+          {next && (
+            <button className="player__btn" onClick={playNext} title={`Next episode: ${itemName(next)} (N)`}>
+              <NextIcon />
+            </button>
+          )}
+          <div className="player__volume">
+            <button className="player__btn" onClick={() => mpv.command("cycle", "mute")} title="Mute (M)">
+              {muted || volume === 0 ? <MuteIcon /> : volume < 50 ? <VolumeLowIcon /> : <VolumeIcon />}
+            </button>
+            <input
+              className="player__slider"
+              type="range"
+              min={0}
+              max={100}
+              value={muted ? 0 : volume}
+              style={{ "--v": `${muted ? 0 : volume}%` } as React.CSSProperties}
+              onChange={(e) => {
+                mpv.setProperty("volume", Number(e.target.value));
+                if (muted) mpv.setProperty("mute", false);
+              }}
+              aria-label="Volume"
+            />
+          </div>
           <span className="player__time">
-            {formatTime(time)} / {formatTime(duration)}
+            {formatTime(time)} <span className="player__time-sep">/</span> {formatTime(duration)}
           </span>
           <span className="player__spacer" />
+          {chapters.length > 1 && (
+            <MenuButton menu={menu} id="chapters" onMenu={setMenu} title="Chapters">
+              <ChaptersIcon />
+            </MenuButton>
+          )}
+          <MenuButton menu={menu} id="tracks" onMenu={setMenu} title="Audio & subtitles">
+            <SubtitlesIcon />
+          </MenuButton>
+          <MenuButton menu={menu} id="speed" onMenu={setMenu} title="Playback speed">
+            {speed === 1 ? <SpeedIcon /> : <span className="player__speed">{speed}×</span>}
+          </MenuButton>
           <button className="player__btn" onClick={toggleFullscreen} title="Fullscreen (F)">
             {fullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
           </button>
         </div>
+
+        {menu === "tracks" && (
+          <div className="player__menu player__menu--tracks">
+            <div className="player__menu-col">
+              <div className="player__menu-title">Audio</div>
+              {audio.length === 0 && <div className="player__menu-empty">None</div>}
+              {audio.map((t) => (
+                <MenuItem key={t.id} active={!!t.selected} onClick={() => chooseTrack("audio", t)} label={trackLabel(t)} detail={trackDetail(t)} />
+              ))}
+            </div>
+            <div className="player__menu-col">
+              <div className="player__menu-title">Subtitles</div>
+              <MenuItem active={!subs.some((t) => t.selected)} onClick={() => chooseTrack("sub", null)} label="Off" />
+              {subs.map((t) => (
+                <MenuItem key={t.id} active={!!t.selected} onClick={() => chooseTrack("sub", t)} label={trackLabel(t)} detail={trackDetail(t)} />
+              ))}
+            </div>
+          </div>
+        )}
+        {menu === "chapters" && (
+          <div className="player__menu">
+            <div className="player__menu-col">
+              <div className="player__menu-title">Chapters</div>
+              {chapters.map((c, i) => (
+                <MenuItem
+                  key={i}
+                  active={i === chapter}
+                  onClick={() => mpv.setProperty("chapter", i)}
+                  label={c.title || `Chapter ${i + 1}`}
+                  detail={formatTime(c.time)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {menu === "speed" && (
+          <div className="player__menu player__menu--narrow">
+            <div className="player__menu-col">
+              <div className="player__menu-title">Speed</div>
+              {SPEEDS.map((s) => (
+                <MenuItem key={s} active={Math.abs(s - speed) < 0.01} onClick={() => mpv.setProperty("speed", s)} label={s === 1 ? "Normal" : `${s}×`} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function MenuButton({ menu, id, onMenu, title, children }: { menu: Menu; id: Menu; onMenu: (m: Menu) => void; title: string; children: React.ReactNode }) {
+  return (
+    <button className={`player__btn ${menu === id ? "is-active" : ""}`} onClick={() => onMenu(menu === id ? null : id)} title={title}>
+      {children}
+    </button>
+  );
+}
+
+function MenuItem({ active, onClick, label, detail }: { active: boolean; onClick: () => void; label: string; detail?: string }) {
+  return (
+    <button className={`player__item ${active ? "is-active" : ""}`} onClick={onClick}>
+      <span className="player__item-check">{active && <CheckIcon />}</span>
+      <span className="player__item-label">{label}</span>
+      {detail && <span className="player__item-detail">{detail}</span>}
+    </button>
+  );
+}
+
+const languageNames = (() => {
+  try {
+    return new Intl.DisplayNames(["en"], { type: "language" });
+  } catch {
+    return null;
+  }
+})();
+
+function languageName(code: string | undefined) {
+  if (!code || code === "und") return null;
+  try {
+    const name = languageNames?.of(code);
+    return name && name.toLowerCase() !== code.toLowerCase() ? name : code.toUpperCase();
+  } catch {
+    return code.toUpperCase();
+  }
+}
+
+function trackLabel(t: Track) {
+  const lang = languageName(t.lang);
+  if (t.title && lang && !t.title.toLowerCase().includes(lang.toLowerCase())) return `${lang} · ${t.title}`;
+  return t.title || lang || `Track ${t.id}`;
+}
+
+function trackDetail(t: Track) {
+  const parts: string[] = [];
+  const channels = t["demux-channel-count"];
+  if (t.type === "audio" && channels) parts.push(channels === 6 ? "5.1" : channels === 8 ? "7.1" : channels === 2 ? "Stereo" : `${channels} ch`);
+  if (t.forced) parts.push("Forced");
+  if (t.external) parts.push("File");
+  return parts.join(" · ") || undefined;
 }
 
 function formatTime(seconds: number) {
@@ -135,19 +653,3 @@ function formatTime(seconds: number) {
   const sec = String(s % 60).padStart(2, "0");
   return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
 }
-
-const BackIcon = () => (
-  <svg viewBox="0 0 24 24"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z" /></svg>
-);
-const PlayIcon = () => (
-  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-);
-const PauseIcon = () => (
-  <svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
-);
-const FullscreenIcon = () => (
-  <svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z" /></svg>
-);
-const ExitFullscreenIcon = () => (
-  <svg viewBox="0 0 24 24"><path d="M8 4h2v6H4V8h4zm6 0h2v4h4v2h-6zM4 14h6v6H8v-4H4zm10 0h6v2h-4v4h-2z" /></svg>
-);

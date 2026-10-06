@@ -1,27 +1,50 @@
-import { useEffect, useState } from "react";
-import LibraryView, { type PlayRequest } from "./library/LibraryView";
+import { useCallback, useEffect, useState } from "react";
+import LibraryView from "./library/LibraryView";
 import PlayerView from "./player/PlayerView";
 import { mpv } from "./player/mpv";
+import { watch, type PlayItem } from "./library/api";
 
-const OBSERVED = ["pause", "time-pos", "duration"];
+const OBSERVED = [
+  "pause",
+  "time-pos",
+  "duration",
+  "track-list",
+  "chapter-list",
+  "chapter",
+  "volume",
+  "mute",
+  "speed",
+  "eof-reached",
+];
 
 export default function App() {
-  const [playing, setPlaying] = useState<PlayRequest | null>(null);
-  const [playerError, setPlayerError] = useState<string | null>(null);
+  const [playing, setPlaying] = useState<PlayItem | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Start mpv right away so playback begins instantly when something is picked.
   useEffect(() => {
-    mpv.init(OBSERVED).catch((e) => setPlayerError(String(e)));
+    mpv.init(OBSERVED).catch((e) => setError(`Player failed to start: ${e}`));
+  }, []);
+
+  const play = useCallback((fileId: number) => {
+    watch
+      .item(fileId)
+      .then((item) => item && setPlaying(item))
+      .catch((e) => setError(String(e)));
   }, []);
 
   return (
     <>
       {/* Stays mounted while playing so the library keeps its place. */}
       <div style={{ display: playing ? "none" : undefined }}>
-        <LibraryView active={!playing} onPlay={setPlaying} />
-        {playerError && <div className="toast">Player failed to start: {playerError}</div>}
+        <LibraryView active={!playing} onPlay={play} />
       </div>
-      {playing && <PlayerView path={playing.path} label={playing.label} onBack={() => setPlaying(null)} />}
+      {playing && <PlayerView item={playing} onNext={setPlaying} onBack={() => setPlaying(null)} />}
+      {error && (
+        <button className="toast" onClick={() => setError(null)}>
+          {error}
+        </button>
+      )}
     </>
   );
 }

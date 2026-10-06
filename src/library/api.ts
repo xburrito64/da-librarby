@@ -35,6 +35,8 @@ export interface TitleSummary {
   /** Full path of the wide artwork, if downloaded. */
   banner: string | null;
   score: number | null;
+  /** Episodes and movies watched. */
+  watched: number;
 }
 
 /** Information from AniList/TMDB. */
@@ -79,6 +81,15 @@ export interface FileRow {
   size: number;
   meta: Meta | null;
   providerEpisode: number | null;
+  progress: Progress | null;
+}
+
+/** How far a file has been played. Times in seconds. */
+export interface Progress {
+  position: number;
+  duration: number;
+  watched: boolean;
+  updatedAt: number;
 }
 
 export interface TitleDetail {
@@ -191,31 +202,84 @@ export function fileName(path: string) {
   return path.split(/[\\/]/).pop() ?? path;
 }
 
-export interface PlayRequest {
+/** Everything the player needs to play one file. */
+export interface PlayItem {
+  fileId: number;
+  titleId: number;
+  titleName: string;
   path: string;
-  label: string;
+  role: "episode" | "movie" | "extra";
+  seasonNumber: number | null;
+  episode: number | null;
+  episodeEnd: number | null;
+  name: string | null;
+  /** Episode still, else the show's artwork. */
+  image: string | null;
+  /** Where it was stopped last time. */
+  resume: number | null;
+  duration: number | null;
 }
 
-/** What "Play" starts for a title: the first episode, or the movie. */
-export function firstPlayable(title: TitleDetail): { file: FileRow; request: PlayRequest } | null {
-  for (const season of title.seasons) {
-    if (season.number === 0) continue;
-    const file = title.files.find((f) => f.role === "episode" && f.seasonId === season.id);
-    if (file) return { file, request: playRequest(title, file, season.number) };
-  }
-  const file =
-    title.files.find((f) => f.role === "movie") ?? title.files.find((f) => f.role === "episode");
-  if (!file) return null;
-  const season = title.seasons.find((s) => s.id === file.seasonId);
-  return { file, request: playRequest(title, file, season?.number ?? null) };
+export interface ContinueItem extends PlayItem {
+  /** "resume" = stopped part-way, "next" = the episode after the last one finished. */
+  reason: "resume" | "next";
+  updatedAt: number;
+}
+
+export const watch = {
+  item: (fileId: number) => invoke<PlayItem | null>("watch_item", { fileId }),
+  next: (fileId: number) => invoke<PlayItem | null>("watch_next", { fileId }),
+  save: (fileId: number, position: number, duration: number, done: boolean) =>
+    invoke<void>("watch_save", { fileId, position, duration, done }),
+  set: (fileIds: number[], watched: boolean) => invoke<void>("watch_set", { fileIds, watched }),
+  continueList: () => invoke<ContinueItem[]>("watch_continue"),
+};
+
+/** "S1E3" / "E3" / "" for a play item. */
+export function itemCode(item: PlayItem) {
+  if (item.role !== "episode" || item.episode == null) return "";
+  const ep = item.episodeEnd != null ? `${item.episode}-${item.episodeEnd}` : `${item.episode}`;
+  return item.seasonNumber != null && item.seasonNumber > 0 ? `S${item.seasonNumber}E${ep}` : `E${ep}`;
+}
+
+/** Episode or movie name, never empty. */
+export function itemName(item: PlayItem) {
+  return item.name ?? (item.episode != null ? `Episode ${item.episode}` : item.role === "movie" ? item.titleName : fileName(item.path));
+}
+
+/** Part-way through (worth resuming)? Same rule as the app's watch history. */
+export function canResume(p: Progress | null | undefined) {
+  return !!p && p.position >= 30 && (p.duration <= 0 || p.position < p.duration * 0.9);
 }
 
 export function episodeName(file: FileRow) {
   return file.name ?? file.meta?.name ?? (file.episode != null ? `Episode ${file.episode}` : fileName(file.path));
 }
 
-export function playRequest(title: TitleDetail, file: FileRow, seasonNumber: number | null): PlayRequest {
-  if (file.role === "movie") return { path: file.path, label: file.meta?.name ?? file.name ?? title.name };
-  if (file.role === "extra") return { path: file.path, label: file.name ?? fileName(file.path) };
-  return { path: file.path, label: [title.name, episodeCode(file, seasonNumber), episodeName(file)].filter(Boolean).join(" · ") };
+/**
+ * What the big Play button on a show page starts: the episode stopped part-way, else the
+ * next unwatched one after the last finished, else the first.
+ */
+export function upNext(title: TitleDetail): { file: FileRow; mode: "resume" | "next" | "start" } | null {
+  const regular = title.seasons.filter((s) => s.number !== 0);
+  const ordered = [
+    ...regular.flatMap((s) => title.files.filter((f) => f.role === "episode" && f.seasonId === s.id)),
+    ...title.files.filter((f) => f.role === "movie" && (title.isMovie || regular.length === 0)),
+  ];
+  if (ordered.length === 0) {
+    const any = title.files.find((f) => f.role === "episode");
+    return any ? { file: any, mode: "start" } : null;
+  }
+  const latest = ordered
+    .filter((f) => f.progress)
+    .sort((a, b) => (b.progress!.updatedAt - a.progress!.updatedAt) || (b.id - a.id))[0];
+  if (latest && canResume(latest.progress)) return { file: latest, mode: "resume" };
+  if (latest?.progress?.watched) {
+    const after = ordered.slice(ordered.indexOf(latest) + 1).find((f) => !f.progress?.watched);
+    if (after) return { file: after, mode: "next" };
+  } else if (latest) {
+    // Opened but left within the first moments: still the one up next.
+    return { file: latest, mode: "next" };
+  }
+  return { file: ordered[0], mode: "start" };
 }

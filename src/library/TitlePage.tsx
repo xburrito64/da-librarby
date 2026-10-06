@@ -7,24 +7,24 @@ import {
   episodeCode,
   episodeName,
   fileName,
-  firstPlayable,
-  playRequest,
+  upNext,
+  canResume,
+  watch,
   KIND_LABELS,
   type FileRow,
   type MatchSource,
-  type PlayRequest,
   type SeasonRow,
   type TitleDetail,
 } from "./api";
 import MatchPicker from "./MatchPicker";
-import { BackIcon, ChevronDown, EditIcon, PlayIcon } from "../ui/icons";
+import { BackIcon, CheckIcon, ChevronDown, EditIcon, PlayIcon } from "../ui/icons";
 
 type Picking = { kind: "title" } | { kind: "season"; season: SeasonRow } | { kind: "file"; file: FileRow };
 
 interface Props {
   id: number;
   onBack: () => void;
-  onPlay: (request: PlayRequest) => void;
+  onPlay: (fileId: number) => void;
   onScrolled: (scrolled: boolean) => void;
 }
 
@@ -61,12 +61,16 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
   const episodes = season ? title.files.filter((f) => f.role === "episode" && f.seasonId === season.id) : [];
   const movies = title.files.filter((f) => f.role === "movie");
   const extras = title.files.filter((f) => f.role === "extra");
-  const first = firstPlayable(title);
-  const firstSeason = first && title.seasons.find((s) => s.id === first.file.seasonId);
+  const up = upNext(title);
+  const upCode = up && up.file.role === "episode" ? episodeCode(up.file, title.seasons.find((s) => s.id === up.file.seasonId)?.number ?? null) : "";
+  const upLeft =
+    up?.mode === "resume" && up.file.progress && up.file.progress.duration > 0
+      ? Math.max(1, Math.round((up.file.progress.duration - up.file.progress.position) / 60))
+      : null;
   const year = title.year ?? meta?.year;
   const close = () => setPicking(null);
-  const playFile = (file: FileRow) =>
-    onPlay(playRequest(title, file, title.seasons.find((s) => s.id === file.seasonId)?.number ?? null));
+  const playFile = (file: FileRow) => onPlay(file.id);
+  const seasonWatched = episodes.length > 0 && episodes.every((f) => f.progress?.watched);
 
   return (
     <div
@@ -109,10 +113,10 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
             </p>
           )}
           <div className="tp__actions">
-            {first && (
-              <button className="btn btn--primary" onClick={() => onPlay(first.request)}>
+            {up && (
+              <button className="btn btn--primary" onClick={() => playFile(up.file)}>
                 <PlayIcon />
-                {first.file.role === "episode" ? `Play ${episodeCode(first.file, firstSeason?.number ?? null)}` : "Play"}
+                {[up.mode === "resume" ? "Resume" : "Play", upCode].filter(Boolean).join(" ")}
               </button>
             )}
             <button className="btn" onClick={() => setPicking({ kind: "title" })}>
@@ -120,6 +124,14 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
               Fix match
             </button>
           </div>
+          {upLeft != null && (
+            <div className="tp__resume">
+              <span className="progress tp__resume-bar">
+                <span style={{ width: `${(up!.file.progress!.position / up!.file.progress!.duration) * 100}%` }} />
+              </span>
+              {upLeft} min left
+            </div>
+          )}
           <div className="tp__note">
             {matchNote(title)} · {title.folder}
           </div>
@@ -145,6 +157,7 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
             ) : (
               <h2 className="section-title">{season.label}</h2>
             )}
+            <div className="tp__seasonbar">
             {anime && (
               <p className="tp__seasonnote">
                 {season.meta?.providerIds.length
@@ -158,6 +171,13 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
                 </button>
               </p>
             )}
+              <button
+                className="link tp__markall"
+                onClick={() => watch.set(episodes.map((f) => f.id), !seasonWatched)}
+              >
+                {seasonWatched ? "Mark season as unwatched" : "Mark season as watched"}
+              </button>
+            </div>
             <div className="eps">
               {episodes.map((f) => (
                 <Episode key={f.id} file={f} code={episodeCode(f, season.number)} onPlay={() => playFile(f)} />
@@ -182,6 +202,7 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
                       <span className="card__play">
                         <PlayIcon />
                       </span>
+                      <WatchMarks file={f} />
                     </span>
                     <span className="card__text">
                       <span className="card__name">{f.meta?.name ?? f.name ?? fileName(f.path)}</span>
@@ -258,8 +279,15 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
 }
 
 function Episode({ file, code, onPlay }: { file: FileRow; code: string; onPlay: () => void }) {
+  const watched = !!file.progress?.watched;
   return (
-    <button className="ep" onClick={onPlay}>
+    <div
+      className={`ep ${watched ? "is-watched" : ""}`}
+      role="button"
+      tabIndex={0}
+      onClick={onPlay}
+      onKeyDown={(e) => e.key === "Enter" && onPlay()}
+    >
       <span className="ep__still">
         {file.meta?.thumb && (
           <img src={img(file.meta.thumb)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add("is-loaded")} />
@@ -267,6 +295,7 @@ function Episode({ file, code, onPlay }: { file: FileRow; code: string; onPlay: 
         <span className="ep__play">
           <PlayIcon />
         </span>
+        <WatchMarks file={file} />
       </span>
       <span className="ep__main">
         <span className="ep__top">
@@ -275,8 +304,36 @@ function Episode({ file, code, onPlay }: { file: FileRow; code: string; onPlay: 
         </span>
         {file.meta?.description && <span className="ep__desc">{file.meta.description}</span>}
       </span>
-    </button>
+      <button
+        className={`ep__toggle ${watched ? "is-on" : ""}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          watch.set([file.id], !watched);
+        }}
+        title={watched ? "Mark as unwatched" : "Mark as watched"}
+      >
+        <CheckIcon />
+      </button>
+    </div>
   );
+}
+
+/** Progress bar for something stopped part-way, a tick for something watched. */
+function WatchMarks({ file }: { file: FileRow }) {
+  const p = file.progress;
+  if (p?.watched && !canResume(p))
+    return (
+      <span className="watched-badge" title="Watched">
+        <CheckIcon />
+      </span>
+    );
+  if (canResume(p) && p!.duration > 0)
+    return (
+      <span className="progress">
+        <span style={{ width: `${(p!.position / p!.duration) * 100}%` }} />
+      </span>
+    );
+  return null;
 }
 
 function matchNote(title: TitleDetail) {

@@ -55,6 +55,7 @@
   --tp-top: calc(var(--nav-h) - var(--hero-top));
   --card-w: 168px;
   --row-card-w: 172px;
+  --wide-card-w: 300px; /* continue-watching cards */
   --card-gap: 20px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -624,6 +625,15 @@
   pointer-events: none;
 }
 
+.row--wide .row__track > .ccard {
+  flex: 0 0 var(--wide-card-w);
+  scroll-snap-align: start;
+}
+
+.row--wide .row__arrow {
+  top: calc(14px + var(--wide-card-w) * 0.28 + var(--card-frame));
+}
+
 .grid-page {
   padding: 36px var(--gutter) 64px;
 }
@@ -775,6 +785,196 @@
   opacity: 0.45;
 }
 
+/* ---------- Watch progress ---------- */
+
+/* A thin bar along the bottom of a cover or still. */
+.progress {
+  position: absolute;
+  z-index: 1;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  height: 4px;
+  border-radius: var(--btn-radius);
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.watched-badge {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--btn-radius);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.watched-badge .icon {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.8;
+}
+
+/* Continue watching */
+
+.ccard {
+  position: relative;
+  min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px auto 240px;
+  overflow-clip-margin: 48px;
+}
+
+.ccard__main {
+  display: block;
+  width: 100%;
+  padding: var(--card-frame);
+  border: 0;
+  background: var(--card-frame-bg);
+  text-align: left;
+  transition:
+    transform 0.35s var(--ease),
+    box-shadow 0.35s var(--ease),
+    filter 0.35s var(--ease);
+}
+
+.ccard__art {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-card);
+  clip-path: var(--card-clip);
+  overflow: hidden;
+  background: var(--surface);
+  transition:
+    transform 0.35s var(--ease),
+    box-shadow 0.35s var(--ease);
+}
+
+.ccard__art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.ccard__art img.is-loaded {
+  opacity: 1;
+}
+
+.ccard__play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.ccard__play .icon {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.ccard:hover .ccard__play {
+  opacity: 1;
+}
+
+.ccard:hover .ccard__art {
+  transform: translateY(-4px);
+}
+
+.ccard__badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 9px;
+  border-radius: var(--btn-radius);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 800 10.5px var(--font-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ccard__text {
+  display: block;
+  padding: 10px 2px 0;
+}
+
+.ccard__show {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--label-tracking);
+  text-transform: var(--label-transform);
+  color: var(--muted);
+}
+
+.ccard__ep {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.ccard__code {
+  margin-right: 8px;
+  color: var(--accent);
+}
+
+.ccard__left {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ccard__info {
+  position: absolute;
+  z-index: 2;
+  top: calc(8px + var(--card-frame));
+  right: calc(8px + var(--card-frame));
+  width: 34px;
+  height: 34px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  opacity: 0;
+}
+
+.ccard__info:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.ccard:hover .ccard__info {
+  opacity: 1;
+}
+
 /* ---------- Show page ---------- */
 
 .tp__backdrop {
@@ -899,6 +1099,23 @@
   margin-top: 26px;
 }
 
+.tp__resume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.tp__resume .progress {
+  position: relative;
+  inset: auto;
+  width: 140px;
+  background: var(--surface-hover);
+  box-shadow: none;
+}
+
 .tp__note {
   margin-top: 16px;
   font-size: 12px;
@@ -972,10 +1189,22 @@
   color: var(--bg);
 }
 
+.tp__seasonbar {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
 .tp__seasonnote {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 12.5px;
   color: var(--muted);
+}
+
+.tp__markall {
+  margin-left: auto;
+  font-size: 12.5px;
 }
 
 .eps {
@@ -986,8 +1215,10 @@
 }
 
 .ep {
+  position: relative;
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
+  grid-template-columns: 200px minmax(0, 1fr) auto;
+  cursor: pointer;
   gap: 18px;
   align-items: start;
   padding: 12px;
@@ -1026,6 +1257,50 @@
 
 .ep__still img.is-loaded {
   opacity: 1;
+}
+
+.ep.is-watched .ep__still img.is-loaded {
+  opacity: 0.6;
+}
+
+.ep__toggle {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--btn-radius);
+  background: none;
+  color: var(--muted);
+  opacity: 0;
+  transition:
+    opacity 0.2s,
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.ep__toggle .icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.4;
+}
+
+.ep:hover .ep__toggle,
+.ep__toggle:focus-visible {
+  opacity: 1;
+}
+
+.ep__toggle:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.ep__toggle.is-on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .ep__play {

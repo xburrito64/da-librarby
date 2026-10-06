@@ -8,6 +8,7 @@
 pub mod db;
 pub mod parse;
 pub mod scan;
+pub mod watch;
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -170,6 +171,51 @@ pub async fn library_titles(library: State<'_, Library>) -> Result<Vec<db::Title
 #[tauri::command]
 pub async fn library_title(library: State<'_, Library>, id: i64) -> Result<Option<db::TitleDetail>, String> {
     library.with_db(|c| db::title_detail(c, id, &library.images_dir))
+}
+
+/// Everything needed to play a file, including where it was stopped last time.
+#[tauri::command]
+pub async fn watch_item(library: State<'_, Library>, file_id: i64) -> Result<Option<watch::PlayItem>, String> {
+    library.with_db(|c| watch::play_item(c, &library.images_dir, file_id))
+}
+
+/// The episode that plays after this one.
+#[tauri::command]
+pub async fn watch_next(library: State<'_, Library>, file_id: i64) -> Result<Option<watch::PlayItem>, String> {
+    library.with_db(|c| match watch::next_file(c, file_id)? {
+        Some(next) => watch::play_item(c, &library.images_dir, next),
+        None => Ok(None),
+    })
+}
+
+/// Saves how far a file has been played. `done` = playback of it just stopped, so the
+/// library screens refresh (continue watching, progress bars).
+#[tauri::command]
+pub async fn watch_save(
+    app: AppHandle,
+    library: State<'_, Library>,
+    file_id: i64,
+    position: f64,
+    duration: f64,
+    done: bool,
+) -> Result<(), String> {
+    let finished = library.with_db(|c| watch::save_progress(c, file_id, position, duration))?;
+    if done || finished {
+        let _ = app.emit("library:changed", json!({}));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn watch_set(app: AppHandle, library: State<'_, Library>, file_ids: Vec<i64>, watched: bool) -> Result<(), String> {
+    library.with_db(|c| watch::set_watched(c, &file_ids, watched))?;
+    let _ = app.emit("library:changed", json!({}));
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn watch_continue(library: State<'_, Library>) -> Result<Vec<watch::ContinueItem>, String> {
+    library.with_db(|c| watch::continue_watching(c, &library.images_dir))
 }
 
 /// "f:/Anime/" -> "F:\Anime"
