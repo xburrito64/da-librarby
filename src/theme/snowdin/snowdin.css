@@ -93,31 +93,48 @@
 }
 
 /* Inside the spotlight and a show page's artwork, snow falls within the scene: in front of the
-   artwork, behind the town and the text. Two layers, the nearer one bigger and faster. */
-:root.sd-snow-on[data-theme="snowdin"] .hero__art::after,
-:root.sd-snow-on[data-theme="snowdin"] .tp__backdrop::before {
-  content: "";
+   artwork, behind the town and the text. Two layers, the nearer one bigger and faster. Each layer
+   is one tile taller than its box and slides down by exactly one tile, so the loop is seamless. */
+:root.sd-snow-on[data-theme="snowdin"] :is(.hero__decor--back, .tp__decor--back) {
+  display: block;
   position: absolute;
   z-index: 1;
   inset: 0;
-  background:
-    var(--sd-snow-near) 0 0 / 384px 384px,
-    var(--sd-snow-far) 0 0 / 384px 384px;
-  image-rendering: pixelated;
-  animation: sd-snowfall 24s steps(128) infinite;
+  overflow: hidden;
   pointer-events: none;
+}
+
+:root.sd-snow-on[data-theme="snowdin"] .tp__decor--back {
+  z-index: 0;
+  bottom: auto;
+  height: var(--tp-art-h);
+}
+
+:root.sd-snow-on[data-theme="snowdin"] :is(.hero__decor--back, .tp__decor--back)::before,
+:root.sd-snow-on[data-theme="snowdin"] :is(.hero__decor--back, .tp__decor--back)::after {
+  content: "";
+  position: absolute;
+  inset: -384px 0 0;
+  background: var(--sd-snow-far) 0 0 / 384px 384px;
+  image-rendering: pixelated;
+  will-change: transform;
+  animation: sd-snowfall 24s linear infinite;
+}
+
+:root.sd-snow-on[data-theme="snowdin"] :is(.hero__decor--back, .tp__decor--back)::after {
+  background-image: var(--sd-snow-near);
+  animation-duration: 12s;
 }
 
 @keyframes sd-snowfall {
   to {
-    background-position:
-      -96px 768px,
-      -48px 384px;
+    transform: translateY(384px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root[data-theme="snowdin"] :is(.hero__art::after, .tp__backdrop::before) {
+  :root[data-theme="snowdin"] :is(.hero__decor--back, .tp__decor--back)::before,
+  :root[data-theme="snowdin"] :is(.hero__decor--back, .tp__decor--back)::after {
     animation: none;
   }
 }

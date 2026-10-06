@@ -365,6 +365,7 @@ function Spotlight({ titles, onOpen, onPlay }: { titles: TitleSummary[]; onOpen:
           ) : null,
         )}
       </div>
+      <span className="hero__decor hero__decor--back" aria-hidden="true" />
       <div className="hero__shade" />
       <span className="hero__decor hero__decor--top" aria-hidden="true" />
       <span className="hero__decor hero__decor--bottom" aria-hidden="true" />

@@ -51,7 +51,8 @@ Themes that leave it out look and behave exactly as before.
 - `Decor`: a component drawn behind the library screens (Snowdin's falling snow), given the theme's option
   values.
 
-Empty spots in the markup, hidden unless a theme shows them: `.hero__decor--top` / `--bottom` (the
-spotlight), `.tp__decor--top` / `--bottom` (show pages), `.tprev__decor` (the preview card),
+Empty spots in the markup, hidden unless a theme shows them: `.hero__decor--back` / `--top` /
+`--bottom` (the spotlight; "back" sits right in front of the artwork), `.tp__decor--back` / `--top` /
+`--bottom` (show pages), `.tprev__decor` (the preview card),
 `.empty__art` and `.search__none-art` (empty pages). Descriptions sit in `.hero__desc-box` and
 `.tp__desc-box`, for themes that frame them.

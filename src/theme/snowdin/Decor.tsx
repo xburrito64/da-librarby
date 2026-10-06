@@ -1,5 +1,7 @@
 // Falling snow behind the library, and keeping the town and forest as wide as the window.
-// (Inside the spotlight and show-page artwork, the stylesheet lets snow fall within the scene.)
+// The snow belongs to the page: scrolling moves it along with everything else (flakes leaving one
+// edge come back at the other). Inside the spotlight and show-page artwork, the stylesheet lets
+// snow fall within the scene.
 import { useEffect, useRef } from "react";
 import { drawScenes } from "./art";
 
@@ -60,6 +62,17 @@ export default function Decor({ active, options }: { active: boolean; options: R
     let flakes: Flake[] = [];
     let frame = 0;
     let last = performance.now();
+    // How far pages have scrolled since the last frame.
+    let scrolled = 0;
+    const tops = new WeakMap<Element, number>();
+    const onScroll = (e: Event) => {
+      const page = e.target;
+      if (!(page instanceof HTMLElement) || !page.classList.contains("view")) return;
+      scrolled += page.scrollTop - (tops.get(page) ?? page.scrollTop);
+      tops.set(page, page.scrollTop);
+    };
+    document.addEventListener("scroll", onScroll, true);
+    document.querySelectorAll(".view").forEach((page) => tops.set(page, page.scrollTop));
 
     const fit = () => {
       const dpr = window.devicePixelRatio || 1;
@@ -86,25 +99,26 @@ export default function Decor({ active, options }: { active: boolean; options: R
       const w = el.clientWidth;
       const h = el.clientHeight;
       g.clearRect(0, 0, el.width, el.height);
+      const shift = scrolled;
+      scrolled = 0;
       for (const f of flakes) {
-        f.y += f.speed * dt;
+        f.y += f.speed * dt - shift;
         f.phase += dt * 0.6;
         f.x += Math.sin(f.phase) * 6 * dt;
-        if (f.y > h) {
-          f.y = -f.size;
+        // Out at one edge, back in at the other.
+        if (f.y > h || f.y < -f.size) {
+          f.y = ((f.y % h) + h) % h;
           f.x = Math.random() * w;
         }
-        // Snap to the art-pixel grid, so flakes stay crisp squares.
-        const x = Math.round(f.x / FLAKE) * FLAKE;
-        const y = Math.round(f.y / FLAKE) * FLAKE;
         g.fillStyle = `rgba(238, 244, 255, ${f.alpha})`;
-        g.fillRect(Math.round(x * dpr), Math.round(y * dpr), Math.round(f.size * dpr), Math.round(f.size * dpr));
+        g.fillRect(Math.round(f.x * dpr), Math.round(f.y * dpr), Math.round(f.size * dpr), Math.round(f.size * dpr));
       }
       frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
     return () => {
       cancelAnimationFrame(frame);
+      document.removeEventListener("scroll", onScroll, true);
       g.clearRect(0, 0, el.width, el.height);
     };
   }, [snow]);

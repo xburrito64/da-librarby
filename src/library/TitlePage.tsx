@@ -108,6 +108,7 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
       onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}
     >
       <div className="tp__backdrop">{meta?.banner && <img src={img(meta.banner)} alt="" decoding="async" />}</div>
+      <span className="tp__decor tp__decor--back" aria-hidden="true" />
       <span className="tp__decor tp__decor--top" aria-hidden="true" />
       <span className="tp__decor tp__decor--bottom" aria-hidden="true" />
 
