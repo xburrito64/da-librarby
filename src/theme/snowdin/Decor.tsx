@@ -1,4 +1,5 @@
-// Falling snow over the library, and keeping the town and forest as wide as the window.
+// Falling snow behind the library, and keeping the town and forest as wide as the window.
+// (Inside the spotlight and show-page artwork, the stylesheet lets snow fall within the scene.)
 import { useEffect, useRef } from "react";
 import { drawScenes } from "./art";
 
@@ -21,6 +22,13 @@ interface Flake {
 export default function Decor({ active, options }: { active: boolean; options: Record<string, boolean | string | undefined> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const snow = active && options.snow !== false;
+
+  // Tells the stylesheet whether snow falls inside the scenes too.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("sd-snow-on", options.snow !== false);
+    return () => root.classList.remove("sd-snow-on");
+  }, [options.snow]);
 
   useEffect(() => {
     if (Math.random() >= DOG_VISIT_CHANCE) return;

@@ -45,9 +45,12 @@
 }
 
 :root[data-theme="snowdin"] {
+  /* The town and forest scenes (scenes.ts: 94 art pixels tall, ground 31 from the bottom, x3). */
+  --sd-scene-h: 282px;
+  --sd-ground: 93px;
   --nav-h: 84px;
   --gutter: 56px;
-  --hero-h: 74vh;
+  --hero-h: 84vh;
   --rows-overlap: 0px;
   --row-card-w: 172px;
   --card-w: 172px;
@@ -80,19 +83,43 @@
   height: 20px;
 }
 
-/* The falling snow: above the pages, below the navigation and dialogs. */
+/* The falling snow: behind the pages, so they scroll over it. */
 .sd-snow {
   position: absolute;
-  z-index: 15;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
 }
 
-/* Dialogs opened from a page sit inside it, under the snow: let it rest meanwhile. */
-.app:has(.view .modal) .sd-snow {
-  visibility: hidden;
+/* Inside the spotlight and a show page's artwork, snow falls within the scene: in front of the
+   artwork, behind the town and the text. Two layers, the nearer one bigger and faster. */
+:root.sd-snow-on[data-theme="snowdin"] .hero__art::after,
+:root.sd-snow-on[data-theme="snowdin"] .tp__backdrop::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background:
+    var(--sd-snow-near) 0 0 / 384px 384px,
+    var(--sd-snow-far) 0 0 / 384px 384px;
+  image-rendering: pixelated;
+  animation: sd-snowfall 24s steps(128) infinite;
+  pointer-events: none;
+}
+
+@keyframes sd-snowfall {
+  to {
+    background-position:
+      -96px 768px,
+      -48px 384px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="snowdin"] :is(.hero__art::after, .tp__backdrop::before) {
+    animation: none;
+  }
 }
 
 /* ---------- The heart: beside whatever you point at ---------- */
@@ -446,8 +473,8 @@
 /* ---------- Spotlight: Snowdin under the artwork's sky ---------- */
 
 :root[data-theme="snowdin"] .hero {
-  min-height: 560px;
-  max-height: 820px;
+  min-height: 640px;
+  max-height: 900px;
 }
 
 :root[data-theme="snowdin"] .hero__shade {
@@ -500,14 +527,14 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 216px;
-  background: var(--sd-town) right bottom / auto 216px no-repeat;
+  height: var(--sd-scene-h);
+  background: var(--sd-town) right bottom / auto var(--sd-scene-h) no-repeat;
   image-rendering: pixelated;
   pointer-events: none;
 }
 
 :root[data-theme="snowdin"] .hero__content {
-  bottom: 120px;
+  bottom: calc(var(--sd-ground) + 60px);
   max-width: 620px;
   animation: sd-appear 0.35s steps(4) both;
 }
@@ -520,7 +547,7 @@
 
 :root[data-theme="snowdin"] .hero__title {
   margin: 10px 0 18px;
-  font-size: clamp(44px, 4.8vw, 72px);
+  font-size: clamp(40px, 4.2vw, 66px);
   line-height: 0.95;
   text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55);
 }
@@ -1197,7 +1224,7 @@
 :root.sd-dog-visit[data-theme="snowdin"] .tp__decor--bottom::before {
   content: "";
   position: absolute;
-  bottom: 30px;
+  bottom: calc(var(--sd-ground) + 3px);
   right: 562px;
   width: 57px;
   height: 42px;
@@ -1206,7 +1233,7 @@
 }
 
 :root.sd-dog-visit[data-theme="snowdin"] .tp__decor--bottom::before {
-  bottom: 30px;
+  bottom: calc(var(--sd-ground) + 3px);
   right: 182px;
 }
 
@@ -1217,23 +1244,13 @@
   z-index: 0;
   left: 0;
   right: 0;
-  top: calc(var(--tp-art-h) - 216px);
-  height: 216px;
-  background: var(--sd-forest) right bottom / auto 216px no-repeat;
+  top: calc(var(--tp-art-h) - var(--sd-scene-h) + var(--sd-ground));
+  height: var(--sd-scene-h);
+  background: var(--sd-forest) right bottom / auto var(--sd-scene-h) no-repeat;
   image-rendering: pixelated;
   pointer-events: none;
 }
 
-/* Below the snowy ground: plain night. */
-:root[data-theme="snowdin"] .tp__decor--bottom::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  height: 4px;
-  background: var(--bg);
-}
 
 :root[data-theme="snowdin"] .tp__head {
   gap: 44px;

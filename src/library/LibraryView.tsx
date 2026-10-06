@@ -140,6 +140,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
   return (
     <ContextMenuProvider>
     <div className={`app ${scrolled ? "app--scrolled" : ""} ${openTitle != null ? "app--title" : ""}`}>
+      {Decor && <Decor active={active} options={themeOptions} />}
       <nav className="nav">
         <button
           className="nav__brand"
@@ -241,7 +242,6 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
           onClose={() => setSettings(null)}
         />
       )}
-      {Decor && <Decor active={active} options={themeOptions} />}
       {said && (
         <button key={said.n} className="say" onClick={() => setSaid(null)} data-sfx="none">
           <Typed as="span" className="say__text" text={said.text} />

@@ -42,7 +42,7 @@ export interface ThemeExtras {
   typing?: boolean;
   /** Replacement icons, by name (see src/ui/icons.tsx), drawn from rows of "#" and ".". */
   icons?: Record<string, string[]>;
-  /** Drawn on top of the library screens (e.g. falling snow); gets the theme's option values. */
+  /** Drawn behind the library screens (e.g. falling snow); gets the theme's option values. */
   Decor?: ComponentType<{ active: boolean; options: Record<string, boolean | string | undefined> }>;
 }
 

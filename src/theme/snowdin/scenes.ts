@@ -107,18 +107,43 @@ function forest(p: Painter, rand: () => number, o: { from: number; to: number; b
   }
 }
 
+/** Rows of lit snow under the scene, before it fades into the night. */
+const LIT_ROWS = 7;
+/** Snow fading into the night, step by step, dithered like old games did (last: see-through). */
+const FADE = [C.snow, C.snow2, C.snow3, "#5b6a90", "#2f3a62", "#171c38", ""];
+const FADE_ROWS_PER_STEP = 4;
+const BAYER = [
+  [0, 8, 2, 10],
+  [12, 4, 14, 6],
+  [3, 11, 1, 9],
+  [15, 7, 13, 5],
+];
+
+/** Snowy ground with soft blue shadows and a lumpy top edge, fading into the night below. */
 function ground(p: Painter, rand: () => number, top: number) {
   for (let x = 0; x < p.w; x++) {
     const bump = Math.round(Math.sin(x / 9) * 1.2 + Math.sin(x / 23 + 1) * 1.5 + 1.5);
-    p.rect(x, top - bump, 1, p.h - top + bump, C.snow);
+    p.rect(x, top - bump, 1, LIT_ROWS + bump, C.snow);
     p.dot(x, top - bump, C.snow2);
   }
   for (let i = 0; i < p.w / 10; i++) {
     const x = Math.round(rand() * p.w);
-    const y = top + 3 + Math.round(rand() * (p.h - top - 4));
+    const y = top + 2 + Math.round(rand() * (LIT_ROWS - 3));
     const w = 3 + Math.round(rand() * 8);
     p.rect(x, y, w, 1, C.snow2);
     if (rand() < 0.4) p.rect(x + 1, y + 1, w - 2, 1, C.snow3, 0.6);
+  }
+  // Each step blends into the next with a checkered pattern that thins out row by row.
+  const start = top + LIT_ROWS;
+  for (let step = 0; step < FADE.length - 1; step++) {
+    for (let r = 0; r < FADE_ROWS_PER_STEP; r++) {
+      const y = start + step * FADE_ROWS_PER_STEP + r;
+      const mix = (r + 1) / (FADE_ROWS_PER_STEP + 1);
+      for (let x = 0; x < p.w; x++) {
+        const c = BAYER[y % 4][x % 4] / 16 < mix ? FADE[step + 1] : FADE[step];
+        if (c) p.dot(x, y, c);
+      }
+    }
   }
 }
 
@@ -305,7 +330,9 @@ function sentry(p: Painter, rand: () => number, x: number, base: number, festive
   p.rect(x - 2, base - 2, w + 4, 2, C.snow);
 }
 
-export const SCENE_HEIGHT = 72;
+/** Where the snowy ground starts, and the scene's full height (ground, then the fade). */
+const GROUND = 63;
+export const SCENE_HEIGHT = GROUND + LIT_ROWS + (FADE.length - 1) * FADE_ROWS_PER_STEP;
 /** The left part stays low and calm, where the spotlight's text sits. */
 const QUIET_LEFT = 230;
 
@@ -316,7 +343,7 @@ export function townScene(width: number, festive = false) {
   const r = w - 427; // things are placed as on a 427-wide scene, shifted right
   return paint(w, SCENE_HEIGHT, (p) => {
     const rand = random(11);
-    const g = SCENE_HEIGHT - 9;
+    const g = GROUND;
     forest(p, rand, { from: 4, to: w, base: g - 6, minH: 18, maxH: 34, step: 7, body: C.far, snow: C.farSnow, lowUntil: QUIET_LEFT });
     forest(p, rand, { from: 150, to: w, base: g - 2, minH: 24, maxH: 40, step: 19, body: C.mid, snow: C.midSnow, lowUntil: QUIET_LEFT + 30 });
     banner(p, r + 282, r + 377, 9, g, "WELCOME TO DA LIBRARBY");
@@ -336,7 +363,7 @@ export function forestScene(width: number, festive = false) {
   const r = w - 427;
   return paint(w, SCENE_HEIGHT, (p) => {
     const rand = random(5);
-    const g = SCENE_HEIGHT - 9;
+    const g = GROUND;
     forest(p, rand, { from: 2, to: w, base: g - 7, minH: 20, maxH: 36, step: 6, body: C.far, snow: C.farSnow, lowUntil: QUIET_LEFT + 10 });
     forest(p, rand, { from: 120, to: w, base: g - 3, minH: 30, maxH: 48, step: 13, body: C.mid, snow: C.midSnow, lowUntil: QUIET_LEFT + 30 });
     pine(p, r + 352, g + 1, 54, C.near, C.nearSnow);

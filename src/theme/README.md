@@ -48,7 +48,7 @@ Themes that leave it out look and behave exactly as before.
   Elements can ask for a particular sound with `data-sfx="save"` (or `"none"`).
 - `icons`: pixel versions of the app's icons, by name (see `src/ui/icons.tsx`), drawn from rows of `#`
   and `.`.
-- `Decor`: a component drawn over the library screens (Snowdin's falling snow), given the theme's option
+- `Decor`: a component drawn behind the library screens (Snowdin's falling snow), given the theme's option
   values.
 
 Empty spots in the markup, hidden unless a theme shows them: `.hero__decor--top` / `--bottom` (the

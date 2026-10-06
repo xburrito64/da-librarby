@@ -114,6 +114,19 @@ function setVar(name: string, dataUrl: string) {
   document.documentElement.style.setProperty(name, `url("${dataUrl}")`);
 }
 
+/** A square of scattered snowflakes (repeats in every direction); `big` flakes are 2x2. */
+function snowTile(seed: number, count: number, big: boolean) {
+  const size = 128;
+  let s = seed;
+  const rand = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  return paint(size, size, (p) => {
+    for (let i = 0; i < count; i++) {
+      const n = big ? 2 : 1;
+      p.rect(Math.floor(rand() * (size - n)), Math.floor(rand() * (size - n)), n, n, "#eef4ff", big ? 0.85 : 0.5 + rand() * 0.3);
+    }
+  });
+}
+
 /** December makes the town more festive. */
 const festive = () => new Date().getMonth() === 11;
 
@@ -133,4 +146,6 @@ setVar("--sd-lights", lightsTile());
 setVar("--sd-lights-glow-a", lightsTile("a"));
 setVar("--sd-lights-glow-b", lightsTile("b"));
 setVar("--sd-town-small", townScene(0, festive()));
+setVar("--sd-snow-far", snowTile(3, 40, false));
+setVar("--sd-snow-near", snowTile(9, 14, true));
 drawScenes(window.innerWidth);
