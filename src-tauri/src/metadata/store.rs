@@ -7,6 +7,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use super::anilist::Media;
 use super::anime_match::{EpisodeInput, Locked, MovieInput, SeasonInput, ShowInput, ShowMatch};
 use super::images::SavedCover;
+use super::onepace;
 use super::tmdb::{year_of, Episode, Movie, Named};
 use super::tmdb_match::TvMatch;
 use crate::library::db::now;
@@ -632,5 +633,63 @@ pub fn save_anime_episodes(
          WHERE details_at IS NULL AND file_id IN (SELECT id FROM files WHERE title_id = ?1 AND role = 'episode')",
         params![title_id, now],
     )?;
+    tx.commit()
+}
+
+/// Episode files of a title, for matching by file name (One Pace).
+pub fn episode_files(conn: &Connection, title_id: i64) -> rusqlite::Result<Vec<onepace::FileInput>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, season_id, episode, path FROM files WHERE title_id = ?1 AND present = 1 AND role = 'episode' ORDER BY sort",
+    )?;
+    let rows = stmt.query_map([title_id], |r| {
+        let path: String = r.get(3)?;
+        Ok(onepace::FileInput {
+            file_id: r.get(0)?,
+            season_id: r.get(1)?,
+            episode: r.get(2)?,
+            file_name: path.rsplit(['\\', '/']).next().unwrap_or(&path).to_string(),
+        })
+    })?;
+    rows.collect()
+}
+
+/// The One Pace episode guide as last downloaded, and when.
+pub fn one_pace_guide(conn: &Connection) -> rusqlite::Result<Option<(String, i64)>> {
+    conn.query_row(
+        "SELECT json, fetched_at FROM provider_cache WHERE provider = 'onepace' AND id = 'guide'",
+        [],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )
+    .optional()
+}
+
+pub fn store_one_pace_guide(conn: &Connection, json: &str) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO provider_cache (provider, id, json, fetched_at) VALUES ('onepace', 'guide', ?1, ?2)",
+        params![json, now()],
+    )?;
+    Ok(())
+}
+
+/// Bumped when One Pace matching improves, so its episodes are looked up again once.
+const ONE_PACE_VERSION: &str = "1";
+
+pub fn refresh_one_pace_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
+    if setting(conn, "onepace_version")?.as_deref() == Some(ONE_PACE_VERSION) {
+        return Ok(());
+    }
+    let tx = conn.transaction()?;
+    let titles: Vec<(i64, String)> = {
+        let mut stmt = tx.prepare("SELECT id, name FROM titles")?;
+        let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?.collect::<rusqlite::Result<_>>()?;
+        rows
+    };
+    for (id, _) in titles.iter().filter(|(_, name)| onepace::is_one_pace(name)) {
+        tx.execute(
+            "UPDATE file_meta SET details_at = NULL WHERE file_id IN (SELECT id FROM files WHERE title_id = ?1 AND role = 'episode')",
+            [id],
+        )?;
+    }
+    set_setting(&tx, "onepace_version", Some(ONE_PACE_VERSION))?;
     tx.commit()
 }

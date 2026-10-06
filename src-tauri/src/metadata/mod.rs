@@ -7,6 +7,7 @@
 pub mod anilist;
 pub mod anime_match;
 pub mod images;
+pub mod onepace;
 pub mod store;
 pub mod tmdb;
 pub mod tmdb_match;
@@ -58,6 +59,9 @@ impl Metadata {
         }
         if let Err(e) = library.with_db(|c| store::refresh_tmdb_matches_if_outdated(c)) {
             eprintln!("refreshing TMDB matches failed: {e}");
+        }
+        if let Err(e) = library.with_db(|c| store::refresh_one_pace_if_outdated(c)) {
+            eprintln!("refreshing One Pace failed: {e}");
         }
         Self {
             anilist: AniList::new(),
@@ -217,6 +221,10 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
     let kind = library.with_db(|c| store::title_kind(c, title_id)).map_err(db_error)?;
     let mut art = store::TmdbArt::default();
 
+    if kind.as_deref() == Some("anime") && onepace::is_one_pace(&input.name) {
+        return process_one_pace(&library, images, title_id, tmdb);
+    }
+
     if kind.as_deref() == Some("anime") {
         let (names, year, known) = library.with_db(|c| store::anime_lookup_hints(c, title_id)).map_err(db_error)?;
         let names: Vec<&str> = names.iter().map(String::as_str).collect();
@@ -253,6 +261,42 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
     }
     art.stills = save_stills(images, matched.show.as_ref().map(|s| s.id), &matched.episodes);
     library.with_db(|c| store::save_tv_match(c, title_id, input, &matched, &art)).map_err(db_error)
+}
+
+/// The One Pace guide is downloaded again after this long (new episodes come out regularly).
+const ONE_PACE_GUIDE_MAX_AGE: i64 = 24 * 60 * 60;
+
+/// One Pace: titles and descriptions from the One Pace guide, pictures from One Piece on TMDB.
+fn process_one_pace(library: &Library, images: &Images, title_id: i64, tmdb: &Tmdb) -> Result<(), anilist::Error> {
+    let db_error = |e: String| anilist::Error::Rejected(e);
+    let cached = library.with_db(|c| store::one_pace_guide(c)).map_err(db_error)?;
+    let fresh = cached.as_ref().is_some_and(|(_, at)| crate::library::db::now() - at < ONE_PACE_GUIDE_MAX_AGE);
+    let json = if fresh {
+        cached.map(|(json, _)| json).unwrap_or_default()
+    } else {
+        match onepace::download() {
+            Ok(json) if onepace::parse(&json).is_ok() => {
+                library.with_db(|c| store::store_one_pace_guide(c, &json)).map_err(db_error)?;
+                json
+            }
+            // Offline or a bad download: use the old copy if there is one.
+            Ok(_) | Err(_) if cached.is_some() => cached.map(|(json, _)| json).unwrap_or_default(),
+            Ok(_) => return Err(anilist::Error::Rejected("One Pace guide unreadable".into())),
+            Err(e) => return Err(e),
+        }
+    };
+    let guide = onepace::parse(&json).map_err(db_error)?;
+    let files = library.with_db(|c| store::episode_files(c, title_id)).map_err(db_error)?;
+    let matches = onepace::match_files(&guide, &files);
+
+    let one_piece = tmdb_match::anime_show(&["One Piece"], Some(1999), None, tmdb)?;
+    let (tmdb_id, seasons) = match one_piece {
+        Some((id, seasons)) => (Some(id), seasons),
+        None => (None, Vec::new()),
+    };
+    let episodes = onepace::episode_info(&matches, &seasons);
+    let art = store::TmdbArt { stills: save_stills(images, tmdb_id, &episodes), ..Default::default() };
+    library.with_db(|c| store::save_anime_episodes(c, title_id, tmdb_id, &episodes, &art)).map_err(db_error)
 }
 
 /// `key` is "tv-<id>" or "movie-<id>"; the file is named "tmdb-<key>".

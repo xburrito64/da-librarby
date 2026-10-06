@@ -76,6 +76,17 @@ pub fn match_movie(input: &ShowInput, tmdb: &Tmdb) -> Result<Option<Movie>, Erro
     }
 }
 
+/// A TMDB anime by name (or the known id) with all its seasons.
+pub fn anime_show(names: &[&str], year: Option<i32>, known_id: Option<i64>, tmdb: &Tmdb) -> Result<Option<(i64, Vec<Season>)>, Error> {
+    let id = match known_id {
+        Some(id) => Some(id),
+        None => find_tv(names, year, true, tmdb)?.map(|r| r.id),
+    };
+    let Some(id) = id else { return Ok(None) };
+    let (_, seasons) = tmdb.tv_with_seasons(id)?;
+    Ok(Some((id, seasons)))
+}
+
 /// Episode descriptions and thumbnails for an anime, using the names AniList knows it by.
 pub fn anime_episodes(
     input: &ShowInput,
