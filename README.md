@@ -26,7 +26,7 @@ Windows only for now.
 
 ## Getting started
 
-1. Download `Da Librarby_x.y.z_x64-setup.exe` from the [Releases](../../releases) page and run it.
+1. Download `Da.Librarby_x.y.z_x64-setup.exe` from the [Releases](../../releases) page and run it.
    Windows may warn about an "unknown publisher", because the installer isn't signed (signing costs
    money). Click **More info → Run anyway**.
 2. Open **Settings → Library folders** and add the folders (or whole drives) with your videos.
