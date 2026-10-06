@@ -124,6 +124,7 @@ const SHORTCUTS: { group: string; keys: [string, string][] }[] = [
       ["↑ / ↓", "Volume up / down"],
       ["M", "Mute"],
       ["N", "Next episode"],
+      ["S", "Screenshot (saved to Pictures\Da Librarby)"],
       ["F", "Fullscreen"],
       ["Esc", "Leave fullscreen, then back to the library"],
       ["Click / double-click", "Pause / fullscreen"],
@@ -133,7 +134,9 @@ const SHORTCUTS: { group: string; keys: [string, string][] }[] = [
   {
     group: "In the library",
     keys: [
-      ["Esc", "Back from a show page"],
+      ["Just start typing", "Search shows and episodes"],
+      ["Right-click", "More options for a show, episode or card"],
+      ["Esc", "Back from a show page, or clear the search"],
       ["Mouse back button", "Back from a show page or the player"],
     ],
   },
