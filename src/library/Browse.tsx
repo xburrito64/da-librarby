@@ -230,9 +230,11 @@ function Search({
 
   const copy = useCopy();
   const nothing = !!results && results.titles.length === 0 && results.files.length === 0;
+  const secret = copy.searchSecrets[query.toLowerCase()];
   useEffect(() => {
-    if (nothing) playSound("nope");
-  }, [nothing, query]);
+    if (secret) playSound("save");
+    else if (nothing) playSound("nope");
+  }, [nothing, query, secret]);
 
   const byId = new Map(titles.map((t) => [t.id, t]));
   const shows = (results?.titles ?? []).map((id) => byId.get(id)).filter((t): t is TitleSummary => !!t);
@@ -253,7 +255,8 @@ function Search({
           </span>
         )}
       </header>
-      {results && shows.length === 0 && files.length === 0 && (
+      {secret && <Typed as="p" className="search__secret" text={secret} />}
+      {results && shows.length === 0 && files.length === 0 && !secret && (
         <div className="search__none">
           <span className="search__none-art" aria-hidden="true" />
           <Typed as="p" className="search__none-text" text={copy.searchNone} />
@@ -547,7 +550,10 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
 
 /** A theme's closing line under the home screen's rows, if it has any. */
 function HomeEnd() {
-  const lines = useCopy().homeEnd;
+  const copy = useCopy();
+  const [now] = useState(() => new Date());
+  const lateNight = now.getHours() < 5 && copy.lateNight.length > 0;
+  const lines = lateNight ? copy.lateNight : [...copy.homeEnd, ...(now.getMonth() === 11 ? copy.december : [])];
   const [pick] = useState(() => Math.random());
   if (lines.length === 0) return null;
   return <Typed as="p" className="home__end" text={lines[Math.floor(pick * lines.length)]} />;

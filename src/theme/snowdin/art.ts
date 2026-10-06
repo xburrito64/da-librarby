@@ -100,10 +100,13 @@ function setVar(name: string, dataUrl: string) {
   document.documentElement.style.setProperty(name, `url("${dataUrl}")`);
 }
 
+/** December makes the town more festive. */
+const festive = () => new Date().getMonth() === 11;
+
 /** The town and forest are as wide as the window; redrawn when it changes size. */
 export function drawScenes(width: number) {
-  setVar("--sd-town", townScene(width));
-  setVar("--sd-forest", forestScene(width));
+  setVar("--sd-town", townScene(width, festive()));
+  setVar("--sd-forest", forestScene(width, festive()));
 }
 
 setVar("--sd-heart", sprite(HEART));
@@ -113,5 +116,5 @@ setVar("--sd-dog", sprite(DOG));
 setVar("--sd-asterisk", sprite(ASTERISK));
 setVar("--sd-lights", lightsTile());
 setVar("--sd-lights-glow", lightsTile(true));
-setVar("--sd-town-small", townScene(0));
+setVar("--sd-town-small", townScene(0, festive()));
 drawScenes(window.innerWidth);

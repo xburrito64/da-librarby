@@ -237,8 +237,8 @@ function snowman(p: Painter, x: number, base: number) {
   p.dot(x + 9, base - 15, C.trunk);
 }
 
-/** The decorated tree in the middle of town, with presents. */
-function giftTree(p: Painter, cx: number, base: number, h: number) {
+/** The decorated tree in the middle of town, with presents (a lot more of them when festive). */
+function giftTree(p: Painter, cx: number, base: number, h: number, festive = false) {
   pine(p, cx, base, h, C.gtree, C.gsnow, { width: h * 0.62, trunk: "#3a2414" });
   const rand = random(77);
   for (let i = 0; i < 26; i++) {
@@ -263,6 +263,11 @@ function giftTree(p: Painter, cx: number, base: number, h: number) {
   gift(cx - 5, 5, 4, C.blue, C.snow);
   gift(cx + 4, 7, 6, C.green, C.red);
   gift(cx + 12, 4, 3, C.orange, C.snow);
+  if (festive) {
+    gift(cx - 19, 5, 4, C.green, C.yellow);
+    gift(cx + 17, 6, 5, C.red, C.snow);
+    gift(cx - 1, 3, 2, C.yellow, C.red);
+  }
 }
 
 function banner(p: Painter, x1: number, x2: number, y: number, base: number, words: string) {
@@ -278,8 +283,8 @@ function banner(p: Painter, x1: number, x2: number, y: number, base: number, wor
   text(p, Math.round(x1 + 3 + (w - tw) / 2), y + 2, words, C.ink);
 }
 
-/** A little wooden sentry station. */
-function sentry(p: Painter, rand: () => number, x: number, base: number) {
+/** A little wooden sentry station (with lights along its roof when festive). */
+function sentry(p: Painter, rand: () => number, x: number, base: number, festive = false) {
   const w = 26;
   p.rect(x + 2, base - 22, 2, 22, C.wood3);
   p.rect(x + w - 4, base - 22, 2, 22, C.wood3);
@@ -291,6 +296,12 @@ function sentry(p: Painter, rand: () => number, x: number, base: number) {
   p.rect(x - 3, base - 28, w + 6, 3, C.snow);
   p.rect(x - 1, base - 29, w + 2, 1, C.snow);
   for (let ix = x - 2; ix < x + w + 2; ix += 3 + Math.round(rand() * 2)) p.rect(ix, base - 22, 1, 1 + Math.round(rand() * 2), C.ice);
+  if (festive) {
+    for (let i = 0, lx = x - 1; lx < x + w + 1; lx += 4, i++) {
+      p.rect(lx, base - 21, 1, 2, BULBS[i % BULBS.length]);
+      glow(p, lx, base - 20, 2, BULBS[i % BULBS.length], 0.3);
+    }
+  }
   p.rect(x - 2, base - 2, w + 4, 2, C.snow);
 }
 
@@ -298,8 +309,9 @@ export const SCENE_HEIGHT = 72;
 /** The left part stays low and calm, where the spotlight's text sits. */
 const QUIET_LEFT = 230;
 
-/** Snowdin town along the bottom of the home spotlight: everything sits towards the right. */
-export function townScene(width: number) {
+/** Snowdin town along the bottom of the home spotlight: everything sits towards the right.
+ *  `festive` (December) hangs lights on every roof and puts more presents under the tree. */
+export function townScene(width: number, festive = false) {
   const w = Math.max(427, Math.ceil(width / SCALE));
   const r = w - 427; // things are placed as on a 427-wide scene, shifted right
   return paint(w, SCENE_HEIGHT, (p) => {
@@ -308,8 +320,8 @@ export function townScene(width: number) {
     forest(p, rand, { from: 4, to: w, base: g - 6, minH: 18, maxH: 34, step: 7, body: C.far, snow: C.farSnow, lowUntil: QUIET_LEFT });
     forest(p, rand, { from: 150, to: w, base: g - 2, minH: 24, maxH: 40, step: 19, body: C.mid, snow: C.midSnow, lowUntil: QUIET_LEFT + 30 });
     banner(p, r + 282, r + 377, 9, g, "WELCOME TO DA LIBRARBY");
-    cabin(p, rand, r + 226, g, 52, 32, { roofH: 15, windows: [[7, 6], [37, 6], [7, 19]], door: 0.72, chimney: true });
-    giftTree(p, r + 330, g, 36);
+    cabin(p, rand, r + 226, g, 52, 32, { roofH: 15, windows: [[7, 6], [37, 6], [7, 19]], door: 0.72, chimney: true, lights: festive });
+    giftTree(p, r + 330, g, 36, festive);
     lampPost(p, r + 296, g, 26);
     cabin(p, rand, r + 379, g, 44, 30, { roofH: 13, windows: [[5, 18], [32, 18]], door: 0.5, lights: true, sign: "LIBRARBY" });
     snowman(p, r + 214, g + 1);
@@ -319,7 +331,7 @@ export function townScene(width: number) {
 }
 
 /** Snowdin forest along the bottom of a show page, with a sentry station on the right. */
-export function forestScene(width: number) {
+export function forestScene(width: number, festive = false) {
   const w = Math.max(427, Math.ceil(width / SCALE));
   const r = w - 427;
   return paint(w, SCENE_HEIGHT, (p) => {
@@ -329,7 +341,7 @@ export function forestScene(width: number) {
     forest(p, rand, { from: 120, to: w, base: g - 3, minH: 30, maxH: 48, step: 13, body: C.mid, snow: C.midSnow, lowUntil: QUIET_LEFT + 30 });
     pine(p, r + 352, g + 1, 54, C.near, C.nearSnow);
     lampPost(p, r + 372, g, 27);
-    sentry(p, rand, r + 384, g);
+    sentry(p, rand, r + 384, g, festive);
     pine(p, r + 420, g + 1, 60, C.near, C.nearSnow);
     ground(p, rand, g);
     for (let x = 140; x < w; x += 9) p.rect(x, g + 3 + ((x / 9) & 1) * 2, 2, 1, C.snow3);

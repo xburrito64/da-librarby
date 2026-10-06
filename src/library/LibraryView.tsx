@@ -16,6 +16,7 @@ import {
 import Browse from "./Browse";
 import TitlePage from "./TitlePage";
 import Settings, { type SettingsSection } from "./Settings";
+import Typed from "../ui/Typed";
 import { CloseIcon, RefreshIcon, SearchIcon, SettingsIcon } from "../ui/icons";
 import { ContextMenuProvider } from "../ui/ContextMenu";
 import { useThemeInfo } from "../theme/theme";
@@ -43,6 +44,15 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
   const copy = useCopy();
   const Decor = useThemeInfo()?.extras?.Decor;
   const themeOptions = useThemeOptions();
+  /** A message from the theme in a text box at the bottom (e.g. clicking the app's name). */
+  const [said, setSaid] = useState<{ text: string; n: number } | null>(null);
+  const brandClicks = useRef(0);
+
+  useEffect(() => {
+    if (!said) return;
+    const timer = window.setTimeout(() => setSaid(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [said]);
 
   const refresh = useCallback(() => {
     library.list().then(setLibraries).catch((e) => setError(String(e)));
@@ -131,7 +141,17 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
     <ContextMenuProvider>
     <div className={`app ${scrolled ? "app--scrolled" : ""} ${openTitle != null ? "app--title" : ""}`}>
       <nav className="nav">
-        <button className="nav__brand" onClick={() => goTo("home")}>
+        <button
+          className="nav__brand"
+          onClick={() => {
+            const atHome = tab === "home" && openTitle == null && !query.trim();
+            if (atHome && copy.brandLines.length > 0) {
+              const n = brandClicks.current++;
+              setSaid({ text: copy.brandLines[n % copy.brandLines.length], n });
+            }
+            goTo("home");
+          }}
+        >
           <span className="nav__logo" aria-hidden="true" />
           <span className="nav__name">Da Librarby</span>
         </button>
@@ -222,6 +242,11 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
         />
       )}
       {Decor && <Decor active={active} options={themeOptions} />}
+      {said && (
+        <button key={said.n} className="say" onClick={() => setSaid(null)} data-sfx="none">
+          <Typed as="span" className="say__text" text={said.text} />
+        </button>
+      )}
       {error && (
         <button className="toast" onClick={() => setError(null)} title="Dismiss">
           {error}

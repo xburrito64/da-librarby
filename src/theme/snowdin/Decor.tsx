@@ -6,6 +6,8 @@ import { drawScenes } from "./art";
 const AREA_PER_FLAKE = 9000;
 /** Snowflakes are art pixels, like everything else (3 screen pixels). */
 const FLAKE = 3;
+/** Now and then (about one start in ten), a little dog visits town for the session. */
+const DOG_VISIT_CHANCE = 0.1;
 
 interface Flake {
   x: number;
@@ -19,6 +21,13 @@ interface Flake {
 export default function Decor({ active, options }: { active: boolean; options: Record<string, boolean | string | undefined> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const snow = active && options.snow !== false;
+
+  useEffect(() => {
+    if (Math.random() >= DOG_VISIT_CHANCE) return;
+    const root = document.documentElement;
+    root.classList.add("sd-dog-visit");
+    return () => root.classList.remove("sd-dog-visit");
+  }, []);
 
   useEffect(() => {
     let timer: number | undefined;

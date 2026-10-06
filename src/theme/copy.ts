@@ -16,6 +16,14 @@ export interface Copy {
   scanning: (place: string) => string;
   /** Lines shown, one at random, at the end of the home screen. None by default. */
   homeEnd: string[];
+  /** Used instead of `homeEnd` between midnight and 5 in the morning. */
+  lateNight: string[];
+  /** Added to `homeEnd` in December. */
+  december: string[];
+  /** Searching for exactly one of these words (lower case) shows its message. */
+  searchSecrets: Record<string, string>;
+  /** Clicking the app's name while already on Home says these, one after another. */
+  brandLines: string[];
 }
 
 export const COPY: Copy = {
@@ -27,6 +35,10 @@ export const COPY: Copy = {
   emptyScanText: "No videos were found in your folders so far. If a scan is running, they'll show up in a moment.",
   scanning: (place) => `Scanning${place ? ` ${place}` : ""}…`,
   homeEnd: [],
+  lateNight: [],
+  december: [],
+  searchSecrets: {},
+  brandLines: [],
 };
 
 export function useCopy(): Copy {

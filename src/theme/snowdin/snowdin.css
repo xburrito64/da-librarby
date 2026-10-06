@@ -417,6 +417,32 @@
   }
 }
 
+/* ---------- Messages from Snowdin: the game's big text box at the bottom ---------- */
+
+:root[data-theme="snowdin"] .say {
+  bottom: 32px;
+  width: min(900px, 90vw);
+  max-width: none;
+  min-height: 112px;
+  box-sizing: border-box;
+  padding: 22px 28px;
+  border: 5px solid var(--line);
+  border-radius: 0;
+  background: var(--sd-box);
+  font: 500 22px/1.45 var(--font-body);
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.55);
+  animation: sd-appear 0.12s steps(2) both;
+}
+
+:root[data-theme="snowdin"] .search__secret {
+  max-width: 760px;
+  padding: 16px 20px;
+  border: 4px solid var(--line);
+  background: var(--sd-box);
+  font-size: 19px;
+  line-height: 1.45;
+}
+
 /* ---------- Spotlight: Snowdin under the artwork's sky ---------- */
 
 :root[data-theme="snowdin"] .hero {
@@ -1159,6 +1185,24 @@
     linear-gradient(to right, color-mix(in srgb, var(--bg) 85%, transparent), transparent 70%);
 }
 
+/* Sometimes a little dog drops by: next to the snowman in town, at the sentry station in the forest. */
+:root.sd-dog-visit[data-theme="snowdin"] .hero__decor--bottom::after,
+:root.sd-dog-visit[data-theme="snowdin"] .tp__decor--bottom::before {
+  content: "";
+  position: absolute;
+  bottom: 30px;
+  right: 562px;
+  width: 57px;
+  height: 42px;
+  background: var(--sd-dog) center / contain no-repeat;
+  image-rendering: pixelated;
+}
+
+:root.sd-dog-visit[data-theme="snowdin"] .tp__decor--bottom::before {
+  bottom: 30px;
+  right: 182px;
+}
+
 /* The forest along the bottom of the artwork. */
 :root[data-theme="snowdin"] .tp__decor--bottom {
   display: block;
@@ -1481,4 +1525,537 @@
 
 :root[data-theme="snowdin"] .picker__actions {
   border-top: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ---------- Settings: the game's menu screens ---------- */
+
+:root[data-theme="snowdin"] .settings__heading {
+  margin: 0 8px 22px;
+  font-size: 26px;
+  letter-spacing: 0.08em;
+}
+
+:root[data-theme="snowdin"] .settings__main {
+  padding: 32px 40px 40px;
+}
+
+:root[data-theme="snowdin"] .settings__close {
+  top: 20px;
+  right: 20px;
+}
+
+:root[data-theme="snowdin"] .settings__title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="snowdin"] .settings__text {
+  margin-bottom: 24px;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+/* Theme cards */
+:root[data-theme="snowdin"] .theme-card {
+  position: relative;
+  padding: 10px;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  background: none;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .theme-card:hover {
+  border-color: var(--line);
+  transform: none;
+}
+
+:root[data-theme="snowdin"] .theme-card.is-active {
+  border-color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .theme-card__preview {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+:root[data-theme="snowdin"] .theme-card__name {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .theme-card.is-active .theme-card__name {
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .theme-card__desc {
+  font-size: 14.5px;
+}
+
+/* Switches: ON / OFF, with the heart beside the chosen one. */
+:root[data-theme="snowdin"] .toggle-row {
+  padding: 14px 18px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  background: none;
+}
+
+:root[data-theme="snowdin"] button.toggle-row:hover {
+  border-color: var(--line);
+}
+
+:root[data-theme="snowdin"] .toggle-row--info {
+  border-style: dashed;
+}
+
+:root[data-theme="snowdin"] .toggle-row__label {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .toggle-row__hint {
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .toggle {
+  width: 132px;
+  height: 24px;
+  border-radius: 0;
+  background: var(--sd-heart) 0 50% / 18px 16px no-repeat;
+  box-shadow: none;
+  image-rendering: pixelated;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .toggle:not(.is-on) {
+  background-position: 62px 50%;
+}
+
+:root[data-theme="snowdin"] .toggle::before,
+:root[data-theme="snowdin"] .toggle::after {
+  position: absolute;
+  top: 0;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
+  color: var(--sd-dim);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+  transform: none;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .toggle::before {
+  content: "ON";
+  left: 26px;
+}
+
+:root[data-theme="snowdin"] .toggle::after {
+  content: "OFF";
+  left: 88px;
+}
+
+:root[data-theme="snowdin"] .toggle.is-on::before,
+:root[data-theme="snowdin"] .toggle:not(.is-on)::after {
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .choice-row__choices {
+  gap: 34px;
+  padding: 0 0 0 26px;
+  background: none;
+}
+
+:root[data-theme="snowdin"] .choice {
+  position: relative;
+  padding: 2px 0;
+  background: none;
+  color: var(--sd-dim);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .choice:hover {
+  color: var(--text);
+}
+
+:root[data-theme="snowdin"] .choice.is-on {
+  background: none;
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .choice:not(.is-on):hover::before {
+  opacity: 0;
+}
+
+/* Library folders, online info */
+:root[data-theme="snowdin"] .folder {
+  padding: 12px 16px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  background: none;
+}
+
+:root[data-theme="snowdin"] .folder__path {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .folder__info {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .field-row__label {
+  font-size: 16px;
+}
+
+/* Shortcuts */
+:root[data-theme="snowdin"] .shortcuts__group {
+  color: var(--sd-amber);
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .shortcuts__row {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  font-size: 16px;
+}
+
+:root[data-theme="snowdin"] .shortcuts kbd {
+  padding: 2px 8px;
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: 0;
+  background: var(--sd-box);
+  font: 600 15px var(--font-body);
+}
+
+:root[data-theme="snowdin"] .about p {
+  font-size: 16px;
+}
+
+:root[data-theme="snowdin"] .about__version {
+  color: var(--sd-amber);
+  font-size: 16px;
+}
+
+/* ---------- Player: pixel controls, an HP bar to seek, text-box menus ---------- */
+
+:root[data-theme="snowdin"] .player {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+:root[data-theme="snowdin"] .player__btn {
+  border: 3px solid transparent;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .player__btn:hover,
+:root[data-theme="snowdin"] .player__btn.is-active {
+  border-color: var(--accent);
+  background: none;
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .player__btn--main {
+  border-color: rgba(255, 255, 255, 0.9);
+  background: rgba(6, 6, 12, 0.5);
+}
+
+:root[data-theme="snowdin"] .player__btn .icon--pixel {
+  width: 22px;
+  height: 22px;
+}
+
+:root[data-theme="snowdin"] .player__show {
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .player__title {
+  font-size: 25px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+:root[data-theme="snowdin"] .player__code {
+  color: var(--sd-amber);
+}
+
+:root[data-theme="snowdin"] .player__clock-now {
+  font-size: 22px;
+}
+
+:root[data-theme="snowdin"] .player__clock-end {
+  font-size: 15px;
+}
+
+/* The seek bar is an HP bar: yellow for what has been watched, red for what is left. */
+:root[data-theme="snowdin"] .player__seek {
+  height: 26px;
+}
+
+:root[data-theme="snowdin"] .player__rail,
+:root[data-theme="snowdin"] .player__seek:hover .player__rail {
+  height: 14px;
+  border-radius: 0;
+  background: var(--sd-hp);
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .player__played {
+  background: var(--accent);
+}
+
+:root[data-theme="snowdin"] .player__hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+:root[data-theme="snowdin"] .player__tick {
+  width: 3px;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+/* The heart is the handle. */
+:root[data-theme="snowdin"] .player__knob,
+:root[data-theme="snowdin"] .player__seek:hover .player__knob {
+  width: 21px;
+  height: 18px;
+  border-radius: 0;
+  background: var(--sd-heart) center / contain no-repeat;
+  box-shadow: none;
+  image-rendering: pixelated;
+  transform: translate(-50%, -50%);
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .player__tip {
+  bottom: 32px;
+  border: 3px solid var(--line);
+  border-radius: 0;
+  background: var(--sd-box);
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .player__tip-chapter {
+  color: var(--sd-amber);
+  font-size: 14px;
+  opacity: 1;
+}
+
+:root[data-theme="snowdin"] .player__time {
+  font-size: 16px;
+}
+
+:root[data-theme="snowdin"] .player__time:hover {
+  background: none;
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .player__slider {
+  height: 10px;
+  border-radius: 0;
+  background: linear-gradient(to right, var(--accent) var(--v), var(--sd-hp) var(--v));
+}
+
+:root[data-theme="snowdin"] .player__slider::-webkit-slider-thumb {
+  width: 10px;
+  height: 18px;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="snowdin"] .player__speed {
+  font-size: 16px;
+}
+
+/* Menus: text boxes; the heart marks the chosen track. */
+:root[data-theme="snowdin"] .player__menu {
+  padding: 16px 20px 16px 12px;
+  border: 4px solid var(--line);
+  background: var(--sd-box);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  backdrop-filter: none;
+  animation: sd-appear 0.12s steps(2) both;
+}
+
+:root[data-theme="snowdin"] .player__menu-title {
+  margin: 2px 10px 10px 41px;
+  color: var(--sd-amber);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .player__item {
+  padding: 5px 10px;
+  font-size: 17px;
+}
+
+:root[data-theme="snowdin"] .player__item:hover {
+  background: none;
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .player__item.is-active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .player__item-check {
+  width: 21px;
+  height: 18px;
+}
+
+:root[data-theme="snowdin"] .player__item-check .icon {
+  display: none;
+}
+
+:root[data-theme="snowdin"] .player__item.is-active .player__item-check {
+  background: var(--sd-heart) center / contain no-repeat;
+  image-rendering: pixelated;
+}
+
+:root[data-theme="snowdin"] .player__item-detail {
+  color: var(--sd-dim);
+  font-size: 14px;
+}
+
+/* Messages and the next-episode card: text boxes. */
+:root[data-theme="snowdin"] :is(.player__toast, .player__notice) {
+  padding: 10px 12px 10px 18px;
+  border: 4px solid var(--line);
+  border-radius: 0;
+  background: var(--sd-box);
+  backdrop-filter: none;
+  font-size: 16px;
+}
+
+:root[data-theme="snowdin"] :is(.player__toast-btn, .upnext__dismiss) {
+  border: 3px solid var(--sd-orange);
+  background: var(--sd-box);
+  color: var(--sd-orange);
+  font-size: 15px !important;
+  text-transform: uppercase;
+}
+
+:root[data-theme="snowdin"] :is(.player__toast-btn, .upnext__dismiss):hover {
+  border-color: var(--accent);
+  background: var(--sd-box);
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .player__skip {
+  border: 3px solid var(--sd-orange);
+  background: var(--sd-box);
+  backdrop-filter: none;
+  color: var(--sd-orange);
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+}
+
+:root[data-theme="snowdin"] .player__skip:hover {
+  border-color: var(--accent);
+  background: var(--sd-box);
+  color: var(--accent) !important;
+}
+
+:root[data-theme="snowdin"] .upnext__label {
+  padding: 4px 10px;
+  border-radius: 0;
+  background: var(--sd-box);
+  color: var(--sd-amber);
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .upnext__card {
+  border: 4px solid var(--line);
+  border-radius: 0;
+  background: var(--sd-box);
+  backdrop-filter: none;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .upnext__card:hover {
+  border-color: var(--accent);
+  transform: none;
+}
+
+:root[data-theme="snowdin"] .upnext__still {
+  border: 3px solid var(--line);
+}
+
+:root[data-theme="snowdin"] .upnext__play {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme="snowdin"] .upnext__timer {
+  height: 6px;
+  background: var(--accent);
+  transition: width 1s steps(4);
+}
+
+:root[data-theme="snowdin"] .upnext__code {
+  color: var(--sd-amber);
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .upnext__name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .upnext__card:hover .upnext__name {
+  color: var(--accent);
+}
+
+/* Loading: a beating heart. */
+:root[data-theme="snowdin"] .player__spinner {
+  width: 42px;
+  height: 36px;
+  margin: -18px 0 0 -21px;
+  border: 0;
+  border-radius: 0;
+  background: var(--sd-heart) center / contain no-repeat;
+  image-rendering: pixelated;
+  animation: sd-beat 0.9s steps(1) infinite;
+}
+
+@keyframes sd-beat {
+  50% {
+    transform: scale(1.25);
+  }
+}
+
+:root[data-theme="snowdin"] .player__error {
+  border: 4px solid var(--line);
+  border-radius: 0;
+  background: var(--sd-box);
+  color: var(--text);
+  font-size: 17px;
+}
+
+/* The mini player: smaller pieces. */
+:root[data-theme="snowdin"] .player--mini .player__rail {
+  height: 10px;
+}
+
+:root[data-theme="snowdin"] .player--mini .player__btn .icon--pixel {
+  width: 18px;
+  height: 18px;
+}
+
+:root[data-theme="snowdin"] .player--mini .player__center .player__btn {
+  border-color: transparent;
+  background: rgba(6, 6, 12, 0.6);
+}
+
+:root[data-theme="snowdin"] .player--mini .player__center .player__btn--main {
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+:root[data-theme="snowdin"] .player--mini .player__center .player__btn:hover {
+  border-color: var(--accent);
 }

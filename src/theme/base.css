@@ -2465,3 +2465,28 @@ select.input {
   background: var(--accent);
   color: var(--on-accent);
 }
+
+/* A theme's message at the bottom of the window (e.g. after clicking the app's name). */
+.say {
+  position: fixed;
+  z-index: 45;
+  left: 50%;
+  bottom: 28px;
+  max-width: min(760px, 90vw);
+  padding: 14px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  color: var(--text);
+  font: 15px/1.5 var(--font-body);
+  text-align: left;
+  transform: translateX(-50%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  animation: fade 0.2s ease both;
+}
+
+/* A search for one of a theme's secret words. */
+.search__secret {
+  margin: 0 0 28px;
+  font-size: 16px;
+}

@@ -5,7 +5,7 @@ applies instantly, and is remembered in the library database.
 
 - `base.css`: the shared layout. Everything visual in it reads a CSS variable (colours, fonts, corner
   shapes, card frames, navigation size and position, spotlight size).
-- `velvet.css`, `paper.css`, `neon.css`, `mochi.css`: the themes.
+- `velvet.css`, `paper.css`, `neon.css`, `mochi.css`: the themes. `snowdin/` is a theme with extras (see below).
 - `themes.ts`: the list shown in Settings (name, description, light or dark), plus the font imports.
 - `theme.ts`: applies and saves the current theme.
 
@@ -24,3 +24,34 @@ applies instantly, and is remembered in the library database.
 Handy layout variables: `--nav-w` (non-zero turns the top bar into a sidebar), `--nav-h`, `--hero-top`
 (0 lets the spotlight slide under the navigation), `--hero-h`, `--hero-margin`, `--hero-radius`,
 `--rows-overlap`, `--card-w`, `--row-card-w`, `--card-gap`, `--gutter`.
+
+Rules for a theme's own preview card should start with `[data-theme="sunset"] > .tprev`: the `>` keeps
+them to that card, instead of every preview while Sunset is the active theme.
+
+## Extras
+
+A theme can do more than colours, fonts and shapes. Everything below is optional and set in the theme's
+`extras` (see `ThemeExtras` in `themes.ts`); Snowdin (`snowdin/`) uses all of it, so it doubles as an example.
+Themes that leave it out look and behave exactly as before.
+
+- `options`: settings of its own, listed under the theme cards in Settings → Appearance (on/off
+  switches, or a choice of a few values). Read them with `useThemeOption("id")`. The ids `sounds`,
+  `volume` and `typing` are understood by the app itself.
+- `copy`: replaces texts such as the empty-search message, the empty-library page, the scanning line and
+  the search placeholder, and adds flavor: lines under the home screen (`homeEnd`, `lateNight`,
+  `december`), secret search words (`searchSecrets`) and things said when the app's name is clicked
+  (`brandLines`). See `copy.ts`.
+- `typing`: descriptions and messages type themselves out (the `Typed` component in `src/ui`). A line
+  starting with `* ` gets its `*` in a separate `.typed__mark` the theme can draw.
+- `sounds`: little interface sounds (`move`, `select`, `back`, `save`, `nope`, `text`), made with
+  `tone()` from `synth.ts`. They play on pointing at and picking things and never during a video.
+  Elements can ask for a particular sound with `data-sfx="save"` (or `"none"`).
+- `icons`: pixel versions of the app's icons, by name (see `src/ui/icons.tsx`), drawn from rows of `#`
+  and `.`.
+- `Decor`: a component drawn over the library screens (Snowdin's falling snow), given the theme's option
+  values.
+
+Empty spots in the markup, hidden unless a theme shows them: `.hero__decor--top` / `--bottom` (the
+spotlight), `.tp__decor--top` / `--bottom` (show pages), `.tprev__decor` (the preview card),
+`.empty__art` and `.search__none-art` (empty pages). Descriptions sit in `.hero__desc-box` and
+`.tp__desc-box`, for themes that frame them.

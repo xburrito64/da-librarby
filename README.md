@@ -21,8 +21,10 @@ Windows only for now.
 - **Remembers what you watched.** Resume where you stopped, watched marks, "Continue watching" on
   the home screen, and "New" badges for recently added episodes.
 - **Search, sorting, right-click menus,** "Surprise me", and keyboard shortcuts for everything.
-- **Four themes**, switchable any time in Settings → Appearance: **Velvet** (dark and cinematic),
-  **Paper** (a film magazine), **Neon** (synthwave arcade) and **Mochi** (soft pastel).
+- **Five themes**, switchable any time in Settings → Appearance: **Velvet** (dark and cinematic),
+  **Paper** (a film magazine), **Neon** (synthwave arcade), **Mochi** (soft pastel) and **Snowdin**
+  (a cozy snowy pixel town, after the game this app's name comes from, with falling snow, little
+  sounds and a few secrets).
 
 ## Getting started
 
@@ -108,6 +110,8 @@ Da Librarby is free software under the [GNU GPL v3](LICENSE) (or later).
   not endorsed or certified by TMDB.
 - One Pace episode titles and descriptions from the One Pace team's episode guide, gathered by
   [one-pace-metadata](https://github.com/ladyisatis/one-pace-metadata).
-- Fonts (SIL Open Font License): Manrope, Fraunces, Inter, Chakra Petch, JetBrains Mono, Fredoka
-  and Nunito, via [Fontsource](https://fontsource.org).
+- Fonts (SIL Open Font License): Manrope, Fraunces, Inter, Chakra Petch, JetBrains Mono, Fredoka,
+  Nunito and Pixelify Sans, via [Fontsource](https://fontsource.org).
+- Snowdin is a fan theme inspired by Undertale (by Toby Fox). Its pixel art, sounds and wording were
+  made for Da Librarby; nothing is taken from the game.
 - Built with [Tauri](https://tauri.app) and [React](https://react.dev).

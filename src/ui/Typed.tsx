@@ -62,8 +62,10 @@ export default function Typed({ text: full, as: Tag = "span", className, title, 
     <Tag
       className={className}
       title={title}
-      onClick={() => {
+      onClick={(e: React.MouseEvent) => {
         if (typing) {
+          // The first click only finishes the text.
+          e.stopPropagation();
           typedBefore.add(text);
           setShown(text.length);
         } else onClick?.();
