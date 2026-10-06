@@ -9,6 +9,7 @@ pub mod db;
 pub mod parse;
 pub mod scan;
 pub mod watch;
+pub mod watcher;
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -150,6 +151,13 @@ pub async fn library_remove(
     library.with_db(|c| db::remove_library(c, id))?;
     let _ = app.emit("library:changed", json!({}));
     library.with_db(|c| db::libraries(c))
+}
+
+/// The app came to the front: look for new files (at most once a minute).
+#[tauri::command]
+pub async fn library_focused(app: AppHandle) -> Result<(), String> {
+    watcher::window_focused(&app);
+    Ok(())
 }
 
 #[tauri::command]

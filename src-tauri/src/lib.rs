@@ -6,6 +6,29 @@ mod player;
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_window_state::StateFlags;
 
+/// Added to the command line when Windows starts the app at sign-in.
+const AUTOSTART_FLAG: &str = "--autostart";
+
+/// The page has drawn its first frame: show the window (minimized when Windows started the app).
+#[tauri::command]
+fn app_ready(app: tauri::AppHandle) {
+    reveal_window(&app);
+}
+
+fn reveal_window(app: &tauri::AppHandle) {
+    let Some(window) = app.get_webview_window("main") else { return };
+    if window.is_visible().unwrap_or(false) {
+        return;
+    }
+    if std::env::args().any(|a| a == AUTOSTART_FLAG) {
+        let _ = window.minimize();
+        let _ = window.show();
+    } else {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -25,6 +48,11 @@ pub fn run() {
                 .with_state_flags(StateFlags::all() - StateFlags::FULLSCREEN - StateFlags::VISIBLE)
                 .build(),
         )
+        // "Start with Windows" (off unless turned on in Settings); such starts begin minimized.
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec![AUTOSTART_FLAG]),
+        ))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(player::Player::default())
@@ -37,16 +65,14 @@ pub fn run() {
             app.manage(library);
             // Pick up anything that changed on disk since last time, in the background.
             library::request_scan(app.handle(), None);
+            // From then on, notice new files and drives coming and going by itself.
+            library::watcher::start(app.handle().clone());
             // The window starts hidden and the page shows it once it has drawn its first frame
             // (no black flash). Should that never happen, show it anyway.
             let handle = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(4));
-                if let Some(window) = handle.get_webview_window("main") {
-                    if !window.is_visible().unwrap_or(true) {
-                        let _ = window.show();
-                    }
-                }
+                reveal_window(&handle);
             });
             Ok(())
         })
@@ -60,6 +86,7 @@ pub fn run() {
             library::library_add,
             library::library_remove,
             library::library_rescan,
+            library::library_focused,
             library::library_scanning,
             library::library_titles,
             library::library_title,
@@ -79,6 +106,7 @@ pub fn run() {
             metadata::settings_tmdb_key,
             metadata::settings_set_tmdb_key,
             metadata::ui_setting,
+            app_ready,
             metadata::set_ui_setting,
         ])
         .on_window_event(|window, event| {

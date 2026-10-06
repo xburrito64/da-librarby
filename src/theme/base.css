@@ -2294,3 +2294,101 @@ select.input {
 .nav__search input {
   width: 100%;
 }
+
+/* ---------- Disconnected drives ---------- */
+
+.offline-note {
+  margin: 0 var(--gutter) 22px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.grid-page .offline-note {
+  margin: 0 0 26px;
+}
+
+.offline-note p {
+  margin: 0;
+}
+
+.offline-note p + p {
+  margin-top: 4px;
+}
+
+/* ---------- Settings: switches ---------- */
+
+.toggle-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+}
+
+.toggle-row--info {
+  background: none;
+  border: 1px dashed var(--line);
+}
+
+.toggle-row__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toggle-row__label {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.toggle-row__hint {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.toggle {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 24px;
+  border-radius: 99px;
+  background: var(--surface-hover);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: background-color 0.2s;
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text);
+  transition:
+    transform 0.25s var(--spring),
+    background-color 0.2s;
+}
+
+.toggle.is-on {
+  background: var(--accent);
+}
+
+.toggle.is-on::after {
+  background: var(--on-accent);
+  transform: translateX(20px);
+}

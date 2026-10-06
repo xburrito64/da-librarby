@@ -2,15 +2,17 @@
 import { useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getVersion } from "@tauri-apps/api/app";
+import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { library, metadata, guessKind, img, KIND_LABELS, type Library, type LibraryKind, type TitleSummary } from "./api";
 import { THEMES } from "../theme/themes";
 import { setTheme, useTheme } from "../theme/theme";
 import { CheckIcon, CloseIcon } from "../ui/icons";
 
-export type SettingsSection = "appearance" | "library" | "online" | "shortcuts" | "about";
+export type SettingsSection = "appearance" | "general" | "library" | "online" | "shortcuts" | "about";
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: "appearance", label: "Appearance" },
+  { id: "general", label: "General" },
   { id: "library", label: "Library folders" },
   { id: "online", label: "Online info" },
   { id: "shortcuts", label: "Shortcuts" },
@@ -50,6 +52,7 @@ export default function Settings({ section, onSection, libraries, titles, onLibr
             <CloseIcon />
           </button>
           {section === "appearance" && <Appearance titles={titles} />}
+          {section === "general" && <General onError={onError} />}
           {section === "library" && <Folders libraries={libraries} onChange={onLibraries} onError={onError} />}
           {section === "online" && <Online onError={onError} />}
           {section === "shortcuts" && <Shortcuts />}
@@ -109,6 +112,44 @@ function Appearance({ titles }: { titles: TitleSummary[] }) {
             </span>
           </button>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function General({ onError }: { onError: (message: string) => void }) {
+  const [autostart, setAutostart] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    autostartEnabled().then(setAutostart).catch(() => setAutostart(false));
+  }, []);
+
+  const toggle = () => {
+    const next = !autostart;
+    (next ? enableAutostart() : disableAutostart())
+      .then(() => setAutostart(next))
+      .catch((e) => onError(String(e)));
+  };
+
+  return (
+    <section>
+      <h3 className="settings__title">General</h3>
+      <p className="settings__text">How the app starts and keeps itself up to date.</p>
+      <button className="toggle-row" onClick={toggle} disabled={autostart == null} role="switch" aria-checked={!!autostart}>
+        <span className="toggle-row__text">
+          <span className="toggle-row__label">Start with Windows</span>
+          <span className="toggle-row__hint">Opens minimized when you sign in, so your library is ready when you are.</span>
+        </span>
+        <span className={`toggle ${autostart ? "is-on" : ""}`} />
+      </button>
+      <div className="toggle-row toggle-row--info">
+        <span className="toggle-row__text">
+          <span className="toggle-row__label">Finds new files by itself</span>
+          <span className="toggle-row__hint">
+            Whenever you switch to the app it looks for new, renamed or deleted videos, and drives are noticed within seconds of
+            being plugged in or removed. It never keeps a drive busy, so safely removing one still works.
+          </span>
+        </span>
       </div>
     </section>
   );

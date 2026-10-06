@@ -119,6 +119,8 @@ export const library = {
   add: (path: string, kind: LibraryKind) => invoke<Library[]>("library_add", { path, kind }),
   remove: (id: number) => invoke<Library[]>("library_remove", { id }),
   rescan: () => invoke<void>("library_rescan"),
+  /** The app came to the front: look for new files (at most once a minute). */
+  focused: () => invoke<void>("library_focused"),
   scanning: () => invoke<boolean>("library_scanning"),
   titles: () => invoke<TitleSummary[]>("library_titles"),
   title: (id: number) => invoke<TitleDetail | null>("library_title", { id }),

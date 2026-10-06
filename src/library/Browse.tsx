@@ -13,6 +13,7 @@ import {
   KIND_LABELS,
   type ContinueItem,
   type FoundFile,
+  type Library,
   type LibraryKind,
   type SearchResults,
   type TitleSummary,
@@ -31,6 +32,8 @@ interface Props {
   titles: TitleSummary[];
   /** Search text; when set, search results replace the page. */
   query: string;
+  /** Library folders whose drive isn't connected. */
+  offline: Library[];
   continueList: ContinueItem[];
   loaded: boolean;
   hasLibraries: boolean;
@@ -60,7 +63,7 @@ function sortTitles(titles: TitleSummary[], sort: SortKey) {
   return list;
 }
 
-export default function Browse({ tab, titles, query, continueList, loaded, hasLibraries, active, onTab, onOpen, onPlay, onScrolled, onAddFolder }: Props) {
+export default function Browse({ tab, titles, offline, query, continueList, loaded, hasLibraries, active, onTab, onOpen, onPlay, onScrolled, onAddFolder }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState<SortKey>("name");
 
@@ -112,6 +115,7 @@ export default function Browse({ tab, titles, query, continueList, loaded, hasLi
       <>
         <Spotlight titles={titles} onOpen={onOpen} onPlay={play} />
         <div className="home__rows">
+          <OfflineNote offline={offline} titles={titles} />
           {continueList.length > 0 && (
             <Row label="Continue watching" count={continueList.length} wide>
               {continueList.map((c) => (
@@ -151,6 +155,7 @@ export default function Browse({ tab, titles, query, continueList, loaded, hasLi
             ))}
           </select>
         </header>
+        <OfflineNote offline={offline} titles={list} />
         <div className="grid">
           {list.map((t) => (
             <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
@@ -169,6 +174,24 @@ export default function Browse({ tab, titles, query, continueList, loaded, hasLi
       <div className="page-in" key={query ? "search" : tab}>
         {content}
       </div>
+    </div>
+  );
+}
+
+/** "H:\ isn't connected": explains why some covers are greyed out. */
+function OfflineNote({ offline, titles }: { offline: Library[]; titles: TitleSummary[] }) {
+  const notes = offline
+    .map((lib) => ({ lib, count: titles.filter((t) => t.libraryId === lib.id).length }))
+    .filter((n) => n.count > 0);
+  if (notes.length === 0) return null;
+  return (
+    <div className="offline-note">
+      {notes.map(({ lib, count }) => (
+        <p key={lib.id}>
+          <strong>{lib.path}</strong> isn't connected, so {count} title{count === 1 ? " is" : "s are"} greyed out. They'll be back as
+          soon as it's plugged in.
+        </p>
+      ))}
     </div>
   );
 }

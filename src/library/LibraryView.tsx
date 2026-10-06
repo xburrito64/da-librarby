@@ -77,6 +77,13 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
     };
   }, [active, openTitle, settings]);
 
+  // Coming back to the app (after a download, say) looks for new files.
+  useEffect(() => {
+    const onFocus = () => library.focused().catch(() => {});
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
   // Typing anywhere starts a search.
   useEffect(() => {
     if (!active || settings) return;
@@ -175,6 +182,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
       <Browse
         tab={tab}
         titles={sorted}
+        offline={(libraries ?? []).filter((l) => !l.online)}
         query={query.trim()}
         continueList={continueList}
         loaded={titles != null && libraries != null}

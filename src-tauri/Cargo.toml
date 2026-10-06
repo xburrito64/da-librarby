@@ -29,6 +29,7 @@ image = { version = "0.25.10", default-features = false, features = ["jpeg", "pn
 strsim = "0.11.1"
 tauri-plugin-single-instance = "2.5.2"
 tauri-plugin-window-state = "2.5.0"
+tauri-plugin-autostart = "2.7.0"
 
 [profile.release]
 codegen-units = 1
