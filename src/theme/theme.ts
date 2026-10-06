@@ -3,7 +3,8 @@
 import { useSyncExternalStore } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { DEFAULT_THEME, findTheme } from "./themes";
+import { DEFAULT_THEME, findTheme, type Theme } from "./themes";
+import { loadThemeOptions } from "./options";
 
 const KEY = "ui.theme";
 const listeners = new Set<() => void>();
@@ -20,6 +21,7 @@ function cached() {
 
 function apply(id: string) {
   document.documentElement.dataset.theme = id;
+  loadThemeOptions(id);
   const theme = findTheme(id);
   getCurrentWindow()
     .setTheme(theme?.dark === false ? "light" : "dark")
@@ -47,6 +49,16 @@ export function setTheme(id: string, save = true) {
   }
   if (save) invoke("set_ui_setting", { key: KEY, value: id }).catch(() => {});
   listeners.forEach((l) => l());
+}
+
+/** The current theme's id, outside of React. */
+export function currentTheme() {
+  return current;
+}
+
+/** The current theme's full entry (name, extras...). */
+export function useThemeInfo(): Theme | undefined {
+  return findTheme(useTheme());
 }
 
 export function useTheme() {

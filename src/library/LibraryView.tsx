@@ -18,6 +18,9 @@ import TitlePage from "./TitlePage";
 import Settings, { type SettingsSection } from "./Settings";
 import { CloseIcon, RefreshIcon, SearchIcon, SettingsIcon } from "../ui/icons";
 import { ContextMenuProvider } from "../ui/ContextMenu";
+import { useThemeInfo } from "../theme/theme";
+import { useThemeOptions } from "../theme/options";
+import { useCopy } from "../theme/copy";
 
 export type Tab = "home" | LibraryKind;
 
@@ -37,6 +40,9 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
   const [scrolled, setScrolled] = useState(false);
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const copy = useCopy();
+  const Decor = useThemeInfo()?.extras?.Decor;
+  const themeOptions = useThemeOptions();
 
   const refresh = useCallback(() => {
     library.list().then(setLibraries).catch((e) => setError(String(e)));
@@ -110,7 +116,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
 
   const status =
     scanning != null
-      ? `Scanning${scanning ? ` ${scanning}` : ""}…`
+      ? copy.scanning(scanning)
       : fetching?.running
         ? `Getting info from ${fetching.source ?? "online"} · ${fetching.done + 1} of ${fetching.total}`
         : null;
@@ -154,12 +160,12 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
                   e.currentTarget.blur();
                 }
               }}
-              placeholder="Search"
+              placeholder={copy.searchPlaceholder}
               spellCheck={false}
               aria-label="Search the library"
             />
             {query && (
-              <button className="nav__search-clear" onClick={() => setQuery("")} title="Clear search">
+              <button className="nav__search-clear" onClick={() => setQuery("")} title="Clear search" data-sfx="back">
                 <CloseIcon />
               </button>
             )}
@@ -215,6 +221,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
           onClose={() => setSettings(null)}
         />
       )}
+      {Decor && <Decor active={active} options={themeOptions} />}
       {error && (
         <button className="toast" onClick={() => setError(null)} title="Dismiss">
           {error}

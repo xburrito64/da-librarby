@@ -5,7 +5,8 @@ import { getVersion } from "@tauri-apps/api/app";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { library, metadata, guessKind, img, KIND_LABELS, type Library, type LibraryKind, type TitleSummary } from "./api";
 import { THEMES } from "../theme/themes";
-import { setTheme, useTheme } from "../theme/theme";
+import { setTheme, useTheme, useThemeInfo } from "../theme/theme";
+import { setThemeOption, useThemeOptions } from "../theme/options";
 import { CheckIcon, CloseIcon } from "../ui/icons";
 
 export type SettingsSection = "appearance" | "general" | "library" | "online" | "shortcuts" | "about";
@@ -48,7 +49,7 @@ export default function Settings({ section, onSection, libraries, titles, onLibr
           ))}
         </aside>
         <div className="settings__main">
-          <button className="icon-btn settings__close" onClick={onClose} title="Close (Esc)">
+          <button className="icon-btn settings__close" onClick={onClose} title="Close (Esc)" data-sfx="back">
             <CloseIcon />
           </button>
           {section === "appearance" && <Appearance titles={titles} />}
@@ -81,6 +82,7 @@ function Appearance({ titles }: { titles: TitleSummary[] }) {
           <button key={t.id} className={`theme-card ${current === t.id ? "is-active" : ""}`} onClick={() => setTheme(t.id)}>
             <span className="theme-card__preview" data-theme={t.id}>
               <span className="tprev">
+                <span className="tprev__decor" aria-hidden="true" />
                 <span className="tprev__bar">
                   <span className="tprev__brand">Da Librarby</span>
                   <span className="tprev__tabs">
@@ -113,7 +115,58 @@ function Appearance({ titles }: { titles: TitleSummary[] }) {
           </button>
         ))}
       </div>
+      <ThemeOptions />
     </section>
+  );
+}
+
+/** The current theme's own settings, if it has any. */
+function ThemeOptions() {
+  const theme = useThemeInfo();
+  const values = useThemeOptions();
+  const options = theme?.extras?.options ?? [];
+  if (!theme || options.length === 0) return null;
+  return (
+    <div className="theme-options">
+      <h3 className="settings__title">{theme.name} options</h3>
+      {options.map((o) =>
+        o.choices ? (
+          <div key={o.id} className="toggle-row choice-row">
+            <span className="toggle-row__text">
+              <span className="toggle-row__label">{o.label}</span>
+              {o.hint && <span className="toggle-row__hint">{o.hint}</span>}
+            </span>
+            <span className="choice-row__choices" role="radiogroup" aria-label={o.label}>
+              {o.choices.map((c) => (
+                <button
+                  key={c.value}
+                  role="radio"
+                  aria-checked={values[o.id] === c.value}
+                  className={`choice ${values[o.id] === c.value ? "is-on" : ""}`}
+                  onClick={() => setThemeOption(theme.id, o.id, c.value)}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </span>
+          </div>
+        ) : (
+          <button
+            key={o.id}
+            className="toggle-row"
+            role="switch"
+            aria-checked={values[o.id] !== false}
+            onClick={() => setThemeOption(theme.id, o.id, values[o.id] === false)}
+          >
+            <span className="toggle-row__text">
+              <span className="toggle-row__label">{o.label}</span>
+              {o.hint && <span className="toggle-row__hint">{o.hint}</span>}
+            </span>
+            <span className={`toggle ${values[o.id] !== false ? "is-on" : ""}`} />
+          </button>
+        ),
+      )}
+    </div>
   );
 }
 
@@ -235,8 +288,8 @@ function About() {
           is on GitHub at xburrito64/da-librarby.
         </p>
         <p>
-          <strong>Playback</strong> is done by mpv (GPL), whose source code is at github.com/mpv-player/mpv. Fonts: Manrope, Fraunces, Inter, Chakra Petch, JetBrains Mono, Fredoka and
-          Nunito.
+          <strong>Playback</strong> is done by mpv (GPL), whose source code is at github.com/mpv-player/mpv. Fonts: Manrope, Fraunces, Inter, Chakra Petch, JetBrains Mono, Fredoka,
+          Nunito and Pixelify Sans.
         </p>
       </div>
     </section>

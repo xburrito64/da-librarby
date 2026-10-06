@@ -22,6 +22,9 @@ import { useContextMenu } from "../ui/ContextMenu";
 import { getSetting, setSetting } from "../ui/settings";
 import type { Tab } from "./LibraryView";
 import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, UndoIcon } from "../ui/icons";
+import Typed from "../ui/Typed";
+import { useCopy } from "../theme/copy";
+import { playSound } from "../theme/sound";
 
 const KINDS: LibraryKind[] = ["anime", "shows", "movies"];
 const SPOTLIGHT_SIZE = 6;
@@ -130,6 +133,7 @@ export default function Browse({ tab, titles, offline, query, continueList, load
               ))}
             </Row>
           ))}
+          <HomeEnd />
         </div>
       </>
     );
@@ -224,6 +228,12 @@ function Search({
     };
   }, [query]);
 
+  const copy = useCopy();
+  const nothing = !!results && results.titles.length === 0 && results.files.length === 0;
+  useEffect(() => {
+    if (nothing) playSound("nope");
+  }, [nothing, query]);
+
   const byId = new Map(titles.map((t) => [t.id, t]));
   const shows = (results?.titles ?? []).map((id) => byId.get(id)).filter((t): t is TitleSummary => !!t);
   const files = results?.files ?? [];
@@ -243,7 +253,12 @@ function Search({
           </span>
         )}
       </header>
-      {results && shows.length === 0 && files.length === 0 && <p className="search__none">Nothing found. Try another word.</p>}
+      {results && shows.length === 0 && files.length === 0 && (
+        <div className="search__none">
+          <span className="search__none-art" aria-hidden="true" />
+          <Typed as="p" className="search__none-text" text={copy.searchNone} />
+        </div>
+      )}
       {shows.length > 0 && (
         <>
           <h2 className="section-title">Shows & movies</h2>
@@ -267,7 +282,7 @@ function Search({
                   openMenu(e, [
                     { label: "Play", icon: <PlayIcon />, onSelect: () => onPlay(f.fileId) },
                     { label: "Show details", icon: <InfoIcon />, onSelect: () => onOpen(f.titleId) },
-                    { label: "Mark as watched", icon: <CheckIcon />, onSelect: () => watch.set([f.fileId], true) },
+                    { label: "Mark as watched", icon: <CheckIcon />, onSelect: () => watch.set([f.fileId], true), sfx: "save" },
                   ])
                 }
               >
@@ -348,10 +363,14 @@ function Spotlight({ titles, onOpen, onPlay }: { titles: TitleSummary[]; onOpen:
         )}
       </div>
       <div className="hero__shade" />
+      <span className="hero__decor hero__decor--top" aria-hidden="true" />
+      <span className="hero__decor hero__decor--bottom" aria-hidden="true" />
       <div className="hero__content" key={current.id}>
         <div className="hero__eyebrow">{eyebrow}</div>
         <h1 className="hero__title">{current.name}</h1>
-        <p className="hero__desc">{descriptions[current.id] ?? ""}</p>
+        <div className="hero__desc-box">
+          <Typed as="p" className="hero__desc" text={descriptions[current.id] ?? ""} />
+        </div>
         <div className="hero__actions">
           <button className="btn btn--primary" onClick={() => onPlay(current.id)}>
             <PlayIcon />
@@ -435,7 +454,7 @@ function ContinueCard({ item, onPlay, onOpen }: { item: ContinueItem; onPlay: (f
           { label: item.reason === "resume" ? "Resume" : "Play", icon: <PlayIcon />, onSelect: () => onPlay(item.fileId) },
           { label: "Show details", icon: <InfoIcon />, onSelect: () => onOpen(item.titleId) },
           "divider",
-          { label: "Mark episode as watched", icon: <CheckIcon />, onSelect: () => watch.set([item.fileId], true) },
+          { label: "Mark episode as watched", icon: <CheckIcon />, onSelect: () => watch.set([item.fileId], true), sfx: "save" },
           { label: "Open file location", icon: <FolderIcon />, onSelect: () => reveal(item.path) },
           "divider",
           { label: "Remove from Continue watching", icon: <CloseIcon />, onSelect: () => watch.hide(item.titleId) },
@@ -468,7 +487,7 @@ function ContinueCard({ item, onPlay, onOpen }: { item: ContinueItem; onPlay: (f
         <button className="icon-btn" onClick={() => onOpen(item.titleId)} title="Show details">
           <InfoIcon />
         </button>
-        <button className="icon-btn" onClick={() => watch.hide(item.titleId)} title="Remove from Continue watching">
+        <button className="icon-btn" onClick={() => watch.hide(item.titleId)} title="Remove from Continue watching" data-sfx="back">
           <CloseIcon />
         </button>
       </div>
@@ -493,7 +512,7 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
           "divider",
           finished
             ? { label: "Mark all as unwatched", icon: <UndoIcon />, onSelect: () => watch.setTitle(title.id, false) }
-            : { label: "Mark all as watched", icon: <CheckIcon />, onSelect: () => watch.setTitle(title.id, true) },
+            : { label: "Mark all as watched", icon: <CheckIcon />, onSelect: () => watch.setTitle(title.id, true), sfx: "save" },
           { label: "Open folder", icon: <FolderIcon />, onSelect: () => revealTitle(title.id) },
         ])
       }
@@ -526,15 +545,21 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
   );
 }
 
+/** A theme's closing line under the home screen's rows, if it has any. */
+function HomeEnd() {
+  const lines = useCopy().homeEnd;
+  const [pick] = useState(() => Math.random());
+  if (lines.length === 0) return null;
+  return <Typed as="p" className="home__end" text={lines[Math.floor(pick * lines.length)]} />;
+}
+
 function Empty({ hasLibraries, onAddFolder }: { hasLibraries: boolean; onAddFolder: () => void }) {
+  const copy = useCopy();
   return (
     <div className="empty">
-      <h1 className="empty__title">{hasLibraries ? "Nothing here yet" : "Your library is empty"}</h1>
-      <p className="empty__text">
-        {hasLibraries
-          ? "No videos were found in your folders so far. If a scan is running, they'll show up in a moment."
-          : "Add the folders or drives where your anime, shows and movies live, and they'll appear here."}
-      </p>
+      <span className="empty__art" aria-hidden="true" />
+      <h1 className="empty__title">{hasLibraries ? copy.emptyScanTitle : copy.emptyTitle}</h1>
+      <Typed as="p" className="empty__text" text={hasLibraries ? copy.emptyScanText : copy.emptyText} />
       {!hasLibraries && (
         <button className="btn btn--primary" onClick={onAddFolder}>
           Add a folder

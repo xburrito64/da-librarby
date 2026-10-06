@@ -20,6 +20,7 @@ import {
 import MatchPicker from "./MatchPicker";
 import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, PlayIcon, UndoIcon } from "../ui/icons";
 import { useContextMenu, type MenuEntry } from "../ui/ContextMenu";
+import Typed from "../ui/Typed";
 
 type Picking = { kind: "title" } | { kind: "season"; season: SeasonRow } | { kind: "file"; file: FileRow };
 
@@ -93,7 +94,7 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
       "divider",
       file.progress?.watched
         ? { label: "Mark as unwatched", icon: <UndoIcon />, onSelect: () => watch.set([file.id], false) }
-        : { label: "Mark as watched", icon: <CheckIcon />, onSelect: () => watch.set([file.id], true) },
+        : { label: "Mark as watched", icon: <CheckIcon />, onSelect: () => watch.set([file.id], true), sfx: "save" },
       { label: "Open file location", icon: <FolderIcon />, onSelect: () => reveal(file.path) },
     );
     openMenu(e, items);
@@ -107,9 +108,11 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
       onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}
     >
       <div className="tp__backdrop">{meta?.banner && <img src={img(meta.banner)} alt="" decoding="async" />}</div>
+      <span className="tp__decor tp__decor--top" aria-hidden="true" />
+      <span className="tp__decor tp__decor--bottom" aria-hidden="true" />
 
       <header className="tp__head">
-        <button className="btn btn--ghost btn--small tp__back" onClick={onBack} title="Back (Esc)">
+        <button className="btn btn--ghost btn--small tp__back" onClick={onBack} title="Back (Esc)" data-sfx="back">
           <BackIcon />
           Back
         </button>
@@ -131,13 +134,15 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
             </div>
           )}
           {meta?.description && (
-            <p
-              className={`tp__desc ${fullDescription ? "is-open" : ""}`}
-              onClick={() => setFullDescription((v) => !v)}
-              title={fullDescription ? undefined : "Show all"}
-            >
-              {meta.description}
-            </p>
+            <div className="tp__desc-box">
+              <Typed
+                as="p"
+                className={`tp__desc ${fullDescription ? "is-open" : ""}`}
+                onClick={() => setFullDescription((v) => !v)}
+                title={fullDescription ? undefined : "Show all"}
+                text={meta.description}
+              />
+            </div>
           )}
           <div className="tp__actions">
             {up && (
@@ -245,7 +250,11 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
                         </button>
                       </p>
                     )}
-                    <button className="link tp__markall" onClick={() => watch.set(episodes.map((f) => f.id), !seasonWatched)}>
+                    <button
+                      className="link tp__markall"
+                      onClick={() => watch.set(episodes.map((f) => f.id), !seasonWatched)}
+                      data-sfx={seasonWatched ? undefined : "save"}
+                    >
                       {seasonWatched ? "Mark season as unwatched" : "Mark season as watched"}
                     </button>
                   </div>
@@ -356,6 +365,7 @@ function Episode({ file, code, onPlay, onMenu }: { file: FileRow; code: string; 
       </span>
       <button
         className={`ep__toggle ${watched ? "is-on" : ""}`}
+        data-sfx={watched ? undefined : "save"}
         onClick={(e) => {
           e.stopPropagation();
           watch.set([file.id], !watched);

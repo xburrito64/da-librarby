@@ -1,4 +1,5 @@
 // The list of themes. Each one is a stylesheet in this folder (see README.md here for how to add one).
+import type { ComponentType } from "react";
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/fraunces/opsz.css";
 import "@fontsource-variable/fraunces/opsz-italic.css";
@@ -16,6 +17,9 @@ import "./velvet.css";
 import "./paper.css";
 import "./neon.css";
 import "./mochi.css";
+import type { Copy } from "./copy";
+import type { SoundName, SoundPlayer } from "./sound";
+import { SNOWDIN } from "./snowdin";
 
 export interface Theme {
   id: string;
@@ -23,6 +27,32 @@ export interface Theme {
   description: string;
   /** Dark themes get a dark window title bar. */
   dark: boolean;
+  /** Extra pieces beyond colours, fonts and shapes. All optional. */
+  extras?: ThemeExtras;
+}
+
+export interface ThemeExtras {
+  /** Settings of its own, shown under the theme in Settings → Appearance. */
+  options?: ThemeOption[];
+  /** Texts that replace the app's usual ones (empty pages, loading lines, flavor). */
+  copy?: Partial<Copy>;
+  /** Little interface sounds. They play while the theme's "sounds" option is on. */
+  sounds?: Partial<Record<SoundName, SoundPlayer>>;
+  /** Descriptions and messages type themselves out while the "typing" option is on. */
+  typing?: boolean;
+  /** Replacement icons, by name (see src/ui/icons.tsx), drawn from rows of "#" and ".". */
+  icons?: Record<string, string[]>;
+  /** Drawn on top of the library screens (e.g. falling snow); gets the theme's option values. */
+  Decor?: ComponentType<{ active: boolean; options: Record<string, boolean | string | undefined> }>;
+}
+
+export interface ThemeOption {
+  id: string;
+  label: string;
+  hint?: string;
+  /** Pick one of these; a plain on/off switch when left out. */
+  choices?: { value: string; label: string }[];
+  default: boolean | string;
 }
 
 export const THEMES: Theme[] = [
@@ -50,6 +80,7 @@ export const THEMES: Theme[] = [
     description: "Soft and cosy. Pastel lavender and peach, rounded everything, bouncy little covers.",
     dark: false,
   },
+  SNOWDIN,
 ];
 
 export const DEFAULT_THEME = "velvet";

@@ -2392,3 +2392,76 @@ select.input {
   background: var(--on-accent);
   transform: translateX(20px);
 }
+
+/* ---------- Theme extras (see README.md) ---------- */
+
+/* Empty spots a theme can decorate (string lights, scenery, pictures); hidden by default. */
+.hero__decor,
+.tp__decor,
+.tprev__decor,
+.empty__art,
+.search__none-art {
+  display: none;
+}
+
+/* Text that types itself out: the part still to come takes its space already. */
+.typed__rest {
+  visibility: hidden;
+}
+
+/* A theme's pixel icons. */
+.icon--pixel {
+  stroke: none;
+}
+
+/* A theme's closing line under the home screen. */
+.home__end {
+  margin: 10px var(--gutter) 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.search__none-text {
+  margin: 0;
+}
+
+/* A theme's own options, under the theme cards. */
+.theme-options {
+  margin-top: 34px;
+}
+
+.theme-options .settings__title {
+  margin-bottom: 14px;
+}
+
+.choice-row {
+  cursor: default;
+}
+
+.choice-row__choices {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  padding: 3px;
+  border-radius: var(--btn-radius);
+  background: var(--surface);
+}
+
+.choice {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--btn-radius);
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.choice:hover {
+  color: var(--text);
+}
+
+.choice.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}

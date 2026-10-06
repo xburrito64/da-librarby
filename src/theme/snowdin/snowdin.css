@@ -1,0 +1,1484 @@
+/* Snowdin: a cozy snowy town at night. Night-blue, warm windows, white pixel boxes, pixel text,
+   orange battle buttons, and a red heart beside whatever you point at.
+   The pixel art arrives as CSS variables from art.ts (--sd-heart, --sd-town, ...). */
+
+[data-theme="snowdin"] {
+  --bg: #0c0d1b;
+  --bg-elev: #06060c;
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-hover: rgba(255, 255, 255, 0.12);
+  --line: #ffffff;
+  --text: #fbf6ec;
+  --muted: #aeaac6;
+  --accent: #fff200;
+  --on-accent: #1a1500;
+  --btn-primary-bg: transparent;
+  --btn-primary-text: #ffbe5c;
+  --danger: #ff5050;
+  --scrim: rgba(4, 4, 12, 0.8);
+
+  --sd-box: #06060c;
+  --sd-amber: #ffbe5c;
+  --sd-orange: #ff8d2b;
+  --sd-soul: #ff2b2b;
+  --sd-dim: #6e6b8c;
+  --sd-hp: #b01717;
+  --sd-wood: #7a5236;
+  --sd-wood-dark: #4a2e1c;
+  --sd-cream: #fff3d8;
+
+  --font-body: "Pixelify Sans Variable", ui-monospace, monospace;
+  --font-display: var(--font-body);
+  --font-label: var(--font-body);
+  --display-weight: 700;
+  --display-transform: uppercase;
+  --display-tracking: 0.04em;
+  --label-tracking: 0.12em;
+
+  --radius: 0px;
+  --radius-card: 0px;
+  --radius-panel: 0px;
+  --btn-radius: 0px;
+  --app-decor:
+    radial-gradient(1100px 700px at 85% -10%, rgba(255, 170, 80, 0.1), transparent 60%),
+    radial-gradient(900px 600px at 0% 40%, rgba(138, 111, 201, 0.1), transparent 60%);
+}
+
+:root[data-theme="snowdin"] {
+  --nav-h: 84px;
+  --gutter: 56px;
+  --hero-h: 74vh;
+  --rows-overlap: 0px;
+  --row-card-w: 172px;
+  --card-w: 172px;
+  --wide-card-w: 420px;
+  --card-gap: 26px;
+}
+
+:root[data-theme="snowdin"] .app {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+:root[data-theme="snowdin"] .app :focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+:root[data-theme="snowdin"] .view::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.55);
+  border: 3px solid transparent;
+  border-radius: 0;
+}
+
+:root[data-theme="snowdin"] .view::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .icon--pixel {
+  width: 20px;
+  height: 20px;
+}
+
+/* The falling snow: above the pages, below the navigation and dialogs. */
+.sd-snow {
+  position: absolute;
+  z-index: 15;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Dialogs opened from a page sit inside it, under the snow: let it rest meanwhile. */
+.app:has(.view .modal) .sd-snow {
+  visibility: hidden;
+}
+
+/* ---------- The heart: beside whatever you point at ---------- */
+
+:root[data-theme="snowdin"]
+  :is(.nav__tab, .seasons__tab, .settings__nav, .ctx-menu__item, .row__more, .choice, .card, .ccard, .found, .ep, .extra)::before {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  left: -26px;
+  top: 50%;
+  width: 21px;
+  height: 18px;
+  margin-top: -9px;
+  background: var(--sd-heart) center / contain no-repeat;
+  image-rendering: pixelated;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 0.08s steps(2),
+    transform 0.12s steps(3);
+  pointer-events: none;
+}
+
+:root[data-theme="snowdin"]
+  :is(.nav__tab, .seasons__tab, .settings__nav, .ctx-menu__item, .row__more, .choice, .card, .ccard, .found, .ep, .extra):is(
+    :hover,
+    :focus-visible,
+    .is-active,
+    .is-on
+  )::before {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Battle buttons ---------- */
+
+:root[data-theme="snowdin"] .btn {
+  position: relative;
+  height: 48px;
+  gap: 10px;
+  padding: 0 20px 0 14px;
+  border: 3px solid var(--sd-orange);
+  background: rgba(6, 6, 12, 0.72);
+  color: var(--sd-orange);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    color 0.08s steps(1),
+    border-color 0.08s steps(1);
+}
+
+:root[data-theme="snowdin"] .btn--primary {
+  border-color: var(--sd-amber);
+  color: var(--sd-amber);
+}
+
+:root[data-theme="snowdin"] .btn:hover,
+:root[data-theme="snowdin"] .btn:focus-visible {
+  border-color: var(--accent);
+  background: rgba(6, 6, 12, 0.85);
+  color: var(--accent);
+  filter: none;
+}
+
+:root[data-theme="snowdin"] .btn:active {
+  transform: translateY(2px);
+}
+
+/* On hover the heart takes the icon's place, like in the game's menus. */
+:root[data-theme="snowdin"] .btn::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  width: 21px;
+  height: 18px;
+  margin-top: -9px;
+  background: var(--sd-heart) center / contain no-repeat;
+  image-rendering: pixelated;
+  opacity: 0;
+  pointer-events: none;
+}
+
+:root[data-theme="snowdin"] .btn:not(:has(> .icon))::before {
+  left: -30px;
+}
+
+:root[data-theme="snowdin"] .btn:is(:hover, :focus-visible)::before {
+  opacity: 1;
+}
+
+:root[data-theme="snowdin"] .btn:is(:hover, :focus-visible) > .icon:first-child {
+  visibility: hidden;
+}
+
+:root[data-theme="snowdin"] .btn .icon {
+  width: 20px;
+  height: 20px;
+}
+
+:root[data-theme="snowdin"] .btn--small {
+  height: 40px;
+  padding: 0 16px 0 12px;
+  font-size: 16px;
+}
+
+:root[data-theme="snowdin"] .btn--small::before {
+  left: 11px;
+}
+
+:root[data-theme="snowdin"] .btn--small .icon {
+  width: 18px;
+  height: 18px;
+}
+
+:root[data-theme="snowdin"] .btn--ghost {
+  border-color: rgba(255, 255, 255, 0.55);
+  color: var(--text);
+}
+
+:root[data-theme="snowdin"] .icon-btn {
+  border: 3px solid transparent;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .icon-btn:hover {
+  border-color: var(--accent);
+  background: none;
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .link {
+  color: var(--sd-amber);
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .link:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+:root[data-theme="snowdin"] .chip {
+  padding: 3px 10px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+:root[data-theme="snowdin"] .chip--score {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Small labels: lantern-coloured. */
+:root[data-theme="snowdin"] :is(.hero__eyebrow, .tp__eyebrow) {
+  color: var(--sd-amber);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Yellow-over-red bars, like HP. */
+:root[data-theme="snowdin"] .progress {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  border-radius: 0;
+  background: var(--sd-hp);
+  box-shadow: none;
+}
+
+:root[data-theme="snowdin"] .progress > span {
+  background: var(--accent);
+}
+
+:root[data-theme="snowdin"] .watched-badge {
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
+  background: var(--sd-box);
+  border: 3px solid var(--accent);
+  color: var(--accent);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="snowdin"] .watched-badge .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Navigation: the town sign ---------- */
+
+:root[data-theme="snowdin"] .app--scrolled .nav {
+  background: rgba(8, 8, 18, 0.95);
+  box-shadow: 0 3px 0 rgba(255, 255, 255, 0.14);
+}
+
+:root[data-theme="snowdin"] .nav {
+  gap: 40px;
+}
+
+:root[data-theme="snowdin"] .nav::before {
+  background: linear-gradient(rgba(8, 8, 18, 0.92), rgba(8, 8, 18, 0));
+}
+
+:root[data-theme="snowdin"] .nav__brand {
+  position: relative;
+  margin-top: 4px;
+  padding: 7px 16px 6px;
+  border: 3px solid var(--sd-wood-dark);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 9px, rgba(0, 0, 0, 0.18) 9px 11px),
+    var(--sd-wood);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+  color: var(--sd-cream);
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  text-shadow: 2px 2px 0 #2a170c;
+}
+
+/* Snow on top of the sign. */
+:root[data-theme="snowdin"] .nav__brand::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  right: -7px;
+  top: -12px;
+  height: 16px;
+  background: var(--sd-cap) 0 0 / 80px 16px repeat-x;
+  image-rendering: pixelated;
+}
+
+/* Its two posts. */
+:root[data-theme="snowdin"] .nav__brand::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: -15px;
+  height: 12px;
+  background:
+    linear-gradient(var(--sd-wood-dark), var(--sd-wood-dark)) left / 6px 100% no-repeat,
+    linear-gradient(var(--sd-wood-dark), var(--sd-wood-dark)) right / 6px 100% no-repeat;
+}
+
+:root[data-theme="snowdin"] .nav__brand:hover {
+  color: #fff;
+}
+
+:root[data-theme="snowdin"] .nav__logo {
+  display: none;
+}
+
+:root[data-theme="snowdin"] .nav__tabs {
+  gap: 22px;
+}
+
+:root[data-theme="snowdin"] .nav__tab {
+  padding: 8px 4px 8px 26px;
+  color: var(--text);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .nav__tab::before {
+  left: 0;
+}
+
+:root[data-theme="snowdin"] :is(.nav__tab:hover, .nav__tab.is-active) {
+  background: none;
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .nav__search {
+  width: 220px;
+  height: 42px;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  background: rgba(6, 6, 12, 0.8);
+  color: var(--sd-dim);
+  transition: width 0.25s steps(5);
+}
+
+:root[data-theme="snowdin"] .nav__search:is(:focus-within, .has-text) {
+  width: 300px;
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+:root[data-theme="snowdin"] .nav__search input {
+  font-size: 17px;
+}
+
+:root[data-theme="snowdin"] .nav__search input::placeholder {
+  color: var(--sd-dim);
+}
+
+:root[data-theme="snowdin"] .nav__status {
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .nav__pulse {
+  width: 14px;
+  height: 12px;
+  border-radius: 0;
+  background: var(--sd-heart) center / contain no-repeat;
+  image-rendering: pixelated;
+  animation: sd-hop 0.8s steps(2) infinite;
+}
+
+@keyframes sd-hop {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* ---------- Spotlight: Snowdin under the artwork's sky ---------- */
+
+:root[data-theme="snowdin"] .hero {
+  min-height: 560px;
+  max-height: 820px;
+}
+
+:root[data-theme="snowdin"] .hero__shade {
+  background:
+    linear-gradient(to top, var(--bg) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 30%, transparent 60%),
+    linear-gradient(to right, color-mix(in srgb, var(--bg) 92%, transparent) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 40%, transparent 70%);
+}
+
+/* String lights hanging below the navigation, twinkling. */
+:root[data-theme="snowdin"] :is(.hero__decor--top, .tp__decor--top) {
+  display: block;
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  top: calc(var(--nav-h) - 14px);
+  height: 66px;
+  background: var(--sd-lights) 0 0 / 192px 66px repeat-x;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+:root[data-theme="snowdin"] :is(.hero__decor--top, .tp__decor--top)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--sd-lights-glow) 0 0 / 192px 66px repeat-x;
+  image-rendering: pixelated;
+  animation: sd-twinkle 2.6s steps(1) infinite;
+}
+
+@keyframes sd-twinkle {
+  50% {
+    background-position-x: 48px;
+  }
+}
+
+/* The town along the bottom. */
+:root[data-theme="snowdin"] .hero__decor--bottom {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 216px;
+  background: var(--sd-town) right bottom / auto 216px no-repeat;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+:root[data-theme="snowdin"] .hero__content {
+  bottom: 120px;
+  max-width: 620px;
+  animation: sd-appear 0.35s steps(4) both;
+}
+
+@keyframes sd-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+:root[data-theme="snowdin"] .hero__title {
+  margin: 10px 0 18px;
+  font-size: clamp(44px, 4.8vw, 72px);
+  line-height: 0.95;
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* The description is a text box. */
+:root[data-theme="snowdin"] .hero__desc-box {
+  padding: 16px 20px 18px 22px;
+  border: 4px solid var(--line);
+  background: rgba(6, 6, 12, 0.88);
+}
+
+:root[data-theme="snowdin"] .hero__desc-box:has(.hero__desc:empty) {
+  display: none;
+}
+
+:root[data-theme="snowdin"] .hero__desc {
+  min-height: 0;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+/* The game's "*" at the start of a text box's line. */
+:root[data-theme="snowdin"] :is(.hero__desc, .tp__desc, .toast, .offline-note p)::before,
+:root[data-theme="snowdin"] .typed__mark {
+  content: "";
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  margin-right: 0.5em;
+  background: currentColor;
+  -webkit-mask: var(--sd-asterisk) center / contain no-repeat;
+  mask: var(--sd-asterisk) center / contain no-repeat;
+  image-rendering: pixelated;
+  vertical-align: 0.05em;
+}
+
+/* The real "*" character stays for copying and screen readers, but isn't drawn. */
+:root[data-theme="snowdin"] .typed__mark {
+  overflow: hidden;
+  -webkit-text-fill-color: transparent;
+  margin-right: 0.2em;
+}
+
+:root[data-theme="snowdin"] .hero__actions {
+  gap: 16px;
+  margin-top: 22px;
+}
+
+:root[data-theme="snowdin"] .hero__dots {
+  bottom: auto;
+  top: calc(var(--nav-h) + 72px);
+  gap: 10px;
+}
+
+:root[data-theme="snowdin"] .hero__dots button {
+  width: 12px;
+  height: 12px;
+  border: 3px solid var(--text);
+  border-radius: 0;
+  background: none;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .hero__dots button.is-active {
+  width: 12px;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+/* ---------- Rows ---------- */
+
+:root[data-theme="snowdin"] .home__rows {
+  padding-top: 14px;
+}
+
+:root[data-theme="snowdin"] .row__head {
+  align-items: center;
+  gap: 14px;
+}
+
+:root[data-theme="snowdin"] .row__title {
+  font-size: 25px;
+  letter-spacing: 0.06em;
+}
+
+/* The save star beside "Continue watching". */
+:root[data-theme="snowdin"] .row--wide .row__title::before {
+  content: "";
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin: 0 12px -2px 0;
+  background: var(--sd-star) center / contain no-repeat;
+  image-rendering: pixelated;
+  animation: sd-sparkle 2.4s steps(1) infinite;
+}
+
+@keyframes sd-sparkle {
+  71%,
+  85% {
+    filter: brightness(1.6);
+    transform: scale(1.15);
+  }
+}
+
+:root[data-theme="snowdin"] .row__count {
+  color: var(--sd-dim);
+  font-size: 16px;
+}
+
+:root[data-theme="snowdin"] .row__more {
+  position: relative;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .row__more:hover {
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .row__track {
+  padding-top: 40px;
+  padding-bottom: 24px;
+}
+
+:root[data-theme="snowdin"] .row__arrow {
+  top: calc(40px + var(--row-card-w) * 0.75);
+  border: 3px solid var(--line);
+  background: var(--sd-box);
+}
+
+:root[data-theme="snowdin"] .row__arrow:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .row--wide .row__arrow {
+  top: calc(40px + 62px);
+}
+
+/* The save files need no room above them for the heart (it sits beside them). */
+:root[data-theme="snowdin"] .row--wide .row__track {
+  padding-top: 14px;
+}
+
+/* A closing line under the rows. */
+:root[data-theme="snowdin"] .home__end {
+  margin: 18px var(--gutter) 10px;
+  color: var(--muted);
+  font-size: 17px;
+}
+
+/* ---------- Covers: white pixel frames with snow on top ---------- */
+
+:root[data-theme="snowdin"] .card {
+  position: relative;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .card::before {
+  left: 50%;
+  top: -26px;
+  margin: 0 0 0 -10px;
+  transform: translateY(6px);
+}
+
+:root[data-theme="snowdin"] .card:is(:hover, :focus-visible)::before {
+  transform: translateY(-4px);
+}
+
+:root[data-theme="snowdin"] .card::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: -4px;
+  right: -4px;
+  top: -10px;
+  height: 16px;
+  background: var(--sd-cap) 0 0 / 80px 16px repeat-x;
+  image-rendering: pixelated;
+  pointer-events: none;
+  transition: transform 0.12s steps(2);
+}
+
+:root[data-theme="snowdin"] .card__art {
+  border: 4px solid var(--line);
+  background: linear-gradient(160deg, var(--c, #2b3a55), #0c0d1b);
+  transition:
+    transform 0.12s steps(2),
+    border-color 0.08s steps(1);
+}
+
+:root[data-theme="snowdin"] .card:is(:hover, :focus-visible) .card__art,
+:root[data-theme="snowdin"] .card:is(:hover, :focus-visible)::after {
+  transform: translateY(-6px);
+}
+
+:root[data-theme="snowdin"] .card:is(:hover, :focus-visible) .card__art {
+  border-color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .card__play {
+  display: none;
+}
+
+:root[data-theme="snowdin"] .card__placeholder {
+  font-size: 18px;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+:root[data-theme="snowdin"] .card__text {
+  padding-top: 12px;
+}
+
+:root[data-theme="snowdin"] .card__name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="snowdin"] .card:is(:hover, :focus-visible) .card__name {
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .card__sub {
+  color: var(--sd-dim);
+  font-size: 14px;
+}
+
+:root[data-theme="snowdin"] .card--offline .card__art {
+  filter: grayscale(1);
+}
+
+:root[data-theme="snowdin"] :is(.card__badge, .ep__new, .ccard__badge) {
+  border-radius: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 700 14px var(--font-label);
+  letter-spacing: 0.1em;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="snowdin"] .card__badge {
+  top: 10px;
+  left: -2px;
+  padding: 1px 8px;
+}
+
+:root[data-theme="snowdin"] :is(.card__badge, .ep__new)::after {
+  content: "!";
+}
+
+/* ---------- Continue watching: save files ---------- */
+
+:root[data-theme="snowdin"] .ccard {
+  position: relative;
+}
+
+:root[data-theme="snowdin"] .ccard::before {
+  left: -30px;
+}
+
+:root[data-theme="snowdin"] .ccard__main {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 16px;
+  padding: 12px;
+  border: 4px solid var(--line);
+  background: var(--sd-box);
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .ccard:hover .ccard__main {
+  border-color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .ccard__art {
+  border: 3px solid var(--line);
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .ccard:hover .ccard__art {
+  transform: none;
+}
+
+:root[data-theme="snowdin"] .ccard__play {
+  display: none;
+}
+
+:root[data-theme="snowdin"] .ccard__badge {
+  top: 6px;
+  left: 6px;
+  padding: 1px 7px;
+  font-size: 12px;
+}
+
+:root[data-theme="snowdin"] .ccard__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 2px 0 0;
+}
+
+:root[data-theme="snowdin"] .ccard__show {
+  padding-right: 64px;
+  color: var(--text);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+:root[data-theme="snowdin"] .ccard:hover .ccard__show {
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .ccard__ep {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* The episode, top right like a save file's level. */
+:root[data-theme="snowdin"] .ccard__code {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  margin: 0;
+  color: var(--sd-amber);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .ccard__left {
+  margin-top: auto;
+  color: var(--sd-dim);
+  font-size: 14px;
+}
+
+:root[data-theme="snowdin"] .ccard__actions {
+  top: auto;
+  bottom: 12px;
+  right: 12px;
+}
+
+:root[data-theme="snowdin"] .ccard:hover .ccard__actions {
+  transform: none;
+}
+
+:root[data-theme="snowdin"] .ccard__actions .icon-btn {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(255, 255, 255, 0.7);
+  background: var(--sd-box);
+}
+
+:root[data-theme="snowdin"] .ccard__actions .icon-btn:hover {
+  border-color: var(--accent);
+  background: var(--sd-box);
+}
+
+/* ---------- Grid pages, search ---------- */
+
+:root[data-theme="snowdin"] .grid-page {
+  padding-top: 44px;
+}
+
+:root[data-theme="snowdin"] .grid-page__title {
+  font-size: clamp(38px, 4vw, 58px);
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="snowdin"] .grid-page__count {
+  color: var(--sd-dim);
+  font-size: 16px;
+}
+
+:root[data-theme="snowdin"] .grid {
+  gap: 40px var(--card-gap);
+  padding-top: 26px;
+}
+
+:root[data-theme="snowdin"] .input {
+  height: 42px;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  background: var(--sd-box);
+  font-size: 16px;
+}
+
+:root[data-theme="snowdin"] .input:focus {
+  border-color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .app .input:focus-visible {
+  outline: none;
+}
+
+:root[data-theme="snowdin"] .sort-select {
+  height: 40px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+:root[data-theme="snowdin"] .section-title {
+  font-size: 23px;
+}
+
+:root[data-theme="snowdin"] .found {
+  position: relative;
+  border: 3px solid transparent;
+}
+
+:root[data-theme="snowdin"] .found::before {
+  left: -30px;
+}
+
+:root[data-theme="snowdin"] .found:hover {
+  border-color: var(--line);
+  background: rgba(6, 6, 12, 0.6);
+}
+
+:root[data-theme="snowdin"] .found__still {
+  border: 3px solid var(--line);
+}
+
+:root[data-theme="snowdin"] .found__play {
+  display: none;
+}
+
+:root[data-theme="snowdin"] .found__show {
+  font-size: 14px;
+}
+
+:root[data-theme="snowdin"] .found__name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .found:hover .found__name {
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] :is(.found__code, .ep__code) {
+  color: var(--sd-amber);
+}
+
+/* "But nobody came." with the little dog. */
+:root[data-theme="snowdin"] .search__none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin: 8vh auto 0;
+  color: var(--text);
+  font-size: 22px;
+}
+
+:root[data-theme="snowdin"] :is(.search__none-art, .empty__art) {
+  display: block;
+  width: 95px;
+  height: 70px;
+  background: var(--sd-dog) center / contain no-repeat;
+  image-rendering: pixelated;
+}
+
+/* ---------- Empty library ---------- */
+
+:root[data-theme="snowdin"] .empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 640px;
+}
+
+:root[data-theme="snowdin"] .empty__art {
+  margin-bottom: 24px;
+}
+
+:root[data-theme="snowdin"] .empty__title {
+  font-size: 30px;
+  text-transform: none;
+}
+
+:root[data-theme="snowdin"] .empty__text {
+  color: var(--text);
+  font-size: 18px;
+}
+
+/* ---------- Right-click menus: the ACT menu ---------- */
+
+:root[data-theme="snowdin"] .ctx-menu {
+  min-width: 250px;
+  padding: 10px 16px 10px 40px;
+  border: 4px solid var(--line);
+  background: var(--sd-box);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  animation: sd-appear 0.12s steps(2) both;
+}
+
+:root[data-theme="snowdin"] .ctx-menu__item {
+  position: relative;
+  padding: 5px 0;
+  font: 500 17px var(--font-body);
+}
+
+:root[data-theme="snowdin"] .ctx-menu__item:hover {
+  background: none;
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .ctx-menu__item::before {
+  left: -30px;
+}
+
+:root[data-theme="snowdin"] .ctx-menu__icon {
+  display: none;
+}
+
+:root[data-theme="snowdin"] .ctx-menu__divider {
+  height: 2px;
+  margin: 8px 0 8px -24px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ---------- Messages ---------- */
+
+:root[data-theme="snowdin"] .toast {
+  padding: 14px 18px;
+  border: 4px solid var(--line);
+  border-radius: 0;
+  background: var(--sd-box);
+  font: 500 17px/1.4 var(--font-body);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="snowdin"] .toast::before {
+  color: var(--danger);
+}
+
+:root[data-theme="snowdin"] .offline-note {
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  border-left-width: 3px;
+  background: var(--sd-box);
+  font-size: 16px;
+}
+
+
+/* ---------- Dialogs (settings, fix match) ---------- */
+
+:root[data-theme="snowdin"] .modal__panel {
+  border: 4px solid var(--line);
+  background: var(--sd-box);
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.55);
+  animation: sd-appear 0.15s steps(3) both;
+}
+
+:root[data-theme="snowdin"] .settings__side {
+  border-right: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+:root[data-theme="snowdin"] .settings__nav {
+  position: relative;
+  padding: 8px 10px 8px 34px;
+  font-size: 17px;
+}
+
+:root[data-theme="snowdin"] .settings__nav::before {
+  left: 6px;
+}
+
+:root[data-theme="snowdin"] .settings__nav.is-active {
+  background: none;
+  color: var(--accent);
+}
+
+/* ---------- The preview in Settings → Appearance ----------
+   (">" keeps these to Snowdin's own preview, not every preview while Snowdin is on) */
+
+[data-theme="snowdin"] > .tprev {
+  background:
+    radial-gradient(120% 70% at 85% 0%, rgba(255, 170, 80, 0.16), transparent 60%),
+    var(--bg);
+}
+
+[data-theme="snowdin"] > .tprev .tprev__decor {
+  display: block;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle, rgba(238, 244, 255, 0.8) 0 1px, transparent 1.5px) 0 0 / 23px 19px,
+    radial-gradient(circle, rgba(238, 244, 255, 0.5) 0 1px, transparent 1.5px) 9px 11px / 31px 27px;
+  pointer-events: none;
+}
+
+[data-theme="snowdin"] > .tprev .tprev__brand {
+  padding: 1px 6px;
+  border: 2px solid var(--sd-wood-dark);
+  background: var(--sd-wood);
+  color: var(--sd-cream);
+  font-size: 9px;
+}
+
+[data-theme="snowdin"] > .tprev .tprev__tab {
+  width: 12px;
+  border-radius: 0;
+}
+
+[data-theme="snowdin"] > .tprev .tprev__hero {
+  border: 2px solid #fff;
+  border-radius: 0;
+}
+
+[data-theme="snowdin"] > .tprev .tprev__hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48%;
+  background: var(--sd-town-small) right bottom / auto 100% no-repeat;
+  image-rendering: pixelated;
+}
+
+[data-theme="snowdin"] > .tprev .tprev__title {
+  z-index: 1;
+  text-shadow: 1px 1px 0 #000;
+}
+
+[data-theme="snowdin"] > .tprev .tprev__btn {
+  z-index: 1;
+  border: 1.5px solid var(--sd-amber);
+  background: #06060c;
+  color: var(--sd-amber);
+}
+
+[data-theme="snowdin"] > .tprev .tprev__cover {
+  border: 2px solid #fff;
+  border-radius: 0;
+}
+
+[data-theme="snowdin"] > .tprev .tprev__cover:first-child {
+  border-color: var(--accent);
+}
+
+/* ---------- Show pages: the artwork above Snowdin forest, laid out like a battle screen ---------- */
+
+:root[data-theme="snowdin"] .tp {
+  --tp-art-h: 540px;
+}
+
+:root[data-theme="snowdin"] .tp__backdrop {
+  height: var(--tp-art-h);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+:root[data-theme="snowdin"] .tp__backdrop img {
+  opacity: 0.55;
+}
+
+:root[data-theme="snowdin"] .tp__backdrop::after {
+  background:
+    linear-gradient(to top, var(--bg) 0%, transparent 45%),
+    linear-gradient(to right, color-mix(in srgb, var(--bg) 85%, transparent), transparent 70%);
+}
+
+/* The forest along the bottom of the artwork. */
+:root[data-theme="snowdin"] .tp__decor--bottom {
+  display: block;
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  top: calc(var(--tp-art-h) - 216px);
+  height: 216px;
+  background: var(--sd-forest) right bottom / auto 216px no-repeat;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* Below the snowy ground: plain night. */
+:root[data-theme="snowdin"] .tp__decor--bottom::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 4px;
+  background: var(--bg);
+}
+
+:root[data-theme="snowdin"] .tp__head {
+  gap: 44px;
+  padding-top: calc(var(--tp-top) + 120px);
+}
+
+:root[data-theme="snowdin"] .tp__back {
+  position: absolute;
+  top: calc(var(--tp-top) + 52px);
+}
+
+:root[data-theme="snowdin"] .tp__cover {
+  overflow: visible;
+  border: 4px solid var(--line);
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.5);
+  animation: sd-appear 0.3s steps(3) both;
+}
+
+:root[data-theme="snowdin"] .tp__cover::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  top: -14px;
+  height: 16px;
+  background: var(--sd-cap) 0 0 / 80px 16px repeat-x;
+  image-rendering: pixelated;
+}
+
+:root[data-theme="snowdin"] .tp__info {
+  animation: sd-appear 0.3s 0.05s steps(3) both;
+}
+
+:root[data-theme="snowdin"] .tp__title {
+  margin-top: 8px;
+  font-size: clamp(40px, 4.4vw, 64px);
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="snowdin"] .tp__alt {
+  color: var(--muted);
+  font-size: 17px;
+}
+
+:root[data-theme="snowdin"] .tp__facts {
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* The big text box. */
+:root[data-theme="snowdin"] .tp__desc-box {
+  max-width: 820px;
+  margin-top: 18px;
+  padding: 16px 20px 18px 22px;
+  border: 4px solid var(--line);
+  background: var(--sd-box);
+}
+
+:root[data-theme="snowdin"] .tp__desc {
+  margin: 0;
+  max-width: none;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+:root[data-theme="snowdin"] .tp__actions {
+  gap: 14px;
+  margin-top: 20px;
+}
+
+:root[data-theme="snowdin"] .tp__actions .btn {
+  background: var(--sd-box);
+}
+
+:root[data-theme="snowdin"] .tp__resume {
+  gap: 12px;
+  color: var(--sd-amber);
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .tp__resume .progress {
+  width: 180px;
+  height: 10px;
+  background: var(--sd-hp);
+}
+
+:root[data-theme="snowdin"] .tp__note {
+  color: var(--sd-dim);
+  font-size: 14px;
+}
+
+:root[data-theme="snowdin"] .tp__body {
+  padding-top: 44px;
+}
+
+/* Season tabs, like the game's menu: the heart marks the one you're on. */
+:root[data-theme="snowdin"] .seasons {
+  gap: 10px 40px;
+  margin-bottom: 18px;
+  padding: 0 0 12px 30px;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.16);
+}
+
+:root[data-theme="snowdin"] .seasons__tab {
+  position: relative;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .seasons__tab::before {
+  left: -28px;
+}
+
+:root[data-theme="snowdin"] :is(.seasons__tab:hover, .seasons__tab.is-active) {
+  background: none;
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .tp__seasonnote {
+  color: var(--sd-dim);
+  font-size: 14px;
+}
+
+:root[data-theme="snowdin"] .tp__markall {
+  font-size: 15px;
+}
+
+/* Episodes */
+:root[data-theme="snowdin"] .eps {
+  margin: 0 -15px;
+  gap: 10px 30px;
+}
+
+:root[data-theme="snowdin"] .ep {
+  gap: 20px;
+  padding: 12px;
+  border: 3px solid transparent;
+  transition: none;
+  /* Room for the heart beside it (episodes are only drawn inside their own box otherwise). */
+  overflow-clip-margin: 40px;
+}
+
+:root[data-theme="snowdin"] .ep::before {
+  left: -30px;
+  top: calc(12px + 3px + 56px);
+}
+
+:root[data-theme="snowdin"] .ep:is(:hover, :focus-visible) {
+  border-color: var(--line);
+  background: rgba(6, 6, 12, 0.7);
+}
+
+:root[data-theme="snowdin"] .ep__still {
+  border: 3px solid var(--line);
+}
+
+:root[data-theme="snowdin"] .ep__play {
+  display: none;
+}
+
+:root[data-theme="snowdin"] .ep__top {
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+:root[data-theme="snowdin"] .ep__code {
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .ep__name {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] .ep:is(:hover, :focus-visible) .ep__name {
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .ep__desc {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 15.5px;
+}
+
+:root[data-theme="snowdin"] .ep__new {
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+:root[data-theme="snowdin"] .ep.is-watched .ep__still img.is-loaded {
+  opacity: 0.55;
+}
+
+:root[data-theme="snowdin"] .ep__toggle {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  background: var(--sd-box);
+}
+
+:root[data-theme="snowdin"] .ep__toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .ep__toggle.is-on {
+  border-color: var(--accent);
+  background: var(--sd-box);
+  color: var(--accent);
+}
+
+/* Movies & Specials, extras */
+:root[data-theme="snowdin"] .posters {
+  gap: 40px var(--card-gap);
+  padding-top: 26px;
+}
+
+:root[data-theme="snowdin"] .poster__change {
+  font-size: 14px;
+}
+
+:root[data-theme="snowdin"] .section-title--toggle .icon {
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .extras {
+  padding-left: 30px;
+}
+
+:root[data-theme="snowdin"] .extra {
+  position: relative;
+  border: 3px solid transparent;
+  font-size: 16px;
+}
+
+:root[data-theme="snowdin"] .extra::before {
+  left: -30px;
+}
+
+:root[data-theme="snowdin"] .extra:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: var(--sd-box);
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .extra .icon {
+  color: var(--sd-amber);
+}
+
+/* ---------- Fix match ---------- */
+
+:root[data-theme="snowdin"] .picker__heading {
+  font-size: 24px;
+  text-transform: none;
+}
+
+:root[data-theme="snowdin"] .picker__hint {
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .picker__result {
+  position: relative;
+  border: 3px solid transparent;
+}
+
+:root[data-theme="snowdin"] .picker__result:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: none;
+}
+
+:root[data-theme="snowdin"] .picker__result.is-picked {
+  border-color: var(--accent);
+  background: none;
+}
+
+:root[data-theme="snowdin"] .picker__cover {
+  border: 2px solid var(--line);
+}
+
+:root[data-theme="snowdin"] .picker__name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+:root[data-theme="snowdin"] :is(.picker__alt, .picker__meta) {
+  font-size: 14px;
+}
+
+:root[data-theme="snowdin"] .picker__actions {
+  border-top: 3px solid rgba(255, 255, 255, 0.2);
+}

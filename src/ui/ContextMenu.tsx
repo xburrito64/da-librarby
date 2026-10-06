@@ -1,8 +1,10 @@
 // Right-click menus. Wrap the screen in <ContextMenuProvider>, then any element can call
 // `openMenu(event, items)` from useContextMenu() in its onContextMenu handler.
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import type { SoundName } from "../theme/sound";
 
-export type MenuEntry = { label: string; icon?: ReactNode; onSelect: () => void; danger?: boolean } | "divider";
+/** `sfx`: the theme sound for picking it, when not the usual one (e.g. "save" for marking watched). */
+export type MenuEntry = { label: string; icon?: ReactNode; onSelect: () => void; danger?: boolean; sfx?: SoundName } | "divider";
 
 type Open = (event: React.MouseEvent, items: MenuEntry[]) => void;
 
@@ -68,6 +70,7 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
                 key={i}
                 role="menuitem"
                 className={`ctx-menu__item ${item.danger ? "ctx-menu__item--danger" : ""}`}
+                data-sfx={item.sfx}
                 onClick={() => {
                   setMenu(null);
                   item.onSelect();

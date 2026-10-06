@@ -3,6 +3,7 @@ import LibraryView from "./library/LibraryView";
 import PlayerView from "./player/PlayerView";
 import { mpv } from "./player/mpv";
 import { watch, type PlayItem } from "./library/api";
+import { setSoundsMuted } from "./theme/sound";
 
 const OBSERVED = [
   "pause",
@@ -20,6 +21,9 @@ const OBSERVED = [
 export default function App() {
   const [playing, setPlaying] = useState<PlayItem | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // A theme's interface sounds stay quiet over a video.
+  useEffect(() => setSoundsMuted(playing != null), [playing]);
 
   // Start mpv right away so playback begins instantly when something is picked.
   useEffect(() => {
