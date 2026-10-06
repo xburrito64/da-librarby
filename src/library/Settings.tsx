@@ -1,17 +1,20 @@
 // Settings: theme, library folders, online info (TMDB key).
 import { useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { getVersion } from "@tauri-apps/api/app";
 import { library, metadata, guessKind, img, KIND_LABELS, type Library, type LibraryKind, type TitleSummary } from "./api";
 import { THEMES } from "../theme/themes";
 import { setTheme, useTheme } from "../theme/theme";
 import { CheckIcon, CloseIcon } from "../ui/icons";
 
-export type SettingsSection = "appearance" | "library" | "online";
+export type SettingsSection = "appearance" | "library" | "online" | "shortcuts" | "about";
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: "appearance", label: "Appearance" },
   { id: "library", label: "Library folders" },
   { id: "online", label: "Online info" },
+  { id: "shortcuts", label: "Shortcuts" },
+  { id: "about", label: "About" },
 ];
 
 interface Props {
@@ -49,6 +52,8 @@ export default function Settings({ section, onSection, libraries, titles, onLibr
           {section === "appearance" && <Appearance titles={titles} />}
           {section === "library" && <Folders libraries={libraries} onChange={onLibraries} onError={onError} />}
           {section === "online" && <Online onError={onError} />}
+          {section === "shortcuts" && <Shortcuts />}
+          {section === "about" && <About />}
         </div>
       </div>
     </div>
@@ -104,6 +109,85 @@ function Appearance({ titles }: { titles: TitleSummary[] }) {
             </span>
           </button>
         ))}
+      </div>
+    </section>
+  );
+}
+
+const SHORTCUTS: { group: string; keys: [string, string][] }[] = [
+  {
+    group: "While watching",
+    keys: [
+      ["Space / K", "Pause / play"],
+      ["← / →", "Back / forward 5 seconds (with Shift: 30)"],
+      ["J / L", "Back / forward 10 seconds"],
+      ["↑ / ↓", "Volume up / down"],
+      ["M", "Mute"],
+      ["N", "Next episode"],
+      ["F", "Fullscreen"],
+      ["Esc", "Leave fullscreen, then back to the library"],
+      ["Click / double-click", "Pause / fullscreen"],
+      ["Mouse wheel", "Volume"],
+    ],
+  },
+  {
+    group: "In the library",
+    keys: [
+      ["Esc", "Back from a show page"],
+      ["Mouse back button", "Back from a show page or the player"],
+    ],
+  },
+];
+
+function Shortcuts() {
+  return (
+    <section>
+      <h3 className="settings__title">Shortcuts</h3>
+      <p className="settings__text">Keys and mouse moves that work around the app.</p>
+      {SHORTCUTS.map((g) => (
+        <div key={g.group} className="shortcuts">
+          <h4 className="shortcuts__group">{g.group}</h4>
+          {g.keys.map(([keys, what]) => (
+            <div key={keys} className="shortcuts__row">
+              <span className="shortcuts__keys">
+                {keys.split(" / ").map((k, i) => (
+                  <span key={i}>
+                    {i > 0 && <span className="shortcuts__or">/</span>}
+                    <kbd>{k}</kbd>
+                  </span>
+                ))}
+              </span>
+              <span className="shortcuts__what">{what}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function About() {
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    getVersion().then(setVersion).catch(() => {});
+  }, []);
+  return (
+    <section>
+      <h3 className="settings__title">Da Librarby {version && <span className="about__version">{version}</span>}</h3>
+      <p className="settings__text">A personal library and player for your anime, shows and movies.</p>
+      <div className="about">
+        <p>
+          <strong>Show and episode info</strong> comes from AniList (anime) and TMDB (shows, movies and anime episodes). This product
+          uses the TMDB API but is not endorsed or certified by TMDB.
+        </p>
+        <p>
+          <strong>One Pace</strong> titles and descriptions come from the One Pace team's episode guide, gathered by the
+          one-pace-metadata project.
+        </p>
+        <p>
+          <strong>Playback</strong> is done by mpv. Fonts: Manrope, Fraunces, Inter, Chakra Petch, JetBrains Mono, Fredoka and
+          Nunito.
+        </p>
       </div>
     </section>
   );

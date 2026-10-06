@@ -28,6 +28,7 @@ ureq = { version = "3.4.2", features = ["json"] }
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
 strsim = "0.11.1"
 tauri-plugin-single-instance = "2.5.2"
+tauri-plugin-window-state = "2.5.0"
 
 [profile.release]
 codegen-units = 1

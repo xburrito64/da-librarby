@@ -4,6 +4,7 @@ mod mpv;
 mod player;
 
 use tauri::{Manager, WindowEvent};
+use tauri_plugin_window_state::StateFlags;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -17,6 +18,13 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        // Remembers the window's size, position and maximized state (not fullscreen: the app
+        // should never start in fullscreen just because it was closed during playback).
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(StateFlags::all() - StateFlags::FULLSCREEN - StateFlags::VISIBLE)
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(player::Player::default())
@@ -29,6 +37,17 @@ pub fn run() {
             app.manage(library);
             // Pick up anything that changed on disk since last time, in the background.
             library::request_scan(app.handle(), None);
+            // The window starts hidden and the page shows it once it has drawn its first frame
+            // (no black flash). Should that never happen, show it anyway.
+            let handle = app.handle().clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(4));
+                if let Some(window) = handle.get_webview_window("main") {
+                    if !window.is_visible().unwrap_or(true) {
+                        let _ = window.show();
+                    }
+                }
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

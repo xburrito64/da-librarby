@@ -109,7 +109,9 @@ export default function Browse({ tab, titles, continueList, loaded, hasLibraries
       className={`view browse ${tab === "home" ? "view--hero" : ""} ${active ? "" : "is-covered"}`}
       onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}
     >
-      {content}
+      <div className="page-in" key={tab}>
+        {content}
+      </div>
     </div>
   );
 }

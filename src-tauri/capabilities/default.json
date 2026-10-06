@@ -8,6 +8,8 @@
     "core:window:allow-set-fullscreen",
     "core:window:allow-is-fullscreen",
     "core:window:allow-set-theme",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
     "opener:default",
     "dialog:allow-open"
   ]
