@@ -78,7 +78,9 @@ export default function Decor({ active, options }: { active: boolean; options: R
       const dpr = window.devicePixelRatio || 1;
       const w = el.clientWidth;
       const h = el.clientHeight;
-      if (el.width === Math.round(w * dpr) && el.height === Math.round(h * dpr)) return;
+      // Same size and already snowing: nothing to do. (Coming back from the player starts with no
+      // flakes, even though the window kept its size.)
+      if (flakes.length > 0 && el.width === Math.round(w * dpr) && el.height === Math.round(h * dpr)) return;
       el.width = Math.round(w * dpr);
       el.height = Math.round(h * dpr);
       flakes = Array.from({ length: Math.round((w * h) / AREA_PER_FLAKE) }, () => ({

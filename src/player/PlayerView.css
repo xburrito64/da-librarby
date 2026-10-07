@@ -414,6 +414,8 @@
 
 .player__toast {
   position: absolute;
+  /* Above the control bar's see-through top edge, so all of it can be clicked. */
+  z-index: 2;
   left: 28px;
   bottom: 138px;
   display: flex;
