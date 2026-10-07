@@ -343,10 +343,14 @@ function Spotlight({ titles, onOpen, onPlay }: { titles: TitleSummary[]; onOpen:
   });
 
   const current = featured[index];
+  // Every featured description is fetched up front, so switching never shows an empty text.
+  const featuredIds = featured.map((t) => t.id).join(",");
   useEffect(() => {
-    if (!current || current.id in descriptions) return;
-    library.title(current.id).then((d) => setDescriptions((all) => ({ ...all, [current.id]: d?.meta?.description ?? null })));
-  }, [current, descriptions]);
+    for (const t of featured) {
+      if (t.id in descriptions) continue;
+      library.title(t.id).then((d) => setDescriptions((all) => ({ ...all, [t.id]: d?.meta?.description ?? null })));
+    }
+  }, [featuredIds]);
 
   if (!current) return <div className="spotlight-spacer" />;
   const eyebrow = [KIND_LABELS[current.kind], current.year, ...current.genres.slice(0, 2)].filter(Boolean).join(" · ");
