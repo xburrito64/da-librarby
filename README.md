@@ -17,14 +17,15 @@ Windows only for now.
   Everything is saved on your computer, so the library works offline. Wrong match? Fix it by hand.
 - **A proper player.** Built on [mpv](https://mpv.io), so it plays practically anything without
   converting. Chapters, audio and subtitle tracks (remembered per show), subtitle size and position,
-  playback speed, skip intro/credits, screenshots, and the next episode plays on its own.
+  playback speed, skip intro/credits, screenshots, and the next episode plays on its own. A mini
+  player keeps the video small and on top in a corner while you do other things.
 - **Remembers what you watched.** Resume where you stopped, watched marks, "Continue watching" on
   the home screen, and "New" badges for recently added episodes.
 - **Search, sorting, right-click menus,** "Surprise me", and keyboard shortcuts for everything.
 - **Five themes**, switchable any time in Settings → Appearance: **Velvet** (dark and cinematic),
   **Paper** (a film magazine), **Neon** (synthwave arcade), **Mochi** (soft pastel) and **Snowdin**
   (a cozy snowy pixel town, after the game this app's name comes from, with falling snow, little
-  sounds and a few secrets).
+  sounds and a few secrets; you can give it your own font and sound files).
 
 ## Getting started
 
