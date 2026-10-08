@@ -3,6 +3,7 @@
 import "@fontsource-variable/pixelify-sans";
 import "./snowdin.css";
 import type { Theme } from "../themes";
+import type { CheckInfo } from "../copy";
 import { HEART_RED, ICONS, setHeartColors } from "./art";
 import { SOUNDS } from "./sounds";
 import Decor from "./Decor";
@@ -17,6 +18,36 @@ function statLine(seconds: number) {
   const exp = Math.floor(seconds / 60);
   const next = lv >= 20 ? 0 : Math.max(0, Math.ceil(2 * lv * lv * 60 - exp));
   return `* LV ${lv}    EXP ${exp}    NEXT ${next}`;
+}
+
+/** A remark about a movie, by its first genre that has one. */
+const CHECK_REMARKS: Record<string, string> = {
+  animation: "It's drawn by hand. Mostly.",
+  family: "It smells like hot cocoa.",
+  fantasy: "It believes in you.",
+  comedy: "It tells you a joke. You laugh politely.",
+  horror: "It's trying very hard to be scary.",
+  romance: "It's blushing.",
+  adventure: "It wants to go on an adventure. With you.",
+  "science fiction": "It beeps at you.",
+  action: "It's flexing.",
+  drama: "It's having a moment.",
+  music: "It hums a little tune.",
+  mystery: "It knows something you don't.",
+};
+
+/** The game's CHECK on a movie: its length as HP, its score as ATK, its year as DEF. */
+function checkLines(m: CheckInfo) {
+  const stats = [m.minutes && `HP ${m.minutes}`, m.score != null && `ATK ${m.score}`, m.year && `DEF ${m.year}`].filter(Boolean);
+  const remark = m.genres.map((g) => CHECK_REMARKS[g.toLowerCase()]).find(Boolean) ?? "It's waiting for you to press Play.";
+  return [
+    // The text box draws the first line's "*" itself.
+    `${m.name.toUpperCase()}${stats.length ? ` - ${stats.join(" ")}` : ""}`,
+    `* ${remark}`,
+    m.tagline ? `* It says: "${m.tagline}"` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export const SNOWDIN: Theme = {
@@ -121,6 +152,7 @@ export const SNOWDIN: Theme = {
       statsTab: "Stat",
       statsEmpty: "* You haven't watched anything yet. Your STATs are waiting.",
       statsLine: statLine,
+      check: checkLines,
       seasonDone: (show, season) => `* (${season} of ${show} complete. Your progress was saved.)`,
       showDone: (show) => `* (You watched every episode of ${show}. It fills you with DETERMINATION.)`,
       brandLines: [

@@ -49,6 +49,9 @@ export interface TitleSummary {
   listedAt: number | null;
   /** Episodes and movies stopped part-way (far enough in to resume, not finished). */
   started: number;
+  /** For "more like this": the studio, and the collection a movie belongs to. */
+  studio: string | null;
+  collectionId: number | null;
 }
 
 /** Information from AniList/TMDB. */
@@ -72,7 +75,46 @@ export interface TitleMeta extends Meta {
   studio: string | null;
   color: string | null;
   banner: string | null;
+  /** Movies: cast, director, tagline, collection. */
+  extra: MovieExtra | null;
 }
+
+export interface MovieExtra {
+  tagline: string | null;
+  /** Minutes. */
+  runtime: number | null;
+  collection: string | null;
+  collectionId: number | null;
+  directors: string[];
+  cast: { name: string; character: string | null; photo: string | null }[];
+}
+
+/** Moments from a movie and what's in its file (see src-tauri/src/scenes.rs). */
+export interface SceneInfo {
+  duration: number;
+  width: number | null;
+  height: number | null;
+  videoCodec: string | null;
+  audio: Track[];
+  subs: Track[];
+  scenes: { time: number; file: string; title: string | null }[];
+  /** Folder of the pictures. */
+  dir: string;
+}
+
+export interface Track {
+  lang: string | null;
+  title: string | null;
+  codec: string | null;
+  channels: number | null;
+}
+
+export const scenes = {
+  /** What's saved for a file, or null while it's being made (then `onReady` follows). */
+  get: (path: string) => invoke<SceneInfo | null>("scenes_get", { path }),
+  onReady: (callback: (path: string, info: SceneInfo | null) => void) =>
+    listen<{ path: string; info: SceneInfo | null }>("scenes:ready", (e) => callback(e.payload.path, e.payload.info)),
+};
 
 export interface SeasonRow {
   id: number;

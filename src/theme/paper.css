@@ -495,3 +495,31 @@
   font-size: 16.5px;
   font-weight: 600;
 }
+
+/* ----- Movie pages: the still printed big across the top, like a feature's opening photo ----- */
+
+:root[data-theme="paper"] .tp--movie .tp__backdrop {
+  display: block;
+  left: var(--gutter);
+  right: var(--gutter);
+  top: calc(var(--nav-h) + 72px);
+  height: 52vh;
+  border: 1px solid var(--text);
+  box-shadow: 12px 12px 0 var(--line);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+:root[data-theme="paper"] .tp--movie .tp__backdrop img {
+  opacity: 1;
+  filter: saturate(0.85) contrast(1.04);
+}
+
+:root[data-theme="paper"] .tp--movie .tp__backdrop::after {
+  display: none;
+}
+
+:root[data-theme="paper"] .tp--movie .tp__head {
+  min-height: 0;
+  padding-top: calc(52vh + 72px + 56px);
+}

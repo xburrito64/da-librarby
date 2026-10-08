@@ -18,11 +18,13 @@ import {
   type TitleDetail,
 } from "./api";
 import MatchPicker from "./MatchPicker";
-import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, PlayIcon, PlusIcon, ShuffleIcon, UndoIcon } from "../ui/icons";
+import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, UndoIcon } from "../ui/icons";
 import { useShuffle } from "./shuffle";
 import { useContextMenu, type MenuEntry } from "../ui/ContextMenu";
 import Typed from "../ui/Typed";
 import { formatDuration } from "./WatchStats";
+import { Cast, MoreLikeThis, Scenes, movieDetails, useScenes } from "./MovieParts";
+import { useCopy } from "../theme/copy";
 
 type Picking = { kind: "title" } | { kind: "season"; season: SeasonRow } | { kind: "file"; file: FileRow };
 
@@ -33,11 +35,14 @@ interface Props {
   /** Opened with a view transition, which already fades it in: no fade of its own. */
   still?: boolean;
   onBack: () => void;
-  onPlay: (fileId: number) => void;
+  /** Plays a file, from where it was stopped or from `at` seconds. */
+  onPlay: (fileId: number, at?: number) => void;
+  /** Opens another show or movie ("more like this"). */
+  onOpen: (id: number, from?: HTMLElement | null) => void;
   onScrolled: (scrolled: boolean) => void;
 }
 
-export default function TitlePage({ id, initial, still, onBack, onPlay, onScrolled }: Props) {
+export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, onScrolled }: Props) {
   const [title, setTitle] = useState<TitleDetail | null>(initial ?? null);
   /** The open tab: a season's id, or the movies. null = pick automatically. */
   const [tab, setTab] = useState<number | "movies" | null>(null);
@@ -46,7 +51,12 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
   const [picking, setPicking] = useState<Picking | null>(null);
   const openMenu = useContextMenu();
   const shuffle = useShuffle();
+  const copy = useCopy();
+  /** The theme's "check" line is shown in place of the description. */
+  const [checking, setChecking] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const movieFile = title?.isMovie ? title.files.find((f) => f.role === "movie") : undefined;
+  const sceneInfo = useScenes(movieFile?.path);
 
   const load = useCallback(() => {
     library.title(id).then(setTitle);
@@ -96,6 +106,29 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
   };
   const close = () => setPicking(null);
   const playFile = (file: FileRow) => onPlay(file.id);
+  const playTitle = (titleId: number) =>
+    library.title(titleId).then((t) => {
+      const next = t && upNext(t);
+      if (next) onPlay(next.file.id);
+    });
+  const extra = meta?.extra ?? null;
+  const details = title.isMovie ? movieDetails(movieFile, sceneInfo, extra?.runtime ?? null) : [];
+  const watchedOn =
+    movieFile?.progress?.watched && !canResume(movieFile.progress)
+      ? `Watched on ${new Date(movieFile.progress.updatedAt * 1000).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}`
+      : null;
+  const checkText =
+    title.isMovie && copy.check
+      ? copy.check({
+          name: meta?.name ?? title.name,
+          score: meta?.score ?? null,
+          year: year ?? null,
+          minutes: sceneInfo?.duration ? Math.round(sceneInfo.duration / 60) : (extra?.runtime ?? null),
+          tagline: extra?.tagline ?? null,
+          genres: meta?.genres ?? [],
+        })
+      : null;
+  const description = checking && checkText ? checkText : meta?.description;
   const seasonWatched = episodes.length > 0 && episodes.every((f) => f.progress?.watched);
   // Right-click menu of an episode or movie.
   const fileMenu = (e: React.MouseEvent, file: FileRow) => {
@@ -119,7 +152,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
   return (
     <div
       ref={ref}
-      className={`view view--hero tp ${still ? "tp--still" : ""}`}
+      className={`view view--hero tp ${title.isMovie ? "tp--movie" : ""} ${still ? "tp--still" : ""}`}
       style={{ "--c": color } as React.CSSProperties}
       onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}
     >
@@ -140,6 +173,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
           <div className="tp__eyebrow">{[KIND_LABELS[title.kind], year, meta?.studio].filter(Boolean).join(" · ")}</div>
           <h1 className="tp__title">{title.name}</h1>
           {meta?.name && meta.name.toLowerCase() !== title.name.toLowerCase() && <div className="tp__alt">{meta.name}</div>}
+          {extra?.tagline && <div className="tp__tagline">{extra.tagline}</div>}
           {(meta?.score != null || (meta?.genres.length ?? 0) > 0) && (
             <div className="tp__facts">
               {meta?.score != null && <span className="chip chip--score">{meta.score}%</span>}
@@ -150,14 +184,27 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
               ))}
             </div>
           )}
-          {meta?.description && (
+          {details.length > 0 && (
+            <div className="tp__details">
+              {details.map((d) => (
+                <span key={d}>{d}</span>
+              ))}
+            </div>
+          )}
+          {extra && extra.directors.length > 0 && (
+            <div className="tp__credits">
+              Directed by {extra.directors.slice(0, 3).join(", ")}
+              {extra.directors.length > 3 && ` and ${extra.directors.length - 3} more`}
+            </div>
+          )}
+          {description && (
             <div className="tp__desc-box">
               <Typed
                 as="p"
-                className={`tp__desc ${fullDescription ? "is-open" : ""}`}
-                onClick={() => setFullDescription((v) => !v)}
-                title={fullDescription ? undefined : "Show all"}
-                text={meta.description}
+                className={`tp__desc ${fullDescription || checking ? "is-open" : ""}`}
+                onClick={() => (checking ? setChecking(false) : setFullDescription((v) => !v))}
+                title={fullDescription || checking ? undefined : "Show all"}
+                text={description}
               />
             </div>
           )}
@@ -183,6 +230,12 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
               {title.listedAt != null ? <CheckIcon /> : <PlusIcon />}
               My List
             </button>
+            {checkText && (
+              <button className={`btn ${checking ? "is-listed" : ""}`} onClick={() => setChecking((v) => !v)} title="Check it out">
+                <InfoIcon />
+                Check
+              </button>
+            )}
             <button className="btn" onClick={() => setPicking({ kind: "title" })}>
               <EditIcon />
               Fix match
@@ -194,7 +247,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
               </button>
             )}
           </div>
-          {where && <div className="tp__where">{where}</div>}
+          {(where ?? watchedOn) && <div className="tp__where">{where ?? watchedOn}</div>}
           {upLeft != null && (
             <div className="tp__resume">
               <span className="progress tp__resume-bar">
@@ -210,6 +263,12 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
       </header>
 
       <div className="tp__body">
+        {title.isMovie && movieFile && (
+          <>
+            <Scenes info={sceneInfo} onPlay={(at) => onPlay(movieFile.id, at)} />
+            <Cast title={title} />
+          </>
+        )}
         {tabCount > 0 && (
           <section className="tp__section">
             {tabCount > 1 ? (
@@ -341,6 +400,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
               ))}
           </section>
         )}
+        {title.isMovie && <MoreLikeThis title={title} onOpen={onOpen} onPlay={playTitle} />}
       </div>
 
       {picking?.kind === "title" && (

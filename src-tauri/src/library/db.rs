@@ -9,11 +9,11 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::{params, Connection, OptionalExtension};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 9;
+const SCHEMA_VERSION: i32 = 10;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -182,6 +182,10 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
     }
     if version < 9 {
         conn.execute_batch(super::watch::SCHEMA_V9)?;
+    }
+    if version < 10 {
+        // More about a movie for its page (cast, director, tagline, collection), as JSON.
+        conn.execute_batch("ALTER TABLE title_meta ADD COLUMN extra TEXT;")?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
@@ -498,6 +502,9 @@ pub struct TitleSummary {
     pub listed_at: Option<i64>,
     /// Episodes and movies stopped part-way (far enough in to resume, not finished).
     pub started: i64,
+    /// Studio (or production company) and, for movies, the collection it belongs to: for "more like this".
+    pub studio: Option<String>,
+    pub collection_id: Option<i64>,
 }
 
 /// Things count as new for two weeks after they show up...
@@ -535,7 +542,8 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                 (SELECT added_at FROM my_list WHERE title_id = t.id),
                 (SELECT COUNT(*) FROM watch w JOIN files f ON f.id = w.file_id
                   WHERE f.title_id = t.id AND f.present = 1 AND f.role IN ('episode', 'movie')
-                    AND w.watched = 0 AND w.position >= ?3)
+                    AND w.watched = 0 AND w.position >= ?3),
+                m.studio, m.extra
          FROM titles t JOIN libraries l ON l.id = t.library_id
          LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
@@ -574,6 +582,11 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
             is_new: r.get::<_, Option<bool>>(21)?.unwrap_or(false),
             listed_at: r.get(22)?,
             started: r.get(23)?,
+            studio: r.get(24)?,
+            collection_id: r
+                .get::<_, Option<String>>(25)?
+                .and_then(|e| serde_json::from_str::<MovieExtra>(&e).ok())
+                .and_then(|e| e.collection_id),
         })
     })?;
     rows.collect()
@@ -606,6 +619,32 @@ pub struct TitleMeta {
     pub studio: Option<String>,
     pub color: Option<String>,
     pub banner: Option<String>,
+    /// For movies: cast, director, tagline, collection (photos as full paths).
+    pub extra: Option<MovieExtra>,
+}
+
+/// More about a movie, kept as JSON in `title_meta.extra`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MovieExtra {
+    pub tagline: Option<String>,
+    /// Minutes.
+    pub runtime: Option<i32>,
+    pub collection: Option<String>,
+    pub collection_id: Option<i64>,
+    #[serde(default)]
+    pub directors: Vec<String>,
+    #[serde(default)]
+    pub cast: Vec<Person>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Person {
+    pub name: String,
+    pub character: Option<String>,
+    /// Image file name when saved; a full path when sent to the interface.
+    pub photo: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -671,7 +710,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
     let meta = conn
         .query_row(
             "SELECT provider, provider_id, locked, name, description, year, score, cover, thumb,
-                    genres, status, studio, color, banner
+                    genres, status, studio, color, banner, extra
              FROM title_meta WHERE title_id = ?1",
             [id],
             |r| {
@@ -695,6 +734,14 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
                     studio: r.get(11)?,
                     color: r.get(12)?,
                     banner: image_path(images, r.get(13)?),
+                    extra: r.get::<_, Option<String>>(14)?.and_then(|e| serde_json::from_str::<MovieExtra>(&e).ok()).map(
+                        |mut e| {
+                            for p in &mut e.cast {
+                                p.photo = image_path(images, p.photo.take());
+                            }
+                            e
+                        },
+                    ),
                 })
             },
         )

@@ -2620,3 +2620,34 @@
 :root[data-theme="snowdin"] .own-files__state {
   font-size: 15px;
 }
+
+/* ---------- Movie pages: scenes and cast in the game's white frames ---------- */
+
+:root[data-theme="snowdin"] .tp--movie {
+  --tp-art-h: max(540px, calc(100vh - 230px));
+}
+
+:root[data-theme="snowdin"] .scene__art {
+  border: 3px solid var(--line);
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .scene:hover .scene__art,
+:root[data-theme="snowdin"] .scene:focus-visible .scene__art {
+  border-color: var(--accent);
+  box-shadow: none;
+}
+
+:root[data-theme="snowdin"] .scene:hover .scene__art img {
+  transform: none;
+}
+
+:root[data-theme="snowdin"] .scene__time {
+  border-radius: 0;
+  background: #000;
+}
+
+:root[data-theme="snowdin"] .person__photo {
+  border: 3px solid var(--line);
+  border-radius: 0;
+}

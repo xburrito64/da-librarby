@@ -3,7 +3,7 @@
 // The rest of the text is already there, invisibly, so nothing jumps around while it types.
 // In a box that only shows a few lines, typing stops at the bottom of the box (class "is-typing"
 // lets the box hide its "..." meanwhile).
-import { useEffect, useRef, useState, type ElementType } from "react";
+import { Fragment, useEffect, useRef, useState, type ElementType } from "react";
 import { useThemeInfo } from "../theme/theme";
 import { useThemeOption } from "../theme/options";
 import { playSound } from "../theme/sound";
@@ -28,6 +28,20 @@ interface Props {
 
 /** Lines starting with "* " (as in the game's text boxes) get a separate mark a theme can draw. */
 const MARK = "* ";
+
+/** Later lines that start with "* " get the mark too. */
+function withMarks(s: string) {
+  return s.split("\n" + MARK).map((part, i) =>
+    i === 0 ? (
+      part
+    ) : (
+      <Fragment key={i}>
+        {"\n"}
+        <span className="typed__mark">*</span> {part}
+      </Fragment>
+    ),
+  );
+}
 
 export default function Typed({ text: full, as: Tag = "span", className, title, onClick }: Props) {
   const marked = full.startsWith(MARK);
@@ -95,14 +109,14 @@ export default function Typed({ text: full, as: Tag = "span", className, title, 
       )}
       {typing ? (
         <>
-          {text.slice(0, shown)}
+          {withMarks(text.slice(0, shown))}
           <span ref={caret} />
           <span className="typed__rest" aria-hidden="true">
-            {text.slice(shown)}
+            {withMarks(text.slice(shown))}
           </span>
         </>
       ) : (
-        text
+        withMarks(text)
       )}
     </Tag>
   );

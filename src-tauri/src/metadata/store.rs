@@ -398,6 +398,9 @@ pub fn titles_needing_tmdb(conn: &Connection) -> rusqlite::Result<Vec<i64>> {
          WHERE t.present = 1 AND (
            (COALESCE(t.kind, l.kind) IN ('shows', 'movies') AND (
                NOT EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id)
+               -- Movies matched before their cast and the like were kept.
+               OR (t.is_movie = 1 AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id
+                                              AND m.provider_id IS NOT NULL AND m.extra IS NULL))
                OR EXISTS (SELECT 1 FROM seasons s WHERE s.title_id = t.id AND s.present = 1
                           AND NOT EXISTS (SELECT 1 FROM season_meta sm WHERE sm.season_id = s.id))
                OR EXISTS (SELECT 1 FROM files f WHERE f.title_id = t.id AND f.present = 1
@@ -448,6 +451,34 @@ pub struct TmdbArt {
     pub covers: HashMap<String, SavedCover>,
     pub banner: Option<String>,
     pub stills: HashMap<i64, String>,
+    /// Cast photos by TMDB person id.
+    pub people: HashMap<i64, String>,
+}
+
+/// How many of a movie's cast are shown on its page.
+pub const CAST_SHOWN: usize = 12;
+
+/// The cast, director, tagline and collection of a movie, as kept in `title_meta.extra`.
+fn movie_extra(m: &Movie, art: &TmdbArt) -> String {
+    let credits = m.credits.clone().unwrap_or_default();
+    let extra = crate::library::db::MovieExtra {
+        tagline: m.tagline.clone().filter(|t| !t.trim().is_empty()),
+        runtime: m.runtime.filter(|r| *r > 0),
+        collection: m.belongs_to_collection.as_ref().map(|c| c.name.clone()),
+        collection_id: m.belongs_to_collection.as_ref().map(|c| c.id),
+        directors: credits.crew.iter().filter(|c| c.job.as_deref() == Some("Director")).map(|c| c.name.clone()).collect(),
+        cast: credits
+            .cast
+            .iter()
+            .take(CAST_SHOWN)
+            .map(|c| crate::library::db::Person {
+                name: c.name.clone(),
+                character: c.character.clone().filter(|ch| !ch.trim().is_empty()),
+                photo: art.people.get(&c.id).cloned(),
+            })
+            .collect(),
+    };
+    serde_json::to_string(&extra).unwrap_or_default()
 }
 
 fn join_names(episodes: &[Episode]) -> Option<String> {
@@ -577,8 +608,8 @@ pub fn save_movie_title(conn: &mut Connection, title_id: i64, input: &ShowInput,
     tx.execute(
         "INSERT OR REPLACE INTO title_meta
            (title_id, provider, provider_id, locked, name, description, year, genres, score, status, studio,
-            color, cover, thumb, banner, updated_at)
-         VALUES (?1, 'tmdb', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, ?11, ?12, ?13, ?14)",
+            color, cover, thumb, banner, updated_at, extra)
+         VALUES (?1, 'tmdb', ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, ?11, ?12, ?13, ?14, ?15)",
         params![
             title_id,
             movie.map(|m| m.id.to_string()),
@@ -594,6 +625,7 @@ pub fn save_movie_title(conn: &mut Connection, title_id: i64, input: &ShowInput,
             cover.map(|c| c.thumb.clone()),
             art.banner,
             now,
+            movie.map(|m| movie_extra(m, art)),
         ],
     )?;
     for m in &input.movies {

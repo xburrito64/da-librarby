@@ -44,7 +44,8 @@ Themes that leave it out look and behave exactly as before.
 - `copy`: replaces texts such as the empty-search message, the empty-library page, the scanning line and
   the search placeholder, and adds flavor: lines under the home screen (`homeEnd`, `lateNight`,
   `december`), secret search words (`searchSecrets`) and things said when the app's name is clicked
-  (`brandLines`). See `copy.ts`.
+  (`brandLines`), and with `check` a "Check" button on movie pages that shows the theme's own lines
+  about the movie instead of its description (Snowdin's game-style CHECK). See `copy.ts`.
 - `typing`: descriptions and messages type themselves out (the `Typed` component in `src/ui`). A line
   starting with `* ` gets its `*` in a separate `.typed__mark` the theme can draw.
 - `sounds`: little interface sounds (`move`, `select`, `back`, `save`, `nope`, `text`), made with
@@ -68,3 +69,7 @@ Empty spots in the markup, hidden unless a theme shows them: `.hero__decor--back
 `--bottom` (show pages), `.tprev__decor` (the preview card), `.nav__decor` (on the app's name),
 `.empty__art` and `.search__none-art` (empty pages). Descriptions sit in `.hero__desc-box` and
 `.tp__desc-box`, for themes that frame them.
+
+Movie pages carry `.tp--movie`: their artwork fills the window (or, in Paper and Mochi, a much bigger
+picture), followed by `.scenes` (moments from the film), `.cast` and "more like this". Themes that change
+the show page's artwork usually need a `.tp--movie` version of that too.

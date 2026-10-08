@@ -238,6 +238,13 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
         if let Some(m) = &movie {
             save_poster(images, &mut art, &format!("movie-{}", m.id), m.poster_path.as_deref());
             art.banner = images.banner(&format!("tmdb-movie-{}", m.id), tmdb::image_url(m.backdrop_path.as_deref(), "w1280").as_deref());
+            let cast = m.credits.as_ref().map(|c| &c.cast[..c.cast.len().min(store::CAST_SHOWN)]).unwrap_or_default();
+            for person in cast {
+                let url = tmdb::image_url(person.profile_path.as_deref(), "w185");
+                if let Some(saved) = images.still(&format!("tmdb-person-{}", person.id), url.as_deref()) {
+                    art.people.insert(person.id, saved);
+                }
+            }
         }
         return library.with_db(|c| store::save_movie_title(c, title_id, input, movie.as_ref(), &art)).map_err(db_error);
     }

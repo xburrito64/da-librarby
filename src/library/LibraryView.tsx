@@ -41,7 +41,8 @@ export default function LibraryView({
   onShuffle,
 }: {
   active: boolean;
-  onPlay: (fileId: number) => void;
+  /** Plays a file, from where it was stopped or from `at` seconds. */
+  onPlay: (fileId: number, at?: number) => void;
   /** Plays a show's episodes in a random order. */
   onShuffle: (titleId: number) => void;
 }) {
@@ -322,6 +323,7 @@ export default function LibraryView({
           still={canTransition()}
           onBack={close}
           onPlay={onPlay}
+          onOpen={open}
           onScrolled={setScrolled}
         />
       )}

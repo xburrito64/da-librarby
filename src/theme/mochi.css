@@ -523,3 +523,14 @@
 :root[data-theme="mochi"] .ctx-menu__item {
   border-radius: 12px;
 }
+
+/* ----- Movie pages: a much bigger picture card ----- */
+
+:root[data-theme="mochi"] .tp--movie .tp__backdrop {
+  height: 58vh;
+}
+
+:root[data-theme="mochi"] .tp--movie .tp__head {
+  min-height: 0;
+  padding-top: calc(58vh - 110px);
+}

@@ -129,6 +129,38 @@ pub struct Movie {
     pub genres: Vec<Named>,
     #[serde(default)]
     pub production_companies: Vec<Named>,
+    pub tagline: Option<String>,
+    pub belongs_to_collection: Option<Collection>,
+    /// Asked for along with the movie.
+    pub credits: Option<Credits>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Collection {
+    pub id: i64,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Credits {
+    #[serde(default)]
+    pub cast: Vec<CastMember>,
+    #[serde(default)]
+    pub crew: Vec<CrewMember>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CastMember {
+    pub id: i64,
+    pub name: String,
+    pub character: Option<String>,
+    pub profile_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CrewMember {
+    pub name: String,
+    pub job: Option<String>,
 }
 
 impl Movie {
@@ -204,8 +236,9 @@ impl Tmdb {
         Ok((show, seasons))
     }
 
+    /// A movie with its cast and crew.
     pub fn movie(&self, id: i64) -> Result<Movie, Error> {
-        self.get(&format!("/movie/{id}"), &[])
+        self.get(&format!("/movie/{id}"), &[("append_to_response", "credits".to_string())])
     }
 
     fn get<T: DeserializeOwned>(&self, path: &str, params: &[(&str, String)]) -> Result<T, Error> {
