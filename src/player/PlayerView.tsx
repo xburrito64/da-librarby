@@ -426,9 +426,10 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
         else back();
       } else if (k === "ArrowLeft") seekBy(e.shiftKey ? -30 : -5);
       else if (k === "ArrowRight") seekBy(e.shiftKey ? 30 : 5);
-      // One frame back / forward (pauses).
+      // One frame back / forward (pauses). Forward jumps to the next frame rather than playing it,
+      // so no sound slips out and the play button doesn't flicker.
       else if (k === ",") mpv.command("frame-back-step");
-      else if (k === ".") mpv.command("frame-step");
+      else if (k === ".") mpv.setProperty("pause", true).then(() => mpv.command("frame-step", 1, "seek"));
       else if (k === "j") seekBy(-10);
       else if (k === "l") seekBy(10);
       else if (k === "ArrowUp") changeVolume(5);

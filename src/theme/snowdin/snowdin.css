@@ -496,6 +496,71 @@
   animation: sd-appear 0.12s steps(2) both;
 }
 
+/* ---------- Filters: menu words with the heart beside the chosen one ---------- */
+
+:root[data-theme="snowdin"] .filters__status {
+  gap: 34px;
+  padding-left: 26px;
+}
+
+:root[data-theme="snowdin"] .filter {
+  position: relative;
+  height: auto;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--sd-dim);
+  font-size: 18px;
+  font-weight: 600;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .filter:hover:not(:disabled) {
+  background: none;
+  color: var(--text);
+}
+
+:root[data-theme="snowdin"] .filter.is-on,
+:root[data-theme="snowdin"] .filter.is-on:hover {
+  background: none;
+  color: var(--accent);
+}
+
+:root[data-theme="snowdin"] .filter::before {
+  content: "";
+  position: absolute;
+  left: -26px;
+  top: 50%;
+  width: 21px;
+  height: 18px;
+  margin-top: -9px;
+  background: var(--sd-heart) center / contain no-repeat;
+  image-rendering: pixelated;
+  opacity: 0;
+}
+
+:root[data-theme="snowdin"] .filter.is-on::before {
+  opacity: 1;
+}
+
+:root[data-theme="snowdin"] .filter:not(.is-on):hover::before {
+  opacity: 0.5;
+}
+
+:root[data-theme="snowdin"] .filter__count {
+  color: var(--sd-dim);
+  font-size: 15px;
+  opacity: 1;
+}
+
+:root[data-theme="snowdin"] .filters > .filter {
+  margin-left: 26px;
+}
+
+:root[data-theme="snowdin"] .filters__none {
+  font-size: 18px;
+}
+
 /* ---------- Stat: the watch-time page as the game's stat screen ---------- */
 
 :root[data-theme="snowdin"] .stats__flavor {

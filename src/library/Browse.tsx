@@ -59,6 +59,37 @@ const SORTS: { id: SortKey; label: string }[] = [
   { id: "year", label: "Newest first" },
 ];
 
+type Status = "all" | "new" | "started" | "unstarted" | "finished";
+
+const STATUSES: { id: Status; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "unstarted", label: "Not started" },
+  { id: "started", label: "In progress" },
+  { id: "finished", label: "Finished" },
+  { id: "new", label: "New episodes" },
+];
+
+/** What a cover grid is narrowed down to. */
+interface Filters {
+  status: Status;
+  genre: string | null;
+  myList: boolean;
+}
+
+const NO_FILTERS: Filters = { status: "all", genre: null, myList: false };
+
+function statusOf(t: TitleSummary): Exclude<Status, "all" | "new"> {
+  const total = Math.max(1, t.episodes + t.movies);
+  if (t.watched >= total) return "finished";
+  return t.watched > 0 || t.lastWatched != null ? "started" : "unstarted";
+}
+
+function matches(t: TitleSummary, status: Status) {
+  if (status === "all") return true;
+  if (status === "new") return t.isNew || t.newCount > 0;
+  return statusOf(t) === status;
+}
+
 function sortTitles(titles: TitleSummary[], sort: SortKey) {
   const list = titles.slice();
   if (sort === "added") list.sort((a, b) => b.addedAt - a.addedAt);
@@ -70,6 +101,8 @@ function sortTitles(titles: TitleSummary[], sort: SortKey) {
 export default function Browse({ tab, titles, offline, query, continueList, loaded, hasLibraries, active, onTab, onOpen, onPlay, onScrolled, onAddFolder }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState<SortKey>("name");
+  /** Each kind's page keeps its own filters while the app is open. */
+  const [filters, setFilters] = useState<Partial<Record<LibraryKind, Filters>>>({});
 
   useEffect(() => {
     getSetting<SortKey>("ui.sort").then((s) => s && SORTS.some((x) => x.id === s) && setSort(s));
@@ -153,13 +186,21 @@ export default function Browse({ tab, titles, offline, query, continueList, load
       </>
     );
   else {
-    const list = sortTitles(byKind.get(tab) ?? [], sort);
+    const all = byKind.get(tab) ?? [];
+    const f = filters[tab] ?? NO_FILTERS;
+    const setF = (change: Partial<Filters>) => setFilters((prev) => ({ ...prev, [tab]: { ...f, ...change } }));
+    // Statuses are counted among what the genre and My List leave over.
+    const narrowed = all.filter((t) => (!f.genre || t.genres.includes(f.genre)) && (!f.myList || t.listedAt != null));
+    const list = sortTitles(narrowed.filter((t) => matches(t, f.status)), sort);
+    const genres = [...all.flatMap((t) => t.genres).reduce((m, g) => m.set(g, (m.get(g) ?? 0) + 1), new Map<string, number>())]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    const filtered = f.status !== "all" || f.genre != null || f.myList;
     content = (
       <section className="grid-page">
         <header className="grid-page__head">
           <h1 className="grid-page__title">{KIND_LABELS[tab]}</h1>
           <span className="grid-page__count">
-            {list.length} title{list.length === 1 ? "" : "s"}
+            {filtered ? `${list.length} of ${all.length}` : list.length} title{(filtered ? all.length : list.length) === 1 ? "" : "s"}
           </span>
           <span className="spacer" />
           <button className="btn btn--small" onClick={() => surprise(list)} title="Play something you haven't finished">
@@ -174,12 +215,62 @@ export default function Browse({ tab, titles, offline, query, continueList, load
             ))}
           </select>
         </header>
-        <OfflineNote offline={offline} titles={list} />
-        <div className="grid">
-          {list.map((t) => (
-            <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
-          ))}
+        <div className="filters">
+          <div className="filters__status" role="radiogroup" aria-label="Show">
+            {STATUSES.map((s) => {
+              const count = narrowed.filter((t) => matches(t, s.id)).length;
+              return (
+                <button
+                  key={s.id}
+                  role="radio"
+                  aria-checked={f.status === s.id}
+                  className={`filter ${f.status === s.id ? "is-on" : ""}`}
+                  disabled={count === 0 && f.status !== s.id}
+                  onClick={() => setF({ status: s.id })}
+                >
+                  {s.label}
+                  <span className="filter__count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          <span className="spacer" />
+          {all.some((t) => t.listedAt != null) && (
+            <button className={`filter ${f.myList ? "is-on" : ""}`} aria-pressed={f.myList} onClick={() => setF({ myList: !f.myList })}>
+              My List
+            </button>
+          )}
+          {genres.length > 0 && (
+            <select
+              className="input sort-select"
+              value={f.genre ?? ""}
+              onChange={(e) => setF({ genre: e.target.value || null })}
+              aria-label="Genre"
+            >
+              <option value="">All genres</option>
+              {genres.map(([g, n]) => (
+                <option key={g} value={g}>
+                  {g} ({n})
+                </option>
+              ))}
+            </select>
+          )}
         </div>
+        <OfflineNote offline={offline} titles={list} />
+        {list.length === 0 ? (
+          <p className="filters__none">
+            Nothing here matches these filters.{" "}
+            <button className="link" onClick={() => setFilters((prev) => ({ ...prev, [tab]: NO_FILTERS }))} data-sfx="back">
+              Show everything
+            </button>
+          </p>
+        ) : (
+          <div className="grid">
+            {list.map((t) => (
+              <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
+            ))}
+          </div>
+        )}
       </section>
     );
   }
