@@ -81,21 +81,10 @@ export default function WatchStats({ titles, onOpen }: { titles: TitleSummary[];
           ))}
         </div>
       </header>
-      {flavor && (
-        <p className="stats__flavor">
-          {/* A leading "* " gets the theme's own asterisk, like typed text. */}
-          {flavor.startsWith("* ") ? (
-            <>
-              <span className="typed__mark">*</span> {flavor.slice(2)}
-            </>
-          ) : (
-            flavor
-          )}
-        </p>
-      )}
+      {flavor && <p className="stats__flavor">{withMark(flavor)}</p>}
 
       {empty ? (
-        <p className="stats__empty">{copy.statsEmpty}</p>
+        <p className="stats__empty">{withMark(copy.statsEmpty)}</p>
       ) : (
         <>
           <div className="stats__tiles">
@@ -175,6 +164,16 @@ export default function WatchStats({ titles, onOpen }: { titles: TitleSummary[];
         </>
       )}
     </section>
+  );
+}
+
+/** A leading "* " gets the theme's own asterisk, like typed text. */
+function withMark(text: string) {
+  if (!text.startsWith("* ")) return text;
+  return (
+    <>
+      <span className="typed__mark">*</span> {text.slice(2)}
+    </>
   );
 }
 

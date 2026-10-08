@@ -16,19 +16,22 @@ Windows only for now.
   [TMDB](https://www.themoviedb.org): covers, banners, descriptions, episode names and pictures.
   Everything is saved on your computer, so the library works offline. Wrong match? Fix it by hand.
 - **A proper player.** Built on [mpv](https://mpv.io), so it plays practically anything without
-  converting. Pictures on the seek bar show where you'll land, and , / . step frame by frame. Chapters, audio and subtitle tracks
-  (remembered per show), subtitle size and position,
-  playback speed, skip intro/credits, screenshots, and the next episode plays on its own. A mini
-  player keeps the video small and on top in a corner while you do other things.
+  converting. Pictures on the seek bar show where you'll land. Chapters, audio and subtitle tracks
+  (remembered per show), subtitle size and position, playback speed, skip intro/credits, frame by
+  frame, screenshots, a sleep timer, and the next episode plays on its own (or a random one, when
+  shuffling a show). A mini player keeps the video small and on top in a corner while you do
+  other things.
 - **Remembers what you watched.** Resume where you stopped, watched marks, "Continue watching" on
   the home screen, "New" badges for recently added episodes, My List for things you want to
-  watch later, a little celebration when you finish a season, and a Watch time page (how much,
-  when and what you watch).
-- **Search, sorting, right-click menus,** "Surprise me", and keyboard shortcuts for everything.
+  watch later, where you are in each show, a little celebration when you finish a season, and a
+  Watch time page (how much, when and what you watch).
+- **Search, filters, sorting, right-click menus,** "Surprise me", arrow-key browsing and keyboard
+  shortcuts for everything.
 - **Five themes**, switchable any time in Settings → Appearance: **Velvet** (dark and cinematic),
   **Paper** (a film magazine), **Neon** (synthwave arcade), **Mochi** (soft pastel) and **Snowdin**
-  (a cozy snowy pixel town, after the game this app's name comes from, with falling snow, little
-  sounds, a battle start when you press Play and a few secrets; you can give it your own font, sound files and background music).
+  (a cozy snowy pixel town, after the game this app's name comes from, with falling snow, a heart
+  pointer in the colour of your choice, little sounds, a battle start when you press Play and a
+  few secrets; you can give it your own font, sound files and background music).
 
 ## Getting started
 

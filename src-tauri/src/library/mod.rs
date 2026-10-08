@@ -272,6 +272,9 @@ fn normalize(path: &str) -> String {
     let mut s = p.to_string_lossy().trim_end_matches('\\').to_string();
     if s.len() == 2 && s.ends_with(':') {
         s.push('\\'); // keep drive roots as "F:\"
+    } else if s.len() > 2 && s.get(1..2) == Some(":") && s.get(2..3) != Some("\\") {
+        // "H:Cartoons" means "wherever drive H: last was" to Windows; it's meant as "H:\Cartoons".
+        s.insert(2, '\\');
     }
     if let Some(first) = s.get(..1) {
         if s.get(1..2) == Some(":") {
@@ -286,4 +289,17 @@ fn contains(outer: &str, inner: &str) -> bool {
     let (o, i) = (outer.to_lowercase(), inner.to_lowercase());
     let o = o.trim_end_matches('\\');
     i == o || i.starts_with(&format!("{o}\\"))
+}
+
+#[cfg(test)]
+mod path_tests {
+    use super::normalize;
+
+    #[test]
+    fn folder_paths() {
+        assert_eq!(normalize("f:/Anime/"), r"F:\Anime");
+        assert_eq!(normalize("H:"), r"H:\");
+        assert_eq!(normalize(r"H:\"), r"H:\");
+        assert_eq!(normalize("H:Cartoons"), r"H:\Cartoons");
+    }
 }

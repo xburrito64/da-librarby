@@ -354,7 +354,7 @@ fn forget_old(root: &Path) {
             (at, e.path())
         })
         .collect();
-    dirs.sort_by(|a, b| b.0.cmp(&a.0));
+    dirs.sort_by_key(|d| std::cmp::Reverse(d.0));
     for (_, dir) in dirs.into_iter().skip(KEEP_VIDEOS) {
         let _ = fs::remove_dir_all(dir);
     }
