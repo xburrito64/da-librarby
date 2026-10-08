@@ -390,6 +390,11 @@ pub fn apply_scan(conn: &mut Connection, library_id: i64, titles: &[ScannedTitle
                         && old.extra_group == extra_group
                         && old.extra_movie == extra_movie;
                     if !same {
+                        // It became something else (a movie, part of another show or season):
+                        // what was looked up for it no longer fits, so look it up again.
+                        if old.title_id != title_id || old.season_id != season_id || old.role != role {
+                            tx.execute("DELETE FROM file_meta WHERE file_id = ?1 AND locked = 0", [old.id])?;
+                        }
                         tx.execute(
                             "UPDATE files SET title_id = ?2, season_id = ?3, size = ?4, mtime = ?5, role = ?6,
                                  episode = ?7, episode_end = ?8, name = ?9, year = ?10, sort = ?11, present = 1,

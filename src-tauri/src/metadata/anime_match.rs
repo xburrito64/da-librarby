@@ -161,18 +161,24 @@ fn fetch_one(src: &mut dyn Source, id: i64) -> Result<Option<Media>, Error> {
 fn find_root(input: &ShowInput, src: &mut dyn Source, seen: &mut Vec<Media>) -> Result<Option<Media>, Error> {
     let formats: Option<&[&str]> = if input.is_movie { Some(&["MOVIE", "OVA", "SPECIAL", "ONA"]) } else { None };
     let results = src.search(&input.name, formats)?;
+    // "Hunter x Hunter (2011)": the name with its year tells it apart from the 1999 series.
+    let mut names = vec![input.name.clone()];
+    names.extend(input.year.map(|y| format!("{} {y}", input.name)));
 
     let best = results
         .iter()
         .enumerate()
         .map(|(rank, m)| {
-            let sim = best_similarity(&input.name, &m.all_titles());
+            let titles = m.all_titles();
+            let sim = names.iter().map(|n| best_similarity(n, &titles)).fold(0.0, f64::max);
+            let same_year = input.year.is_some() && input.year == m.year();
             let wanted_format = if input.is_movie {
                 m.format.as_deref() == Some("MOVIE")
             } else {
                 is_series_format(m.format.as_deref(), m.episodes)
             };
-            let score = sim + if wanted_format { 0.05 } else { 0.0 } - rank as f64 * 0.01;
+            let score = sim + if wanted_format { 0.05 } else { 0.0 } + if same_year { 0.1 } else { 0.0 }
+                - rank as f64 * 0.01;
             (score, sim, m)
         })
         .filter(|(_, sim, _)| *sim >= MIN_SIMILARITY)
@@ -337,7 +343,8 @@ fn find_movie(movie: &MovieInput, show_name: &str, seen: &[Media], src: &mut dyn
         return fetch_one(src, id);
     }
 
-    let results = src.search(&movie.name, Some(&["MOVIE", "OVA", "SPECIAL", "ONA"]))?;
+    let query = names.last().unwrap_or(&movie.name);
+    let results = src.search(query, Some(&["MOVIE", "OVA", "SPECIAL", "ONA"]))?;
     Ok(results
         .into_iter()
         .map(|m| {
@@ -351,7 +358,9 @@ fn find_movie(movie: &MovieInput, show_name: &str, seen: &[Media], src: &mut dyn
 }
 
 /// The movie's name as written, and without the show's name in front
-/// ("Naruto The Movie - Legend Of The Stone Of Gelel" -> "Legend Of The Stone Of Gelel").
+/// ("Naruto The Movie - Legend Of The Stone Of Gelel" -> "Legend Of The Stone Of Gelel"),
+/// or with it when the folder leaves it out ("Phantom Rouge" -> "Hunter x Hunter Phantom Rouge").
+/// The last one is the best to search with.
 fn movie_names(name: &str, show_name: &str) -> Vec<String> {
     let mut names = vec![name.to_string()];
     let n = normalize(name);
@@ -359,14 +368,18 @@ fn movie_names(name: &str, show_name: &str) -> Vec<String> {
     if let Some(rest) = n.strip_prefix(&show) {
         let rest = rest.trim().trim_start_matches("the movie").trim();
         if rest.len() > 3 {
-            names.push(rest.to_string());
+            names.insert(0, rest.to_string());
         }
+    } else if !show.is_empty() {
+        names.push(format!("{show_name} {name}"));
     }
     names
 }
 
 pub fn normalize(s: &str) -> String {
+    // "HUNTER×HUNTER", "Departure × and × Friends": the × is read as the "x" others write.
     let lowered: String = s
+        .replace('×', " x ")
         .chars()
         .map(|c| if c.is_alphanumeric() { c.to_lowercase().next().unwrap_or(c) } else { ' ' })
         .collect();
@@ -517,11 +530,46 @@ mod tests {
     }
 
     #[test]
+    fn year_picks_the_right_version() {
+        // "Hunter x Hunter (2011)": the 1999 series is called just "Hunter x Hunter" in English.
+        let mut old = media(1, "TV", Some(62), "HUNTER×HUNTER", &[]);
+        old.title.english = Some("Hunter x Hunter".into());
+        old.season_year = Some(1999);
+        let mut new = media(2, "TV", Some(148), "HUNTER×HUNTER (2011)", &[]);
+        new.title.english = Some("Hunter x Hunter (2011)".into());
+        new.season_year = Some(2011);
+        let mut src = Fake([(1, old), (2, new)].into_iter().collect(), vec![1, 2]);
+        let input = ShowInput {
+            name: "Hunter x Hunter".into(),
+            year: Some(2011),
+            is_movie: false,
+            locked_root: None,
+            seasons: vec![season(10, 1, 1..=26), season(20, 1, 27..=38)],
+            movies: vec![],
+        };
+        let m = match_show(&input, &mut src).unwrap();
+        assert_eq!(m.root.as_ref().map(|r| r.id), Some(2));
+        let ep = |file: i64| m.episodes.iter().find(|e| e.file_id == file).and_then(|e| e.episode).unwrap();
+        assert_eq!(ep(20_027), 27);
+    }
+
+    #[test]
+    fn movie_names_with_and_without_the_show() {
+        assert_eq!(
+            movie_names("Naruto The Movie - Legend Of The Stone Of Gelel", "Naruto"),
+            ["legend of the stone of gelel", "Naruto The Movie - Legend Of The Stone Of Gelel"]
+        );
+        assert_eq!(movie_names("Phantom Rouge", "Hunter x Hunter"), ["Phantom Rouge", "Hunter x Hunter Phantom Rouge"]);
+    }
+
+    #[test]
     fn similarities() {
         assert_eq!(similarity("Jujutsu Kaisen 0", "JUJUTSU KAISEN 0"), 1.0);
         assert_eq!(similarity("Chainsaw Man – The Movie Reze Arc", "Chainsaw Man – The Movie: Reze Arc"), 1.0);
         assert_eq!(similarity("Mushoku Tensei", "Mushoku Tensei: Isekai Ittara Honki Dasu"), 0.9);
         assert!(similarity("One Pace", "One Piece") < MIN_SIMILARITY);
+        assert_eq!(similarity("Reunion × and × Understanding", "Reunion x And x Understanding"), 1.0);
+        assert_eq!(similarity("Hunter x Hunter 2011", "HUNTER×HUNTER (2011)"), 1.0);
         assert!(similarity("Naruto", "Boruto: Naruto Next Generations") < MIN_SIMILARITY);
         let part = "South Park: The Streaming Wars Part";
         assert!(similarity(part, "South Park: The Streaming Wars") > similarity(part, "South Park the Streaming Wars Part 2"));
@@ -559,7 +607,11 @@ mod live {
     #[ignore]
     fn live_anime_matching() {
         let mut src = Live(AniList::new(), HashMap::new());
-        let titles = scan_library(std::path::Path::new(r"F:\Anime"), LibraryKind::Anime).unwrap();
+        let titles: Vec<_> = [r"F:\Anime", r"D:\Anime"]
+            .iter()
+            .filter_map(|root| scan_library(std::path::Path::new(root), LibraryKind::Anime).ok())
+            .flatten()
+            .collect();
         let mut next_id = 1;
         for t in titles {
             let mut ids = |_: ()| { next_id += 1; next_id };

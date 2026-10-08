@@ -41,6 +41,7 @@ re!(SPECIALS, r"(?i)\b(specials?|sp)\b");
 re!(EXTRAS, r"(?i)\b(extras?|featurettes?|bonus|behind the scenes|nc|ncop|nced|creditless|artworks?|screens|screenshots|soundtracks?|ost|samples?|trailers?|interviews?|deleted scenes|making of|menus?)\b");
 re!(LEADING_SEASON, r"(?i)^(season\s*\d{1,3}|s\d{1,3}(e\d{1,4})?)(\s*[-–:.]\s+|\s+)");
 re!(MOVIES_FOLDER,r"(?i)^(movies|films)$");
+re!(THE_MOVIE, r"(?i)\bthe movie\b");
 re!(SXXEYY, r"(?i)\bS(\d{1,3})\s*E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?(?:-?E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?)?");
 re!(EPISODE_ONLY, r"(?i)(?:^|[\s\-_.])E(?:p|pisode)?\s?(\d{1,4}(?:\.\d+)?)(?:$|[\s\-_.])");
 re!(ABSOLUTE, r"(?:^|\s-\s)(\d{1,4})(?:\s-\s|$)");
@@ -205,6 +206,12 @@ fn season_number(s: &str) -> Option<i32> {
         return c[1].parse().ok();
     }
     SPECIALS.is_match(s).then_some(0)
+}
+
+/// A movie kept among a show's specials: "Sword Art Online The Movie Ordinal Scale"
+/// (but not the short "Sword Art Online Movie Ordinal Scale - Sword Art Offline").
+pub fn is_movie_title(title: &str) -> bool {
+    THE_MOVIE.is_match(title)
 }
 
 /// Folders that group episodes without a season number, like One Pace arcs:
@@ -412,6 +419,11 @@ mod tests {
         assert_eq!(numbered_group("01. Romance Dawn"), (Some(1.0), "Romance Dawn".into()));
         assert_eq!(numbered_group("06½. The Adventures of Buggy's Crew"), (Some(6.5), "The Adventures of Buggy's Crew".into()));
         assert_eq!(numbered_group("07. Loguetown [480p] [TBR]"), (Some(7.0), "Loguetown".into()));
+        assert_eq!(numbered_group("01. Hunter Exam Arc"), (Some(1.0), "Hunter Exam Arc".into()));
+
+        assert!(is_movie_title("Sword Art Online The Movie Ordinal Scale"));
+        assert!(!is_movie_title("Sword Art Online Movie Ordinal Scale - Sword Art Offline"));
+        assert!(!is_movie_title("The New Terrance and Phillip Movie Trailer"));
     }
 
     #[test]
@@ -444,6 +456,12 @@ mod tests {
 
         let e = ep("Adventure Time - S04E01 - Hot to the Touch (2)");
         assert_eq!(e.title.as_deref(), Some("Hot to the Touch (2)"));
+
+        let e = ep("[Judas] Hunter x Hunter (2011) - S01E018 Big × Time × Interview");
+        assert_eq!((e.season, e.episode, e.title.as_deref()), (Some(1), Some(18.0), Some("Big × Time × Interview")));
+
+        let e = ep("[Judas] Hunter x Hunter (2011) - S01E084 -A × Fated × Awakening");
+        assert_eq!((e.episode, e.title.as_deref()), (Some(84.0), Some("A × Fated × Awakening")));
 
         let e = ep("Kaiji - S02E01 - Underground Hell");
         assert_eq!((e.season, e.episode), (Some(2), Some(1.0)));

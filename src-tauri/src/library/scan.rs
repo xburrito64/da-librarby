@@ -76,7 +76,8 @@ pub struct ScannedTitle {
 pub struct ScannedSeason {
     /// Stable identity within the title: "s1", "s0", or "g:<folder name>" for arc-style groups.
     pub key: String,
-    /// None for groups without a season number (One Pace arcs).
+    /// None for groups without a season number (One Pace arcs). Story arcs whose files are
+    /// numbered within a season (Hunter x Hunter's, all "S01") carry that season's number.
     pub number: Option<i32>,
     pub label: String,
     pub sort: f64,
@@ -252,17 +253,24 @@ fn classify_other_folder(
         .iter()
         .any(|c| c.is_dir && matches!(parse::classify_folder(&c.name), FolderKind::Season(_)));
 
-    if has_season_dirs || (videos.len() >= 2 && with_season * 2 > videos.len()) {
+    let (group_number, group_label) = parse::numbered_group(&entry.name);
+    // A numbered folder of episodes is a story arc, even when its files carry a season number
+    // ("01. Hunter Exam Arc" holding "Hunter x Hunter - S01E001").
+    let arc = group_number.is_some() && !has_season_dirs && numbered * 2 > videos.len();
+
+    if !arc && (has_season_dirs || (videos.len() >= 2 && with_season * 2 > videos.len())) {
         // Its own show living inside this one: "Adventure Time: Fionna and Cake", "Distant Lands".
         scan_show(&entry.path, sub_key, Some(key), nested);
-    } else if numbered * 2 > videos.len()
-        && (videos.len() >= 2 || parse::numbered_group(&entry.name).0.is_some())
-    {
-        // Numbered episodes grouped without a season number, like One Pace's story arcs
-        // ("04. Gaimon" holds a single episode but is still an arc, not a movie).
-        let (number, label) = parse::numbered_group(&entry.name);
-        let season = title.add_group(&entry.name, label, number);
-        add_season_dir(title, &entry.path, season, None);
+    } else if arc || (numbered * 2 > videos.len() && videos.len() >= 2) {
+        // Numbered episodes grouped by story arc, like One Pace's arcs ("04. Gaimon" holds a
+        // single episode but is still an arc, not a movie). When the files all say which season
+        // they're from (Hunter x Hunter's arcs are all season 1), the arc keeps that number so
+        // its episodes can be looked up.
+        let mut seasons = parsed.iter().filter_map(|p| p.season);
+        let first = seasons.next();
+        let season_number = first.filter(|&n| n > 0 && seasons.all(|s| s == n));
+        let season = title.add_group(&entry.name, group_label, group_number, season_number);
+        add_season_dir(title, &entry.path, season, season_number);
     } else if !videos.is_empty() {
         // A movie in its own folder ("Jujutsu Kaisen 0", "South Park: Post COVID (2021)").
         let (folder_name, folder_year) = parse::title_and_year(&entry.name);
@@ -310,6 +318,12 @@ fn add_season_dir(title: &mut ScannedTitle, dir: &Path, season: usize, folder_nu
             }
         } else if parse::is_video(&entry.name) {
             let p = parse::parse_episode(parse::file_stem(&entry.name));
+            if folder_number == Some(0) && p.title.as_deref().is_some_and(parse::is_movie_title) {
+                // A movie among the specials (SAO's "S02E25 - Sword Art Online The Movie Ordinal Scale").
+                let (name, year) = parse::title_and_year(p.title.as_deref().unwrap_or_default());
+                title.push_file(entry, Role::Movie, None, None, None, Some(name), year);
+                continue;
+            }
             // Trust the file's episode number only if it belongs to this folder's season
             // (SAO's Specials folder holds "S01E26", which is special 1, not episode 26).
             let consistent = folder_number.is_none() || p.season.is_none() || p.season == folder_number;
@@ -396,12 +410,13 @@ impl ScannedTitle {
     }
 
     fn season_by_number(&mut self, number: i32) -> usize {
-        if let Some(i) = self.seasons.iter().position(|s| s.number == Some(number)) {
+        let key = format!("s{number}");
+        if let Some(i) = self.seasons.iter().position(|s| s.key == key) {
             return i;
         }
         let label = if number == 0 { "Specials".to_string() } else { format!("Season {number}") };
         self.seasons.push(ScannedSeason {
-            key: format!("s{number}"),
+            key,
             number: Some(number),
             label,
             sort: number as f64,
@@ -411,7 +426,7 @@ impl ScannedTitle {
 
     /// The heading for extras of season `number`, named like its tab.
     fn season_extras(&self, number: i32) -> ExtraGroup {
-        let label = match self.seasons.iter().find(|s| s.number == Some(number)) {
+        let label = match self.seasons.iter().find(|s| s.key == format!("s{number}")) {
             Some(s) => s.label.clone(),
             None if number == 0 => "Specials".to_string(),
             None => format!("Season {number}"),
@@ -420,9 +435,10 @@ impl ScannedTitle {
         ExtraGroup { label: Some(label), movie: false, sort }
     }
 
-    fn add_group(&mut self, folder: &str, label: String, number: Option<f64>) -> usize {
+    /// A story arc: `number` orders it, `season` is the season its episodes are numbered in.
+    fn add_group(&mut self, folder: &str, label: String, number: Option<f64>, season: Option<i32>) -> usize {
         let sort = number.unwrap_or(1000.0 + self.seasons.len() as f64);
-        self.seasons.push(ScannedSeason { key: format!("g:{folder}"), number: None, label, sort });
+        self.seasons.push(ScannedSeason { key: format!("g:{folder}"), number: season, label, sort });
         self.seasons.len() - 1
     }
 
@@ -602,6 +618,7 @@ mod tests {
             (r"F:\Cartoons", LibraryKind::Shows),
             (r"H:\Cartoons", LibraryKind::Shows),
             (r"F:\Mobies", LibraryKind::Movies),
+            (r"D:\Anime", LibraryKind::Anime),
         ] {
             println!("########## {root}");
             let titles = scan_library(Path::new(root), kind).unwrap();
