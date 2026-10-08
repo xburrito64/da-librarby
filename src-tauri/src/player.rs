@@ -162,7 +162,7 @@ fn start_mpv(app: &AppHandle, window: &WebviewWindow) -> Result<Mpv, String> {
     Mpv::new(&lib_path, &options)
 }
 
-fn find_libmpv(app: &AppHandle) -> Option<PathBuf> {
+pub fn find_libmpv(app: &AppHandle) -> Option<PathBuf> {
     let mut candidates = Vec::new();
     if let Ok(dir) = app.path().resource_dir() {
         candidates.push(dir.join("lib").join(LIBMPV_DLL));

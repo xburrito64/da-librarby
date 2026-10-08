@@ -1942,6 +1942,12 @@
   font-size: 15px;
 }
 
+:root[data-theme="snowdin"] .player__tip-picture {
+  margin: -2px -4px 6px;
+  border-radius: 0;
+  outline: 3px solid var(--line);
+}
+
 :root[data-theme="snowdin"] .player__tip-chapter {
   color: var(--sd-amber);
   font-size: 14px;

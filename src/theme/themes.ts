@@ -43,8 +43,9 @@ export interface ThemeExtras {
   /** Replacement icons, by name (see src/ui/icons.tsx), drawn from rows of "#" and ".". */
   icons?: Record<string, string[]>;
   /** A folder on this PC where the owner can add their own font ("font.*") and sound files
-   *  (named after the sounds below), used instead of the theme's. Shown in Settings → Appearance. */
-  ownFiles?: { font?: boolean; sounds?: { name: SoundName; label: string }[] };
+   *  (named after the sounds below), used instead of the theme's, and background music
+   *  ("music.*", played at the "music" option's level). Shown in Settings → Appearance. */
+  ownFiles?: { font?: boolean; sounds?: { name: SoundName; label: string }[]; music?: boolean };
   /** Called with the theme's option values while it's the current theme, and again whenever they
    *  change (e.g. to recolour its artwork). */
   apply?: (options: Record<string, boolean | string | undefined>) => void;

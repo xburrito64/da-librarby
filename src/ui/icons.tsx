@@ -93,6 +93,7 @@ export const DiceIcon = themed("dice", () => (
     </g>
   </svg>
 ));
+export const PlusIcon = themed("plus", () => <Icon d="M12 5v14M5 12h14" />);
 export const UndoIcon = themed("undo", () => <Icon d="M4 10h11a5 5 0 0 1 0 10h-3M4 10l4-4M4 10l4 4" />);
 export const CameraIcon = themed("camera", () => (
   <Icon d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />

@@ -6,9 +6,11 @@ import "./index.css";
 import "./theme/themes";
 import { initTheme } from "./theme/theme";
 import { installInterfaceSounds } from "./theme/sound";
+import { installMusic } from "./theme/music";
 
 initTheme();
 installInterfaceSounds();
+installMusic();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

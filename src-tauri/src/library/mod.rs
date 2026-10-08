@@ -233,6 +233,14 @@ pub async fn watch_set_title(app: AppHandle, library: State<'_, Library>, title_
     Ok(())
 }
 
+/// Puts a show or movie on My List, or takes it off.
+#[tauri::command]
+pub async fn library_list_set(app: AppHandle, library: State<'_, Library>, title_id: i64, on: bool) -> Result<(), String> {
+    library.with_db(|c| db::set_listed(c, title_id, on))?;
+    let _ = app.emit("library:changed", json!({}));
+    Ok(())
+}
+
 /// Removes a show from "continue watching" (until something of it is watched again).
 #[tauri::command]
 pub async fn watch_hide(app: AppHandle, library: State<'_, Library>, title_id: i64) -> Result<(), String> {

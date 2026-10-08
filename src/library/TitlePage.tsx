@@ -18,7 +18,7 @@ import {
   type TitleDetail,
 } from "./api";
 import MatchPicker from "./MatchPicker";
-import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, PlayIcon, UndoIcon } from "../ui/icons";
+import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, PlayIcon, PlusIcon, UndoIcon } from "../ui/icons";
 import { useContextMenu, type MenuEntry } from "../ui/ContextMenu";
 import Typed from "../ui/Typed";
 
@@ -156,6 +156,15 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
                 {[up.mode === "resume" ? "Resume" : "Play", upCode].filter(Boolean).join(" ")}
               </button>
             )}
+            <button
+              className={`btn ${title.listedAt != null ? "is-listed" : ""}`}
+              onClick={() => library.setListed(title.id, title.listedAt == null)}
+              title={title.listedAt != null ? "Remove from My List" : "Save it for later on the home screen"}
+              data-sfx={title.listedAt != null ? "back" : "save"}
+            >
+              {title.listedAt != null ? <CheckIcon /> : <PlusIcon />}
+              My List
+            </button>
             <button className="btn" onClick={() => setPicking({ kind: "title" })}>
               <EditIcon />
               Fix match

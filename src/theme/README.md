@@ -36,8 +36,8 @@ Themes that leave it out look and behave exactly as before.
 
 - `options`: settings of its own, listed under the theme cards in Settings → Appearance (on/off
   switches, a choice of a few values, or a colour with `kind: "color"`: presets as swatches plus any
-  colour). Read them with `useThemeOption("id")`. The ids `sounds`, `volume` and `typing` are understood
-  by the app itself.
+  colour). Read them with `useThemeOption("id")`. The ids `sounds`, `volume`, `typing` and `music`
+  (`"off"`, `"quiet"`, `"normal"`, `"loud"`) are understood by the app itself.
 - `apply`: called with the option values while the theme is on and whenever they change, for options
   the stylesheet can't handle alone (Snowdin redraws its heart in the chosen colour and turns the heart
   pointer on or off).
@@ -54,7 +54,8 @@ Themes that leave it out look and behave exactly as before.
   and `.`.
 - `ownFiles`: a folder on the owner's PC (`<app data>/theme-files/<theme id>/`) where they can put their own
   font (`font.ttf`, `.otf`, `.woff2`) and sound files named after the sounds (`select.wav`, ...), used
-  instead of the theme's (see `ownFiles.ts`). Settings shows what's in use. The files never become part
+  instead of the theme's (see `ownFiles.ts`), and with `music: true` a `music.ogg` (or `.mp3`, ...) that
+  loops in the background of the library (see `music.ts`). Settings shows what's in use. The files never become part
   of the app or the project.
 - `Decor`: a component drawn behind the library screens (Snowdin's falling snow), given the theme's option
   values.

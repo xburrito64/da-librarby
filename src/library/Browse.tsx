@@ -21,7 +21,7 @@ import {
 import { useContextMenu } from "../ui/ContextMenu";
 import { getSetting, setSetting } from "../ui/settings";
 import type { Tab } from "./LibraryView";
-import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, UndoIcon } from "../ui/icons";
+import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, UndoIcon } from "../ui/icons";
 import Typed from "../ui/Typed";
 import { useCopy } from "../theme/copy";
 import { playSound } from "../theme/sound";
@@ -89,6 +89,12 @@ export default function Browse({ tab, titles, offline, query, continueList, load
     return map;
   }, [titles]);
 
+  // Saved for later, the latest first.
+  const myList = useMemo(
+    () => titles.filter((t) => t.listedAt != null).sort((a, b) => b.listedAt! - a.listedAt!),
+    [titles],
+  );
+
   // Play a whole show: pick up where it was left, like its own Play button.
   const play = (id: number) =>
     library.title(id).then((detail) => {
@@ -123,6 +129,13 @@ export default function Browse({ tab, titles, offline, query, continueList, load
             <Row label="Continue watching" count={continueList.length} wide>
               {continueList.map((c) => (
                 <ContinueCard key={c.fileId} item={c} onPlay={onPlay} onOpen={onOpen} />
+              ))}
+            </Row>
+          )}
+          {myList.length > 0 && (
+            <Row label="My List" count={myList.length}>
+              {myList.map((t) => (
+                <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
               ))}
             </Row>
           )}
@@ -521,6 +534,9 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
           finished
             ? { label: "Mark all as unwatched", icon: <UndoIcon />, onSelect: () => watch.setTitle(title.id, false) }
             : { label: "Mark all as watched", icon: <CheckIcon />, onSelect: () => watch.setTitle(title.id, true), sfx: "save" },
+          title.listedAt != null
+            ? { label: "Remove from My List", icon: <CloseIcon />, onSelect: () => library.setListed(title.id, false) }
+            : { label: "Add to My List", icon: <PlusIcon />, onSelect: () => library.setListed(title.id, true), sfx: "save" },
           { label: "Open folder", icon: <FolderIcon />, onSelect: () => revealTitle(title.id) },
         ])
       }

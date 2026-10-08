@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 7;
+const SCHEMA_VERSION: i32 = 8;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -169,6 +169,15 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
         conn.execute_batch(
             "ALTER TABLE files ADD COLUMN extra_group TEXT;
              ALTER TABLE files ADD COLUMN extra_movie INTEGER NOT NULL DEFAULT 0;",
+        )?;
+    }
+    if version < 8 {
+        // My List: shows and movies saved for later.
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS my_list (
+                 title_id INTEGER PRIMARY KEY REFERENCES titles(id) ON DELETE CASCADE,
+                 added_at INTEGER NOT NULL
+             );",
         )?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
@@ -477,6 +486,8 @@ pub struct TitleSummary {
     /// When its newest file was added, and when something of it was last watched.
     pub added_at: i64,
     pub last_watched: Option<i64>,
+    /// When it was put on My List (None = it isn't).
+    pub listed_at: Option<i64>,
 }
 
 /// Things count as new for two weeks after they show up...
@@ -510,7 +521,8 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                 (SELECT MAX(f.added_at) FROM files f WHERE f.title_id = t.id AND f.present = 1),
                 (SELECT MAX(w.updated_at) FROM watch w JOIN files f ON f.id = w.file_id WHERE f.title_id = t.id),
                 t.added_at > (SELECT MIN(f.added_at) FROM files f WHERE f.library_id = t.library_id) + ?1
-                  AND t.added_at > ?2
+                  AND t.added_at > ?2,
+                (SELECT added_at FROM my_list WHERE title_id = t.id)
          FROM titles t JOIN libraries l ON l.id = t.library_id
          LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
@@ -547,6 +559,7 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
             added_at: r.get::<_, Option<i64>>(19)?.unwrap_or(0),
             last_watched: r.get(20)?,
             is_new: r.get::<_, Option<bool>>(21)?.unwrap_or(false),
+            listed_at: r.get(22)?,
         })
     })?;
     rows.collect()
@@ -625,6 +638,8 @@ pub struct TitleDetail {
     pub meta: Option<TitleMeta>,
     pub seasons: Vec<SeasonRow>,
     pub files: Vec<FileRow>,
+    /// When it was put on My List (None = it isn't).
+    pub listed_at: Option<i64>,
 }
 
 pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Result<Option<TitleDetail>> {
@@ -753,7 +768,18 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
         })?
         .collect::<rusqlite::Result<_>>()?;
 
-    Ok(Some(TitleDetail { id, kind, name, year, is_movie, folder, meta, seasons, files }))
+    let listed_at = conn.query_row("SELECT added_at FROM my_list WHERE title_id = ?1", [id], |r| r.get(0)).optional()?;
+    Ok(Some(TitleDetail { id, kind, name, year, is_movie, folder, meta, seasons, files, listed_at }))
+}
+
+/// Puts a title on My List or takes it off.
+pub fn set_listed(conn: &Connection, title_id: i64, on: bool) -> rusqlite::Result<()> {
+    if on {
+        conn.execute("INSERT OR IGNORE INTO my_list (title_id, added_at) VALUES (?1, ?2)", params![title_id, now()])?;
+    } else {
+        conn.execute("DELETE FROM my_list WHERE title_id = ?1", [title_id])?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]

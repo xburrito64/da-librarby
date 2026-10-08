@@ -1,4 +1,4 @@
-//! A theme's "your own files" folder: a font and sounds the owner adds themselves (for example
+//! A theme's "your own files" folder: a font, sounds and music the owner adds themselves (for example
 //! from their own copy of a game). The files stay on this PC; nothing in here is part of the app.
 //! Each theme has its own folder: <app data>\theme-files\<theme id>\.
 
@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
-/// File types the app can use: fonts and sounds.
-const USABLE: &[&str] = &["ttf", "otf", "woff", "woff2", "wav", "ogg", "mp3", "flac"];
+/// File types the app can use: fonts, and sounds and music.
+const USABLE: &[&str] = &["ttf", "otf", "woff", "woff2", "wav", "ogg", "mp3", "flac", "m4a", "opus"];
 
 #[derive(Serialize)]
 pub struct ThemeFiles {

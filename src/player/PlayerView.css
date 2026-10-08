@@ -217,6 +217,22 @@
   pointer-events: none;
 }
 
+/* A picture from that moment of the video. */
+.player__tip-picture {
+  display: block;
+  width: 200px;
+  aspect-ratio: 16 / 9;
+  margin: -2px -6px 4px;
+  border-radius: calc(var(--radius) - 4px);
+  object-fit: cover;
+  background: #000;
+}
+
+.player--mini .player__tip-picture {
+  width: 120px;
+  margin-bottom: 2px;
+}
+
 .player__tip-chapter {
   font-size: 11.5px;
   font-weight: 600;

@@ -4,6 +4,7 @@ mod mini_player;
 mod mpv;
 mod player;
 mod theme_files;
+mod thumbnails;
 
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_window_state::StateFlags;
@@ -64,6 +65,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(player::Player::default())
+        .manage(thumbnails::Thumbs::default())
         .setup(|app| {
             let library = library::Library::open(app.handle())?;
             app.manage(metadata::Metadata::new(&library));
@@ -74,6 +76,10 @@ pub fn run() {
             let own_files = theme_files::root(app.handle())?;
             std::fs::create_dir_all(&own_files)?;
             app.asset_protocol_scope().allow_directory(&own_files, true)?;
+            // Seek bar pictures (see thumbnails.rs).
+            let thumbs = thumbnails::root(app.handle())?;
+            std::fs::create_dir_all(&thumbs)?;
+            app.asset_protocol_scope().allow_directory(&thumbs, true)?;
             app.manage(library);
             // Pick up anything that changed on disk since last time, in the background.
             library::request_scan(app.handle(), None);
@@ -94,6 +100,9 @@ pub fn run() {
             player::player_set_property,
             player::player_get_property,
             player::player_screenshot_dir,
+            thumbnails::thumbs_open,
+            thumbnails::thumbs_want,
+            thumbnails::thumbs_close,
             theme_files::theme_files,
             theme_files::theme_files_open,
             mini_player::player_mini,
@@ -113,6 +122,7 @@ pub fn run() {
             library::watch_hide,
             library::watch_set_title,
             library::library_search,
+            library::library_list_set,
             metadata::metadata_status,
             metadata::metadata_search,
             metadata::metadata_match_title,
@@ -138,3 +148,4 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+

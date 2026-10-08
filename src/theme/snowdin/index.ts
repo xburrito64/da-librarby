@@ -41,6 +41,18 @@ export const SNOWDIN: Theme = {
       { id: "typing", label: "Typing text", hint: "Descriptions type themselves out the first time you see them.", default: true },
       { id: "sounds", label: "Sounds", hint: "Little blips when you point at and pick things. Never during a video.", default: true },
       {
+        id: "music",
+        label: "Music",
+        hint: "Your own music file, quietly in the background (see Your own files below). Never during a video.",
+        choices: [
+          { value: "off", label: "Off" },
+          { value: "quiet", label: "Quiet" },
+          { value: "normal", label: "Normal" },
+          { value: "loud", label: "Loud" },
+        ],
+        default: "normal",
+      },
+      {
         id: "volume",
         label: "Sound volume",
         choices: [
@@ -106,6 +118,7 @@ export const SNOWDIN: Theme = {
         { name: "nope", label: "Nothing found" },
         { name: "text", label: "Text typing" },
       ],
+      music: true,
     },
     typing: true,
     icons: ICONS,

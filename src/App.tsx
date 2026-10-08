@@ -4,6 +4,7 @@ import PlayerView from "./player/PlayerView";
 import { mpv } from "./player/mpv";
 import { watch, type PlayItem } from "./library/api";
 import { setSoundsMuted } from "./theme/sound";
+import { holdMusic, setMusicLevel } from "./theme/music";
 import { useTheme } from "./theme/theme";
 import { findTheme } from "./theme/themes";
 import { useThemeOptions } from "./theme/options";
@@ -37,10 +38,14 @@ export default function App() {
   const optionsKey = JSON.stringify(options);
   useEffect(() => {
     findTheme(theme)?.extras?.apply?.(JSON.parse(optionsKey));
+    setMusicLevel(JSON.parse(optionsKey).music);
   }, [theme, optionsKey]);
 
   // A theme's interface sounds stay quiet over a video.
-  useEffect(() => setSoundsMuted(playing != null), [playing]);
+  useEffect(() => {
+    setSoundsMuted(playing != null);
+    holdMusic("video", playing != null);
+  }, [playing]);
 
   // Start mpv right away so playback begins instantly when something is picked.
   useEffect(() => {

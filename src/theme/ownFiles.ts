@@ -1,11 +1,13 @@
 // A theme's "your own files" folder (see `extras.ownFiles` in themes.ts): a font and sounds the
 // owner adds themselves. They stay on this PC; the app only looks for them.
 // A font named "font.*" replaces the theme's text font (root class "own-font");
-// sounds named after a sound ("select.wav", ...) replace the theme's own blips.
+// sounds named after a sound ("select.wav", ...) replace the theme's own blips;
+// "music.*" plays in the background (see music.ts).
 import { useSyncExternalStore } from "react";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { findTheme } from "./themes";
 import { setOwnSounds, type SoundName } from "./sound";
+import { setMusicFile } from "./music";
 
 export interface OwnFiles {
   folder: string;
@@ -62,6 +64,8 @@ export async function loadOwnFiles(themeId: string) {
   }
   if (mine !== request) return;
   setOwnSounds(sounds);
+  const music = wanted?.music ? found?.files.find((f) => f.name === "music" && !/\.(ttf|otf|woff2?)$/i.test(f.path)) : undefined;
+  setMusicFile(music ? convertFileSrc(music.path) : null);
   changed(found);
 }
 

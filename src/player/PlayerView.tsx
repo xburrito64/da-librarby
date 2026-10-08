@@ -27,6 +27,7 @@ import {
   VolumeIcon,
   VolumeLowIcon,
 } from "../ui/icons";
+import { useSeekPictures } from "./thumbs";
 import "./PlayerView.css";
 
 const HIDE_CONTROLS_AFTER_MS = 2800;
@@ -141,6 +142,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const miniRef = useRef(false);
   const pressRef = useRef<{ x: number; y: number } | null>(null);
   const draggedRef = useRef(false);
+  const pictures = useSeekPictures(item.path);
 
   // ----- Loading a file -----
 
@@ -508,6 +510,13 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
     draggingRef.current = false;
     mpv.command("seek", (fractionAt(e.clientX) * duration).toFixed(2), "absolute");
   };
+  // The picture above the time, kept inside the bar at its ends.
+  const hoverPicture = hover ? pictures.at(hover.time) : null;
+  const tipLeft = (() => {
+    if (!hover || !hoverPicture || !seekRef.current) return hover?.x;
+    const half = mini ? 70 : 110;
+    return Math.max(half, Math.min(seekRef.current.clientWidth - half, hover.x));
+  })();
   const chapterAt = (t: number) => {
     let found: Chapter | undefined;
     for (const c of chapters) if (c.time <= t) found = c;
@@ -695,7 +704,8 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
             chapters.slice(1).map((c, i) => <span key={i} className="player__tick" style={{ left: `${(c.time / duration) * 100}%` }} />)}
           <div className="player__knob" style={{ left: `${played}%` }} />
           {hover && (
-            <div className="player__tip" style={{ left: hover.x }}>
+            <div className="player__tip" style={{ left: tipLeft }}>
+              {hoverPicture && <img className="player__tip-picture" src={hoverPicture} alt="" />}
               {chapterAt(hover.time) && <span className="player__tip-chapter">{chapterAt(hover.time)}</span>}
               {formatTime(hover.time)}
             </div>

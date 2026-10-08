@@ -45,6 +45,8 @@ export interface TitleSummary {
   /** When its newest file was added / something of it was last watched (seconds). */
   addedAt: number;
   lastWatched: number | null;
+  /** When it was put on My List (null = it isn't). */
+  listedAt: number | null;
 }
 
 /** Information from AniList/TMDB. */
@@ -116,6 +118,8 @@ export interface TitleDetail {
   meta: TitleMeta | null;
   seasons: SeasonRow[];
   files: FileRow[];
+  /** When it was put on My List (null = it isn't). */
+  listedAt: number | null;
 }
 
 export const library = {
@@ -129,6 +133,8 @@ export const library = {
   titles: () => invoke<TitleSummary[]>("library_titles"),
   title: (id: number) => invoke<TitleDetail | null>("library_title", { id }),
   search: (query: string) => invoke<SearchResults>("library_search", { query }),
+  /** Puts a show or movie on My List, or takes it off. */
+  setListed: (titleId: number, on: boolean) => invoke<void>("library_list_set", { titleId, on }),
 
   onScan: (callback: (status: { running: boolean; library: string | null }) => void) =>
     listen<{ running: boolean; library: string | null }>("library:scan", (e) => callback(e.payload)),

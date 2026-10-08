@@ -214,15 +214,20 @@ function OwnFiles() {
   const own = useOwnFiles();
   const wanted = theme?.extras?.ownFiles;
   if (!theme || !wanted) return null;
-  const rows = [...(wanted.font ? [{ name: "font", label: "Font" }] : []), ...(wanted.sounds ?? [])];
+  const rows = [
+    ...(wanted.font ? [{ name: "font", label: "Font" }] : []),
+    ...(wanted.sounds ?? []),
+    ...(wanted.music ? [{ name: "music", label: "Background music", optional: true }] : []),
+  ];
   const found = (name: string) => own?.files.find((f) => f.name === name);
   return (
     <div className="own-files">
       <h3 className="settings__title">Your own files</h3>
       <p className="settings__text">
-        Want a different font or sounds in {theme.name}? Put the files in its folder, named as below (a font as .ttf, .otf or
-        .woff2; sounds as .wav, .ogg or .mp3), then press Reload. They're used instead of the built-in ones and stay on this
-        PC only.
+        Want a different font or sounds in {theme.name}
+        {wanted.music ? ", or music in the background" : ""}? Put the files in its folder, named as below (a font as .ttf,
+        .otf or .woff2; sounds{wanted.music ? " and music" : ""} as .ogg, .mp3 or .wav), then press Reload. They're used
+        instead of the built-in ones and stay on this PC only.
       </p>
       <div className="own-files__list">
         {rows.map((r) => {
@@ -231,7 +236,9 @@ function OwnFiles() {
             <div key={r.name} className="own-files__row">
               <span className="own-files__label">{r.label}</span>
               <span className="own-files__name">{file ? file.path.split(/[\\/]/).pop() : `${r.name}.…`}</span>
-              <span className={`own-files__state ${file ? "is-found" : ""}`}>{file ? "In use" : "Built-in"}</span>
+              <span className={`own-files__state ${file ? "is-found" : ""}`}>
+                {file ? "In use" : "optional" in r ? "Not added" : "Built-in"}
+              </span>
             </div>
           );
         })}
