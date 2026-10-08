@@ -26,8 +26,8 @@ const BREEZE = 1.1 * DAMPING * Math.sqrt(STIFFNESS);
 /** A click's push (so it swings out about 6 degrees), and the gentle one with the dog on it. */
 const PUSH = 24;
 const NUDGE = 5;
-/** Each swing knocks off this much of the snow (all of it is 1)... */
-const SNOW_PER_SWING = 0.55;
+/** Each swing knocks off this much of the snow (all of it is 1): five swings clear it... */
+const SNOW_PER_SWING = 0.2;
 /** ...which takes this long to build up again from nothing. */
 const SNOW_REGROW_S = 180;
 
@@ -149,7 +149,7 @@ function shakeSnow(side: number) {
   regrow();
   if (still()) return;
   const r = sign.getBoundingClientRect();
-  const count = Math.round(lost * 18);
+  const count = Math.round(lost * 30);
   const fresh: Clump[] = [];
   for (let i = 0; i < count; i++) {
     fresh.push({
