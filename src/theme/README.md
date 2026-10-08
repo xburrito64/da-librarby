@@ -58,11 +58,13 @@ Themes that leave it out look and behave exactly as before.
   loops in the background of the library; several (`music-1.ogg`, `music-town.ogg`, ...) take turns
   (see `music.ts`). Settings shows what's in use. The files never become part
   of the app or the project.
+- `brandClick`: answers clicks on the app's name with something to say (or the usual
+  `brandLines`); Snowdin swings its sign and wakes the dog sleeping on it.
 - `Decor`: a component drawn behind the library screens (Snowdin's falling snow), given the theme's option
   values.
 
 Empty spots in the markup, hidden unless a theme shows them: `.hero__decor--back` / `--top` /
 `--bottom` (the spotlight; "back" sits right in front of the artwork), `.tp__decor--back` / `--top` /
-`--bottom` (show pages), `.tprev__decor` (the preview card),
+`--bottom` (show pages), `.tprev__decor` (the preview card), `.nav__decor` (on the app's name),
 `.empty__art` and `.search__none-art` (empty pages). Descriptions sit in `.hero__desc-box` and
 `.tp__desc-box`, for themes that frame them.

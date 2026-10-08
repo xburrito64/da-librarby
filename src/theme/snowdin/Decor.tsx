@@ -4,6 +4,7 @@
 // snow fall within the scene.
 import { useEffect, useRef } from "react";
 import { drawScenes } from "./art";
+import { SignExtras } from "./sign";
 
 /** One snowflake per this many square pixels of window. */
 const AREA_PER_FLAKE = 9000;
@@ -125,5 +126,10 @@ export default function Decor({ active, options }: { active: boolean; options: R
     };
   }, [snow]);
 
-  return <canvas ref={canvas} className="sd-snow" aria-hidden="true" />;
+  return (
+    <>
+      <canvas ref={canvas} className="sd-snow" aria-hidden="true" />
+      <SignExtras />
+    </>
+  );
 }

@@ -7,6 +7,7 @@ import { HEART_RED, ICONS, setHeartColors } from "./art";
 import { SOUNDS } from "./sounds";
 import Decor from "./Decor";
 import Encounter from "./Encounter";
+import { signClick } from "./sign";
 
 /** The game's stat screen, for watching: LV goes up with hours watched (2 h for LV 2, 8 h for
  *  LV 3, 18 h for LV 4, ... up to LV 20), EXP is minutes watched, NEXT the minutes to the next LV. */
@@ -154,5 +155,6 @@ export const SNOWDIN: Theme = {
     },
     Decor,
     PlayIntro: Encounter,
+    brandClick: signClick,
   },
 };

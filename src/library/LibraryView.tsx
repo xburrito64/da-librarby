@@ -63,6 +63,7 @@ export default function LibraryView({
   const searchRef = useRef<HTMLInputElement>(null);
   const copy = useCopy();
   const Decor = useThemeInfo()?.extras?.Decor;
+  const brandClick = useThemeInfo()?.extras?.brandClick;
   const themeOptions = useThemeOptions();
   /** A message from the theme in a text box at the bottom (e.g. clicking the app's name). */
   const [said, setSaid] = useState<{ text: string; n: number; save?: boolean } | null>(null);
@@ -235,7 +236,9 @@ export default function LibraryView({
           className="nav__brand"
           onClick={() => {
             const atHome = tab === "home" && openTitle == null && !query.trim();
-            if (atHome && copy.brandLines.length > 0) {
+            const line = brandClick?.({ sound: playSound });
+            if (line) setSaid({ text: line, n: Date.now() });
+            else if (atHome && copy.brandLines.length > 0) {
               const n = brandClicks.current++;
               setSaid({ text: copy.brandLines[n % copy.brandLines.length], n });
             }
@@ -244,6 +247,7 @@ export default function LibraryView({
         >
           <span className="nav__logo" aria-hidden="true" />
           <span className="nav__name">Da Librarby</span>
+          <span className="nav__decor" aria-hidden="true" />
         </button>
         <div className="nav__tabs">
           {(["home", ...kinds, "stats"] as Tab[]).map((t) => (

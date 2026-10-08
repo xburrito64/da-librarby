@@ -2973,6 +2973,11 @@ select.input {
   cursor: pointer;
 }
 
+/* A spot on the app's name for themes that decorate it. */
+.nav__decor {
+  display: none;
+}
+
 /* A theme's message at the bottom of the window (e.g. after clicking the app's name). */
 .say {
   position: fixed;

@@ -69,6 +69,18 @@ const DOG = [
   "....KKKKKKKKKKKK...",
 ];
 
+/** The dog curled up asleep (on the town sign), and the same with its eye open. */
+const DOG_ASLEEP = [
+  "...KK.............",
+  "..KWWK....KKKKK...",
+  ".KWWWWKKKKWWWWWK..",
+  ".KWKKWWWWWWWWWWWKK",
+  "KWWWWWWWWWWWWWWWWK",
+  "KWWwWWWWWWWwWWWWWK",
+  ".KKKKKKKKKKKKKKKK.",
+];
+const DOG_AWAKE = DOG_ASLEEP.map((row, y) => (y === 3 ? ".KWKWWWWWWWWWWWWKK" : row));
+
 /** The game-style "*" that starts a line of text (drawn as a mask, so it takes the text colour). */
 const ASTERISK = ["..W..", "W.W.W", ".WWW.", "W.W.W", "..W.."];
 
@@ -171,6 +183,8 @@ setHeartColors(PALETTE.R);
 setVar("--sd-star", sprite(STAR));
 setVar("--sd-cap", sprite(CAP));
 setVar("--sd-dog", sprite(DOG));
+setVar("--sd-dog-asleep", sprite(DOG_ASLEEP));
+setVar("--sd-dog-awake", sprite(DOG_AWAKE));
 setVar("--sd-asterisk", sprite(ASTERISK));
 setVar("--sd-lights", lightsTile());
 setVar("--sd-lights-glow-a", lightsTile("a"));
