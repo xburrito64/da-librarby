@@ -239,6 +239,8 @@ export function fileName(path: string) {
 
 /** Everything the player needs to play one file. */
 export interface PlayItem {
+  /** Playing a show shuffled: the episodes still to come, in order (file ids). */
+  shuffle?: number[];
   fileId: number;
   titleId: number;
   titleName: string;

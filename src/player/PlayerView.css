@@ -233,6 +233,16 @@
   margin-bottom: 2px;
 }
 
+/* "· Shuffled" after the show's name. */
+.player__shuffled {
+  opacity: 0.75;
+}
+
+/* A menu button with something switched on in it (the sleep timer). */
+.player__btn.is-on {
+  color: var(--accent);
+}
+
 .player__tip-chapter {
   font-size: 11.5px;
   font-weight: 600;

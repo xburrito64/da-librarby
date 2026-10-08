@@ -116,6 +116,7 @@ export const SNOWDIN: Theme = {
         "annoying dog": "* A little white dog runs off with your search. You let it.",
         "spaghetti": "* There is a plate of cold spaghetti here. Nobody is sure who made it.",
       },
+      sleepDone: "* (You feel sleepy. The video paused for you.)",
       statsTab: "Stat",
       statsEmpty: "* You haven't watched anything yet. Your STATs are waiting.",
       statsLine: statLine,

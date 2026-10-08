@@ -10,13 +10,16 @@ export function canTransition() {
 }
 
 /**
- * Runs `update` (a React state change) as a view transition. `from` is named `name` in the old
+ * Runs `update` (a React state change) as a view transition; resolves when it's over. `from` is named `name` in the old
  * picture, `to` in the new one, so it glides between the two; either may be left out.
  */
-export function transition(update: () => void, shared?: { name: string; from?: HTMLElement | null; to?: () => HTMLElement | null }) {
+export function transition(
+  update: () => void,
+  shared?: { name: string; from?: HTMLElement | null; to?: () => HTMLElement | null },
+): Promise<void> {
   if (!canTransition()) {
     update();
-    return;
+    return Promise.resolve();
   }
   const from = shared?.from;
   if (from && shared) from.style.viewTransitionName = shared.name;
@@ -28,9 +31,11 @@ export function transition(update: () => void, shared?: { name: string; from?: H
     to = shared?.to?.() ?? null;
     if (to && shared) to.style.viewTransitionName = shared.name;
   });
-  t.finished.finally(() => {
-    if (to) to.style.viewTransitionName = "";
-  });
+  return t.finished
+    .catch(() => {})
+    .finally(() => {
+      if (to) to.style.viewTransitionName = "";
+    });
 }
 
 /** Waits until an image is ready to draw (or a short while at most), so it's in the new picture. */

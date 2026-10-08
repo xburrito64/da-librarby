@@ -21,9 +21,10 @@ import {
 import { useContextMenu } from "../ui/ContextMenu";
 import { getSetting, setSetting } from "../ui/settings";
 import type { Tab } from "./LibraryView";
-import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, UndoIcon } from "../ui/icons";
+import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, UndoIcon } from "../ui/icons";
 import Typed from "../ui/Typed";
 import WatchStats from "./WatchStats";
+import { useShuffle } from "./shuffle";
 import { useCopy } from "../theme/copy";
 import { playSound } from "../theme/sound";
 
@@ -612,6 +613,7 @@ function ContinueCard({ item, onPlay, onOpen }: { item: ContinueItem; onPlay: (f
 
 export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (id: number, from?: HTMLElement | null) => void; onPlay: (id: number) => void }) {
   const openMenu = useContextMenu();
+  const shuffle = useShuffle();
   const total = Math.max(1, title.episodes + title.movies);
   const finished = title.watched >= total;
   const badge = title.isNew ? "New" : title.newCount > 0 ? `${title.newCount} new` : null;
@@ -623,6 +625,9 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
       onContextMenu={(e) =>
         openMenu(e, [
           { label: "Play", icon: <PlayIcon />, onSelect: () => onPlay(title.id) },
+          ...(shuffle && title.episodes > 1
+            ? [{ label: "Shuffle episodes", icon: <ShuffleIcon />, onSelect: () => shuffle(title.id) }]
+            : []),
           { label: "Show details", icon: <InfoIcon />, onSelect: () => onOpen(title.id) },
           "divider",
           finished

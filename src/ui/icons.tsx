@@ -93,6 +93,8 @@ export const DiceIcon = themed("dice", () => (
     </g>
   </svg>
 ));
+export const MoonIcon = themed("moon", () => <Icon d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />);
+export const ShuffleIcon = themed("shuffle", () => <Icon d="M4 7h3.5c2 0 3.2 1 4.5 3l1 2c1.3 2 2.5 3 4.5 3H20M17 12.5l3 2.5-3 2.5M4 17h3.5c1.4 0 2.4-.5 3.2-1.4M13.3 8.4C14.1 7.5 15.1 7 16.5 7H20M17 4.5L20 7l-3 2.5" />);
 export const PlusIcon = themed("plus", () => <Icon d="M12 5v14M5 12h14" />);
 export const UndoIcon = themed("undo", () => <Icon d="M4 10h11a5 5 0 0 1 0 10h-3M4 10l4-4M4 10l4 4" />);
 export const CameraIcon = themed("camera", () => (

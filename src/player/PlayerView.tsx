@@ -7,6 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { mpv } from "./mpv";
 import { watch, img, itemCode, itemName, reveal, type PlayItem } from "../library/api";
 import { getSetting, setSetting } from "../ui/settings";
+import { useCopy } from "../theme/copy";
 import {
   BackIcon,
   CameraIcon,
@@ -17,6 +18,7 @@ import {
   FullscreenIcon,
   LeaveMiniIcon,
   MiniPlayerIcon,
+  MoonIcon,
   MuteIcon,
   NextIcon,
   PauseIcon,
@@ -96,7 +98,13 @@ interface TrackPrefs {
   speed?: number;
 }
 
-type Menu = "tracks" | "chapters" | "speed" | null;
+type Menu = "tracks" | "chapters" | "speed" | "sleep" | null;
+
+/** The sleep timer: at the end of the episode playing, or at a time. */
+type Sleep = { at: "episode" } | { at: number } | null;
+const SLEEP_MINUTES = [15, 30, 45, 60, 90];
+/** The sound fades out over this long before the video pauses. */
+const SLEEP_FADE_MS = 8000;
 
 interface Props {
   item: PlayItem;
@@ -130,6 +138,9 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const [showRemaining, setShowRemaining] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [notice, setNotice] = useState<{ text: string; path?: string } | null>(null);
+  const [sleep, setSleep] = useState<Sleep>(null);
+  const [sleepNow, setSleepNow] = useState(() => Date.now());
+  const copy = useCopy();
 
   const timeRef = useRef(item.resume ?? 0);
   const durationRef = useRef(item.duration ?? 0);
@@ -172,7 +183,14 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
       .setProperty("pause", false)
       .then(() => mpv.command("loadfile", item.path, "replace", -1, start))
       .catch((e) => setError(String(e)));
-    watch.next(fileId).then(setNext).catch(() => {});
+    // Shuffled: the next episode is the next one in the shuffled order.
+    const queue = item.shuffle;
+    const upcoming = queue
+      ? queue.length > 0
+        ? watch.item(queue[0]).then((n) => (n ? { ...n, shuffle: queue.slice(1) } : null))
+        : Promise.resolve(null)
+      : watch.next(fileId);
+    upcoming.then(setNext).catch(() => {});
 
     return () => {
       // Leaving this file (back, next episode or closing): remember where it stopped.
@@ -464,6 +482,46 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const inEnding = chapter >= 0 && chapter >= chapters.length - 3 && ENDING_CHAPTER.test(chapters[chapter]?.title ?? "");
   const showUpNext = !!next && !upNextClosed && !error && (ended || remaining < UP_NEXT_SECONDS || inEnding);
 
+  // ----- Sleep timer -----
+
+  /** Fades the sound out, pauses, and puts the volume back for next time. */
+  const fallAsleep = useCallback(async () => {
+    setSleep(null);
+    setMenu(null);
+    const start = await mpv.getProperty<number>("volume").catch(() => 100);
+    const steps = 40;
+    for (let i = 1; i <= steps; i++) {
+      await new Promise((r) => window.setTimeout(r, SLEEP_FADE_MS / steps));
+      await mpv.setProperty("volume", Math.round(start * (1 - i / steps))).catch(() => {});
+    }
+    await mpv.setProperty("pause", true).catch(() => {});
+    await mpv.setProperty("volume", start).catch(() => {});
+    setNotice({ text: copy.sleepDone });
+  }, [copy.sleepDone]);
+
+  useEffect(() => {
+    if (sleep == null || sleep.at === "episode") return;
+    const timer = window.setInterval(() => setSleepNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [sleep]);
+  useEffect(() => {
+    if (sleep != null && sleep.at !== "episode" && sleepNow >= sleep.at) fallAsleep();
+  }, [sleep, sleepNow, fallAsleep]);
+  // "End of this episode": no next one, just a note.
+  useEffect(() => {
+    if (ended && sleep?.at === "episode") {
+      setSleep(null);
+      setUpNextClosed(true);
+      setNotice({ text: copy.sleepDone });
+    }
+  }, [ended, sleep, copy.sleepDone]);
+  const sleepMinutes = sleep != null && sleep.at !== "episode" ? Math.max(1, Math.ceil((sleep.at - sleepNow) / 60000)) : null;
+  const chooseSleep = (choice: Sleep) => {
+    setSleep(choice);
+    setSleepNow(Date.now());
+    setMenu(null);
+  };
+
   // When the file ends, count down and move on.
   useEffect(() => {
     if (!ended || !next || upNextClosed) {
@@ -620,7 +678,10 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
             <BackIcon />
           </button>
           <div className="player__heading">
-            <div className="player__show">{item.role === "movie" ? "" : item.titleName}</div>
+            <div className="player__show">
+              {item.role === "movie" ? "" : item.titleName}
+              {item.shuffle && <span className="player__shuffled"> · Shuffled</span>}
+            </div>
             <div className="player__title">
               {code && <span className="player__code">{code}</span>}
               {itemName(item)}
@@ -781,6 +842,15 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
             <button className="player__btn" onClick={screenshot} title="Screenshot (S)">
               <CameraIcon />
             </button>
+            <MenuButton
+              menu={menu}
+              id="sleep"
+              onMenu={setMenu}
+              title={sleep == null ? "Sleep timer" : sleep.at === "episode" ? "Sleep timer: at the end of this episode" : `Sleep timer: ${sleepMinutes} min left`}
+              on={sleep != null}
+            >
+              {sleepMinutes != null ? <span className="player__speed">{sleepMinutes}′</span> : <MoonIcon />}
+            </MenuButton>
             <MenuButton menu={menu} id="speed" onMenu={setMenu} title="Playback speed">
               {speed === 1 ? <SpeedIcon /> : <span className="player__speed">{speed}×</span>}
             </MenuButton>
@@ -842,6 +912,19 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
             </div>
           </div>
         )}
+        {menu === "sleep" && (
+          <div className="player__menu player__menu--narrow">
+            <div className="player__menu-col">
+              <div className="player__menu-title">Sleep timer</div>
+              <MenuItem active={sleep == null} onClick={() => chooseSleep(null)} label="Off" />
+              <MenuItem active={sleep?.at === "episode"} onClick={() => chooseSleep({ at: "episode" })} label="End of this episode" />
+              {SLEEP_MINUTES.map((m) => (
+                <MenuItem key={m} active={false} onClick={() => chooseSleep({ at: Date.now() + m * 60000 })} label={`In ${m} minutes`} />
+              ))}
+              {sleepMinutes != null && <div className="player__menu-empty">Pausing in {sleepMinutes} min</div>}
+            </div>
+          </div>
+        )}
         {menu === "speed" && (
           <div className="player__menu player__menu--narrow">
             <div className="player__menu-col">
@@ -857,9 +940,24 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   );
 }
 
-function MenuButton({ menu, id, onMenu, title, children }: { menu: Menu; id: Menu; onMenu: (m: Menu) => void; title: string; children: React.ReactNode }) {
+function MenuButton({
+  menu,
+  id,
+  onMenu,
+  title,
+  on,
+  children,
+}: {
+  menu: Menu;
+  id: Menu;
+  onMenu: (m: Menu) => void;
+  title: string;
+  /** Something in it is switched on (e.g. the sleep timer). */
+  on?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <button className={`player__btn ${menu === id ? "is-active" : ""}`} onClick={() => onMenu(menu === id ? null : id)} title={title}>
+    <button className={`player__btn ${menu === id ? "is-active" : ""} ${on ? "is-on" : ""}`} onClick={() => onMenu(menu === id ? null : id)} title={title}>
       {children}
     </button>
   );

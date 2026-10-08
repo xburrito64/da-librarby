@@ -28,6 +28,8 @@ export interface Copy {
   seasonDone: (show: string, season: string) => string;
   /** ...or of a whole show. */
   showDone: (show: string) => string;
+  /** Said in the player when the sleep timer has paused the video. */
+  sleepDone: string;
   /** The watch-time page: its name in the navigation and as its title, and what it says while empty. */
   statsTab: string;
   statsEmpty: string;
@@ -50,6 +52,7 @@ export const COPY: Copy = {
   brandLines: [],
   seasonDone: (show, season) => `${season} of ${show} finished. On to the next one!`,
   showDone: (show) => `You've finished ${show}. Every episode watched!`,
+  sleepDone: "Sleep timer: paused. Good night!",
   statsTab: "Watch time",
   statsEmpty: "Nothing watched yet. Once you've watched something, how much and when shows up here.",
 };

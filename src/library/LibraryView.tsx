@@ -17,6 +17,7 @@ import {
   type TitleSummary,
 } from "./api";
 import Browse from "./Browse";
+import { ShuffleContext } from "./shuffle";
 import TitlePage from "./TitlePage";
 import Settings, { type SettingsSection } from "./Settings";
 import Typed from "../ui/Typed";
@@ -27,13 +28,23 @@ import { useThemeOptions } from "../theme/options";
 import { useCopy } from "../theme/copy";
 import { playSound } from "../theme/sound";
 import { COVER, canTransition, ready, transition } from "../ui/transition";
+import { arrowMove, choose, usingKeyboard } from "../ui/keyboardNav";
 
 export type Tab = "home" | LibraryKind | "stats";
 
 const KINDS: LibraryKind[] = ["anime", "shows", "movies"];
 
 /** `active` is false while the player is showing on top. */
-export default function LibraryView({ active, onPlay }: { active: boolean; onPlay: (fileId: number) => void }) {
+export default function LibraryView({
+  active,
+  onPlay,
+  onShuffle,
+}: {
+  active: boolean;
+  onPlay: (fileId: number) => void;
+  /** Plays a show's episodes in a random order. */
+  onShuffle: (titleId: number) => void;
+}) {
   const [libraries, setLibraries] = useState<Library[] | null>(null);
   const [titles, setTitles] = useState<TitleSummary[] | null>(null);
   const [continueList, setContinueList] = useState<ContinueItem[]>([]);
@@ -115,13 +126,16 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
       .then(async (detail) => {
         await ready(img(detail?.meta?.cover));
         openedFrom.current = from ?? null;
-        transition(
+        const byKeyboard = usingKeyboard();
+        await transition(
           () => {
             setOpenDetail(detail);
             setOpenTitle(id);
           },
           from ? { name: COVER, from, to: () => document.querySelector<HTMLElement>(".tp__cover") } : undefined,
         );
+        // Opened with Enter: on to its Play button, so another Enter plays.
+        if (byKeyboard) choose(document.querySelector<HTMLElement>(".tp .tp__actions .btn"));
       });
   }, []);
 
@@ -129,10 +143,14 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
     const card = openedFrom.current;
     const rect = card?.isConnected ? card.getBoundingClientRect() : null;
     const visible = rect != null && rect.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
+    // Browsing with the keyboard carries on from the cover the page was opened from.
+    const byKeyboard = usingKeyboard();
     transition(() => setOpenTitle(null), {
       name: COVER,
       from: document.querySelector<HTMLElement>(".tp__cover"),
       to: visible ? () => card : undefined,
+    }).then(() => {
+      if (byKeyboard && card?.isConnected) choose(card.closest<HTMLElement>(".card"));
     });
   }, []);
 
@@ -156,6 +174,19 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, []);
+
+  // The arrow keys move between covers, buttons and episodes; Enter opens or plays.
+  useEffect(() => {
+    if (!active || settings) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+      const target = e.target as HTMLElement;
+      if (target.closest("input, textarea, select") || document.querySelector(".modal, .ctx-menu")) return;
+      if (arrowMove(e)) e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, settings]);
 
   // Typing anywhere starts a search.
   useEffect(() => {
@@ -196,6 +227,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
 
   return (
     <ContextMenuProvider>
+    <ShuffleContext.Provider value={onShuffle}>
     <div className={`app ${scrolled ? "app--scrolled" : ""} ${openTitle != null ? "app--title" : ""}`}>
       {Decor && <Decor active={active} options={themeOptions} />}
       <nav className="nav">
@@ -312,6 +344,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
         </button>
       )}
     </div>
+    </ShuffleContext.Provider>
     </ContextMenuProvider>
   );
 }

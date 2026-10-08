@@ -97,6 +97,11 @@
   outline-offset: 3px;
 }
 
+/* Moving with the arrow keys keeps what's chosen clear of the navigation bar and the edges. */
+:where(.card, .ccard__main, .ep, .extra, .seasons__tab, .filter, .btn, .stats__show, .section-title--toggle) {
+  scroll-margin: calc(var(--nav-h) + 24px) 32px 40px;
+}
+
 .icon {
   width: 20px;
   height: 20px;

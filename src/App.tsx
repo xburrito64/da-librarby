@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import LibraryView from "./library/LibraryView";
 import PlayerView from "./player/PlayerView";
 import { mpv } from "./player/mpv";
-import { watch, type PlayItem } from "./library/api";
+import { library, watch, type PlayItem } from "./library/api";
+import { shuffledEpisodes } from "./library/shuffle";
 import { playSound, setSoundsMuted } from "./theme/sound";
 import { holdMusic, setMusicLevel } from "./theme/music";
 import { useTheme } from "./theme/theme";
@@ -30,6 +31,8 @@ export default function App() {
   const [intro, setIntro] = useState<{ x: number; y: number; item: PlayItem } | null>(null);
   /** Where the last click was, so the intro can start there. */
   const lastPointer = useRef({ x: 0, y: 0, at: 0 });
+  /** When a key was last pressed (a start from the keyboard begins at the chosen element). */
+  const lastKey = useRef(0);
 
   // The current theme's own-files folder (a font and sounds the owner added), if it has one.
   const theme = useTheme();
@@ -58,8 +61,13 @@ export default function App() {
 
   useEffect(() => {
     const onDown = (e: PointerEvent) => (lastPointer.current = { x: e.clientX, y: e.clientY, at: performance.now() });
+    const onKey = () => (lastKey.current = performance.now());
     document.addEventListener("pointerdown", onDown, true);
-    return () => document.removeEventListener("pointerdown", onDown, true);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("pointerdown", onDown, true);
+      document.removeEventListener("keydown", onKey, true);
+    };
   }, []);
 
   const Intro = findTheme(theme)?.extras?.PlayIntro;
@@ -67,25 +75,50 @@ export default function App() {
   const useIntroRef = useRef(useIntro);
   useIntroRef.current = useIntro;
 
-  const play = useCallback((fileId: number) => {
-    watch
-      .item(fileId)
-      .then((item) => {
-        if (!item) return;
-        if (!useIntroRef.current) return setPlaying(item);
-        // From the click that started it (a keyboard start begins in the middle).
-        const p = lastPointer.current;
-        const fresh = performance.now() - p.at < 2000;
-        setIntro({ x: fresh ? p.x : window.innerWidth / 2, y: fresh ? p.y : window.innerHeight / 2, item });
-      })
-      .catch((e) => setError(String(e)));
+  /** Plays `item`, after the theme's intro if it has one. */
+  const start = useCallback((item: PlayItem) => {
+    if (!useIntroRef.current) return setPlaying(item);
+    // From the click that started it, or the element chosen with the keyboard, else the middle.
+    const p = lastPointer.current;
+    let at = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    if (lastKey.current > p.at && document.activeElement && document.activeElement !== document.body) {
+      const r = document.activeElement.getBoundingClientRect();
+      at = { x: r.left + Math.min(r.width / 2, 60), y: r.top + r.height / 2 };
+    } else if (performance.now() - p.at < 2000) at = { x: p.x, y: p.y };
+    setIntro({ ...at, item });
   }, []);
+
+  const play = useCallback(
+    (fileId: number) => {
+      watch
+        .item(fileId)
+        .then((item) => item && start(item))
+        .catch((e) => setError(String(e)));
+    },
+    [start],
+  );
+
+  /** Plays a show's episodes in a random order. */
+  const shuffle = useCallback(
+    (titleId: number) => {
+      library
+        .title(titleId)
+        .then(async (title) => {
+          const ids = title ? shuffledEpisodes(title) : [];
+          if (ids.length === 0) return;
+          const item = await watch.item(ids[0]);
+          if (item) start({ ...item, shuffle: ids.slice(1) });
+        })
+        .catch((e) => setError(String(e)));
+    },
+    [start],
+  );
 
   return (
     <>
       {/* Stays mounted while playing so the library keeps its place. */}
       <div style={{ display: playing ? "none" : undefined }}>
-        <LibraryView active={!playing} onPlay={play} />
+        <LibraryView active={!playing} onPlay={play} onShuffle={shuffle} />
       </div>
       {playing && <PlayerView item={playing} onNext={setPlaying} onBack={() => setPlaying(null)} />}
       {intro && Intro && (

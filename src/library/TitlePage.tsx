@@ -18,7 +18,8 @@ import {
   type TitleDetail,
 } from "./api";
 import MatchPicker from "./MatchPicker";
-import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, PlayIcon, PlusIcon, UndoIcon } from "../ui/icons";
+import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, PlayIcon, PlusIcon, ShuffleIcon, UndoIcon } from "../ui/icons";
+import { useShuffle } from "./shuffle";
 import { useContextMenu, type MenuEntry } from "../ui/ContextMenu";
 import Typed from "../ui/Typed";
 import { formatDuration } from "./WatchStats";
@@ -44,6 +45,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
   const [fullDescription, setFullDescription] = useState(false);
   const [picking, setPicking] = useState<Picking | null>(null);
   const openMenu = useContextMenu();
+  const shuffle = useShuffle();
   const ref = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => {
@@ -164,6 +166,12 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onScroll
               <button className="btn btn--primary" onClick={() => playFile(up.file)}>
                 <PlayIcon />
                 {[up.mode === "resume" ? "Resume" : "Play", upCode].filter(Boolean).join(" ")}
+              </button>
+            )}
+            {shuffle && title.files.filter((f) => f.role === "episode").length > 1 && (
+              <button className="btn" onClick={() => shuffle(title.id)} title="Play the episodes in a random order">
+                <ShuffleIcon />
+                Shuffle
               </button>
             )}
             <button

@@ -323,6 +323,8 @@ const SHORTCUTS: { group: string; keys: [string, string][] }[] = [
   {
     group: "In the library",
     keys: [
+      ["Arrow keys", "Move between covers, buttons and episodes"],
+      ["Enter", "Open or play what's chosen"],
       ["Just start typing", "Search shows and episodes"],
       ["Right-click", "More options for a show, episode or card"],
       ["Esc", "Back from a show page, or clear the search"],
