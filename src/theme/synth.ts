@@ -6,11 +6,13 @@ export interface ToneOptions {
   wave?: OscillatorType;
   /** 0..1, before the overall volume. */
   level?: number;
+  /** Seconds to wait before the first note. */
+  delay?: number;
 }
 
 /** Plays `notes` (in Hz) one after another into `out`. */
-export function tone(ctx: AudioContext, out: AudioNode, notes: number[], { length = 0.05, wave = "square", level = 0.5 }: ToneOptions = {}) {
-  let t = ctx.currentTime + 0.005;
+export function tone(ctx: AudioContext, out: AudioNode, notes: number[], { length = 0.05, wave = "square", level = 0.5, delay = 0 }: ToneOptions = {}) {
+  let t = ctx.currentTime + 0.005 + delay;
   for (const f of notes) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();

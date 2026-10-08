@@ -5,7 +5,7 @@ import { findTheme } from "./themes";
 import { currentTheme } from "./theme";
 import { themeOption } from "./options";
 
-export type SoundName = "move" | "select" | "back" | "save" | "nope" | "text";
+export type SoundName = "move" | "select" | "back" | "save" | "nope" | "text" | "encounter";
 
 /** Plays a sound into `out`, which carries the chosen volume. */
 export type SoundPlayer = (ctx: AudioContext, out: AudioNode) => void;

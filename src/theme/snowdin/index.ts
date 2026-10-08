@@ -6,6 +6,7 @@ import type { Theme } from "../themes";
 import { HEART_RED, ICONS, setHeartColors } from "./art";
 import { SOUNDS } from "./sounds";
 import Decor from "./Decor";
+import Encounter from "./Encounter";
 
 /** The game's stat screen, for watching: LV goes up with hours watched (2 h for LV 2, 8 h for
  *  LV 3, 18 h for LV 4, ... up to LV 20), EXP is minutes watched, NEXT the minutes to the next LV. */
@@ -25,6 +26,12 @@ export const SNOWDIN: Theme = {
   extras: {
     options: [
       { id: "snow", label: "Falling snow", default: true },
+      {
+        id: "intro",
+        label: "Battle start",
+        hint: "Pressing Play starts like an encounter: the screen goes dark and the heart flashes.",
+        default: true,
+      },
       { id: "pointer", label: "Heart pointer", hint: "The mouse pointer becomes the heart.", default: true },
       {
         id: "heart",
@@ -132,6 +139,7 @@ export const SNOWDIN: Theme = {
         { name: "save", label: "Saved / marked watched" },
         { name: "nope", label: "Nothing found" },
         { name: "text", label: "Text typing" },
+        { name: "encounter", label: "Battle start" },
       ],
       music: true,
     },
@@ -143,5 +151,6 @@ export const SNOWDIN: Theme = {
       document.documentElement.classList.toggle("sd-heart-pointer", options.pointer !== false);
     },
     Decor,
+    PlayIntro: Encounter,
   },
 };

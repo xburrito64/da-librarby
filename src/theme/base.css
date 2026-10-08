@@ -139,6 +139,30 @@
   animation: fade 0.3s ease both;
 }
 
+/* Opening and closing a show page: the page cross-fades while the cover glides between the
+   card and the page (src/ui/transition.ts); the page's own fade would only get in the way. */
+.is-transitioning .tp {
+  animation: none;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+}
+
+::view-transition-group(tp-cover) {
+  animation-duration: 0.42s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+::view-transition-old(tp-cover),
+::view-transition-new(tp-cover) {
+  animation-duration: 0.42s;
+  /* The card's cover and the page's are the same picture, at different sizes. */
+  height: 100%;
+  object-fit: cover;
+}
+
 @keyframes page-in {
   from {
     opacity: 0;
@@ -1134,6 +1158,31 @@
   margin-top: 14px;
   font-size: 12.5px;
   color: var(--muted);
+}
+
+/* Where you are in the show: "Season 3 · 4 of 12 episodes left · about 1 h 30 min". */
+.tp__where {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tp__where + .tp__resume {
+  margin-top: 8px;
+}
+
+/* A small tick on the tab of a season that's all watched. */
+.seasons__done {
+  display: inline-flex;
+  margin-left: 7px;
+  vertical-align: -2px;
+  opacity: 0.75;
+}
+
+.seasons__done .icon {
+  width: 14px;
+  height: 14px;
 }
 
 .tp__resume .progress {

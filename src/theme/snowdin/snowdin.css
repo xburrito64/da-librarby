@@ -561,6 +561,81 @@
   font-size: 18px;
 }
 
+/* ---------- Battle start: pressing Play (Encounter.tsx; 1.2 s in all) ---------- */
+
+.sd-encounter {
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  background: #000;
+  animation: sd-encounter-screen 1.2s linear both;
+  pointer-events: none;
+}
+
+/* Black at once, like the game; fades away over the video at the end. */
+@keyframes sd-encounter-screen {
+  0%,
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.sd-encounter__heart {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 27px;
+  height: 24px;
+  margin: -12px 0 0 -13.5px;
+  background: var(--sd-heart) center / contain no-repeat;
+  image-rendering: pixelated;
+  animation:
+    sd-encounter-flash 0.42s steps(1) both,
+    sd-encounter-fly 0.32s 0.44s cubic-bezier(0.5, 0, 0.75, 0) both,
+    sd-encounter-burst 0.34s 0.78s ease-out forwards;
+}
+
+/* Three flashes where you clicked. */
+@keyframes sd-encounter-flash {
+  0%,
+  33%,
+  66% {
+    opacity: 1;
+  }
+  16%,
+  50%,
+  83% {
+    opacity: 0;
+  }
+}
+
+/* Off to the middle of the screen... */
+@keyframes sd-encounter-fly {
+  to {
+    left: 50%;
+    top: 50%;
+  }
+}
+
+/* ...where it bursts open onto the video. */
+@keyframes sd-encounter-burst {
+  from {
+    left: 50%;
+    top: 50%;
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    left: 50%;
+    top: 50%;
+    transform: scale(9);
+    opacity: 0;
+  }
+}
+
 /* ---------- Stat: the watch-time page as the game's stat screen ---------- */
 
 :root[data-theme="snowdin"] .stats__flavor {
@@ -1523,6 +1598,23 @@
 
 :root[data-theme="snowdin"] .tp__actions .btn {
   background: var(--sd-box);
+}
+
+:root[data-theme="snowdin"] .tp__where {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 500;
+  /* Over the snowy ground: a dark pixel outline keeps it readable. */
+  text-shadow:
+    2px 0 0 #06060c,
+    -2px 0 0 #06060c,
+    0 2px 0 #06060c,
+    0 -2px 0 #06060c;
+}
+
+:root[data-theme="snowdin"] .seasons__done {
+  color: var(--accent);
+  opacity: 1;
 }
 
 :root[data-theme="snowdin"] .tp__resume {

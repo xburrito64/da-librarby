@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   library,
   metadata,
+  img,
   sortName,
   KIND_LABELS,
   watch,
@@ -12,6 +13,7 @@ import {
   type Library,
   type LibraryKind,
   type MetadataStatus,
+  type TitleDetail,
   type TitleSummary,
 } from "./api";
 import Browse from "./Browse";
@@ -24,6 +26,7 @@ import { useThemeInfo } from "../theme/theme";
 import { useThemeOptions } from "../theme/options";
 import { useCopy } from "../theme/copy";
 import { playSound } from "../theme/sound";
+import { COVER, ready, transition } from "../ui/transition";
 
 export type Tab = "home" | LibraryKind | "stats";
 
@@ -38,6 +41,10 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
   const [fetching, setFetching] = useState<MetadataStatus | null>(null);
   const [tab, setTab] = useState<Tab>("home");
   const [openTitle, setOpenTitle] = useState<number | null>(null);
+  /** The show page's details, loaded before it opens so its first picture is complete. */
+  const [openDetail, setOpenDetail] = useState<TitleDetail | null>(null);
+  /** The cover it was opened from, to glide back to. */
+  const openedFrom = useRef<HTMLElement | null>(null);
   const [settings, setSettings] = useState<SettingsSection | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -100,10 +107,39 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
     return () => offs.forEach((p) => p.then((off) => off()));
   }, [refresh]);
 
+  // A show page opens out of the cover that was clicked (if any), and goes back into it.
+  const open = useCallback((id: number, from?: HTMLElement | null) => {
+    library
+      .title(id)
+      .catch(() => null)
+      .then(async (detail) => {
+        await ready(img(detail?.meta?.cover));
+        openedFrom.current = from ?? null;
+        transition(
+          () => {
+            setOpenDetail(detail);
+            setOpenTitle(id);
+          },
+          from ? { name: COVER, from, to: () => document.querySelector<HTMLElement>(".tp__cover") } : undefined,
+        );
+      });
+  }, []);
+
+  const close = useCallback(() => {
+    const card = openedFrom.current;
+    const rect = card?.isConnected ? card.getBoundingClientRect() : null;
+    const visible = rect != null && rect.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
+    transition(() => setOpenTitle(null), {
+      name: COVER,
+      from: document.querySelector<HTMLElement>(".tp__cover"),
+      to: visible ? () => card : undefined,
+    });
+  }, []);
+
   // Esc or the mouse's back button leaves a show page (unless a dialog is open; Esc closes that first).
   useEffect(() => {
     if (!active || openTitle == null || settings) return;
-    const back = () => !document.querySelector(".modal") && setOpenTitle(null);
+    const back = () => !document.querySelector(".modal") && close();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && back();
     const onMouse = (e: MouseEvent) => e.button === 3 && back();
     window.addEventListener("keydown", onKey);
@@ -112,7 +148,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mouseup", onMouse);
     };
-  }, [active, openTitle, settings]);
+  }, [active, openTitle, settings, close]);
 
   // Coming back to the app (after a download, say) looks for new files.
   useEffect(() => {
@@ -237,7 +273,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
         hasLibraries={(libraries?.length ?? 0) > 0}
         active={openTitle == null}
         onTab={goTo}
-        onOpen={setOpenTitle}
+        onOpen={open}
         onPlay={onPlay}
         onScrolled={setScrolled}
         onAddFolder={() => setSettings("library")}
@@ -246,7 +282,8 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
         <TitlePage
           key={openTitle}
           id={openTitle}
-          onBack={() => setOpenTitle(null)}
+          initial={openDetail?.id === openTitle ? openDetail : null}
+          onBack={close}
           onPlay={onPlay}
           onScrolled={setScrolled}
         />

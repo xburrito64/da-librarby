@@ -21,18 +21,21 @@ import MatchPicker from "./MatchPicker";
 import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, PlayIcon, PlusIcon, UndoIcon } from "../ui/icons";
 import { useContextMenu, type MenuEntry } from "../ui/ContextMenu";
 import Typed from "../ui/Typed";
+import { formatDuration } from "./WatchStats";
 
 type Picking = { kind: "title" } | { kind: "season"; season: SeasonRow } | { kind: "file"; file: FileRow };
 
 interface Props {
   id: number;
+  /** Already loaded, so the page shows complete straight away. */
+  initial?: TitleDetail | null;
   onBack: () => void;
   onPlay: (fileId: number) => void;
   onScrolled: (scrolled: boolean) => void;
 }
 
-export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
-  const [title, setTitle] = useState<TitleDetail | null>(null);
+export default function TitlePage({ id, initial, onBack, onPlay, onScrolled }: Props) {
+  const [title, setTitle] = useState<TitleDetail | null>(initial ?? null);
   /** The open tab: a season's id, or the movies. null = pick automatically. */
   const [tab, setTab] = useState<number | "movies" | null>(null);
   const [showExtras, setShowExtras] = useState(false);
@@ -82,6 +85,11 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
       ? Math.max(1, Math.round((up.file.progress.duration - up.file.progress.position) / 60))
       : null;
   const year = title.year ?? meta?.year;
+  const where = whereYouAre(title, up?.file ?? null);
+  const seasonDone = (id: number) => {
+    const eps = title.files.filter((f) => f.role === "episode" && f.seasonId === id);
+    return eps.length > 0 && eps.every((f) => f.progress?.watched);
+  };
   const close = () => setPicking(null);
   const playFile = (file: FileRow) => onPlay(file.id);
   const seasonWatched = episodes.length > 0 && episodes.every((f) => f.progress?.watched);
@@ -176,6 +184,7 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
               </button>
             )}
           </div>
+          {where && <div className="tp__where">{where}</div>}
           {upLeft != null && (
             <div className="tp__resume">
               <span className="progress tp__resume-bar">
@@ -206,8 +215,14 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
                     role="tab"
                     className={`seasons__tab ${!showMovies && s.id === season?.id ? "is-active" : ""}`}
                     onClick={() => setTab(s.id)}
+                    title={seasonDone(s.id) ? `${s.label}: all watched` : undefined}
                   >
                     {s.label}
+                    {seasonDone(s.id) && (
+                      <span className="seasons__done" aria-label="all watched">
+                        <CheckIcon />
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -410,6 +425,30 @@ function groupExtras(extras: FileRow[]) {
     else groups.push({ label: f.extraGroup, files: [f] });
   }
   return groups;
+}
+
+/** "Season 3 · 4 of 12 episodes left · about 1 h 30 min · 40 in total", once a show is started. */
+function whereYouAre(title: TitleDetail, next: FileRow | null) {
+  const episodes = title.files.filter((f) => f.role === "episode");
+  if (episodes.length === 0 || !episodes.some((f) => f.progress)) return null;
+  const left = episodes.filter((f) => !f.progress?.watched);
+  if (left.length === 0) return `All ${episodes.length} episodes watched`;
+  if (next?.role !== "episode") return null;
+  const season = title.seasons.find((s) => s.id === next.seasonId);
+  const inSeason = episodes.filter((f) => f.seasonId === next.seasonId);
+  const seasonLeft = inSeason.filter((f) => !f.progress?.watched);
+  // How long an episode usually runs, from the ones played so far.
+  const lengths = episodes.map((f) => f.progress?.duration ?? 0).filter((d) => d > 60);
+  const typical = lengths.length > 0 ? lengths.reduce((a, b) => a + b, 0) / lengths.length : 0;
+  const time = typical > 0 ? seasonLeft.reduce((sum, f) => sum + Math.max(0, (f.progress?.duration || typical) - (f.progress?.position ?? 0)), 0) : 0;
+  return [
+    season && title.seasons.length > 1 ? season.label : null,
+    `${seasonLeft.length} of ${inSeason.length} episode${inSeason.length === 1 ? "" : "s"} left`,
+    time > 60 ? `about ${formatDuration(time)}` : null,
+    left.length > seasonLeft.length ? `${left.length} in total` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** Progress bar for something stopped part-way, a tick for something watched. */

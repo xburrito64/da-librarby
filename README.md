@@ -28,7 +28,7 @@ Windows only for now.
 - **Five themes**, switchable any time in Settings → Appearance: **Velvet** (dark and cinematic),
   **Paper** (a film magazine), **Neon** (synthwave arcade), **Mochi** (soft pastel) and **Snowdin**
   (a cozy snowy pixel town, after the game this app's name comes from, with falling snow, little
-  sounds and a few secrets; you can give it your own font, sound files and background music).
+  sounds, a battle start when you press Play and a few secrets; you can give it your own font, sound files and background music).
 
 ## Getting started
 

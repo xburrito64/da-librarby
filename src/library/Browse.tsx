@@ -44,7 +44,8 @@ interface Props {
   /** False while a show page covers it; it stays put underneath so its scroll position is kept. */
   active: boolean;
   onTab: (tab: Tab) => void;
-  onOpen: (id: number) => void;
+  /** `from`: the cover it was opened from, which grows into the show page. */
+  onOpen: (id: number, from?: HTMLElement | null) => void;
   onPlay: (fileId: number) => void;
   onScrolled: (scrolled: boolean) => void;
   onAddFolder: () => void;
@@ -609,7 +610,7 @@ function ContinueCard({ item, onPlay, onOpen }: { item: ContinueItem; onPlay: (f
   );
 }
 
-export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (id: number) => void; onPlay: (id: number) => void }) {
+export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (id: number, from?: HTMLElement | null) => void; onPlay: (id: number) => void }) {
   const openMenu = useContextMenu();
   const total = Math.max(1, title.episodes + title.movies);
   const finished = title.watched >= total;
@@ -618,7 +619,7 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
     <button
       className={`card ${title.online ? "" : "card--offline"}`}
       style={{ "--c": title.color ?? undefined } as React.CSSProperties}
-      onClick={() => onOpen(title.id)}
+      onClick={(e) => onOpen(title.id, e.currentTarget.querySelector<HTMLElement>(".card__art"))}
       onContextMenu={(e) =>
         openMenu(e, [
           { label: "Play", icon: <PlayIcon />, onSelect: () => onPlay(title.id) },

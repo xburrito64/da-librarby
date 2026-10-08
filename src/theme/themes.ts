@@ -49,6 +49,10 @@ export interface ThemeExtras {
   /** Called with the theme's option values while it's the current theme, and again whenever they
    *  change (e.g. to recolour its artwork). */
   apply?: (options: Record<string, boolean | string | undefined>) => void;
+  /** Shown over everything when something is played from the library, while its "intro" option
+   *  is on. It calls `onCovered` once the screen is covered (the video starts underneath) and
+   *  `onDone` when it's finished. `x`, `y`: where the click was. */
+  PlayIntro?: ComponentType<{ x: number; y: number; onCovered: () => void; onDone: () => void }>;
   /** Drawn behind the library screens (e.g. falling snow); gets the theme's option values. */
   Decor?: ComponentType<{ active: boolean; options: Record<string, boolean | string | undefined> }>;
 }
