@@ -139,7 +139,19 @@ export const library = {
   onScan: (callback: (status: { running: boolean; library: string | null }) => void) =>
     listen<{ running: boolean; library: string | null }>("library:scan", (e) => callback(e.payload)),
   onChanged: (callback: () => void) => listen("library:changed", () => callback()),
+  /** The last episode of a season was just watched. */
+  onFinished: (callback: (finished: FinishedSeason) => void) =>
+    listen<FinishedSeason>("library:finished", (e) => callback(e.payload)),
 };
+
+export interface FinishedSeason {
+  titleId: number;
+  titleName: string;
+  /** "Season 2", "Specials", an arc's name... */
+  season: string;
+  /** Every episode of the show is watched now. */
+  showDone: boolean;
+}
 
 export interface MetadataStatus {
   running: boolean;

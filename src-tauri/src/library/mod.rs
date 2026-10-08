@@ -208,6 +208,12 @@ pub async fn watch_save(
     done: bool,
 ) -> Result<(), String> {
     let finished = library.with_db(|c| watch::save_progress(c, file_id, position, duration))?;
+    if finished {
+        // The last episode of a season: the library celebrates when it's next on screen.
+        if let Ok(Some(season)) = library.with_db(|c| watch::finished_season(c, file_id)) {
+            let _ = app.emit("library:finished", season);
+        }
+    }
     if done || finished {
         let _ = app.emit("library:changed", json!({}));
     }
@@ -247,6 +253,12 @@ pub async fn watch_hide(app: AppHandle, library: State<'_, Library>, title_id: i
     library.with_db(|c| watch::hide_from_continue(c, title_id))?;
     let _ = app.emit("library:changed", json!({}));
     Ok(())
+}
+
+/// What the watch-time page adds up.
+#[tauri::command]
+pub async fn watch_stats(library: State<'_, Library>) -> Result<watch::WatchStats, String> {
+    library.with_db(|c| watch::stats(c))
 }
 
 #[tauri::command]

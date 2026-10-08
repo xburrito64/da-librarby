@@ -8,6 +8,7 @@ import {
   KIND_LABELS,
   watch,
   type ContinueItem,
+  type FinishedSeason,
   type Library,
   type LibraryKind,
   type MetadataStatus,
@@ -22,8 +23,9 @@ import { ContextMenuProvider } from "../ui/ContextMenu";
 import { useThemeInfo } from "../theme/theme";
 import { useThemeOptions } from "../theme/options";
 import { useCopy } from "../theme/copy";
+import { playSound } from "../theme/sound";
 
-export type Tab = "home" | LibraryKind;
+export type Tab = "home" | LibraryKind | "stats";
 
 const KINDS: LibraryKind[] = ["anime", "shows", "movies"];
 
@@ -45,12 +47,31 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
   const Decor = useThemeInfo()?.extras?.Decor;
   const themeOptions = useThemeOptions();
   /** A message from the theme in a text box at the bottom (e.g. clicking the app's name). */
-  const [said, setSaid] = useState<{ text: string; n: number } | null>(null);
+  const [said, setSaid] = useState<{ text: string; n: number; save?: boolean } | null>(null);
   const brandClicks = useRef(0);
+  /** A season finished while watching: celebrated once the library is back on screen. */
+  const [finished, setFinished] = useState<FinishedSeason | null>(null);
+
+  useEffect(() => {
+    const off = library.onFinished((f) => setFinished((prev) => (prev?.showDone && prev.titleId === f.titleId ? prev : f)));
+    return () => void off.then((f) => f());
+  }, []);
+
+  useEffect(() => {
+    if (!active || !finished) return;
+    // A moment after the library appears (and after the player has let the sounds back on).
+    const timer = window.setTimeout(() => {
+      const text = finished.showDone ? copy.showDone(finished.titleName) : copy.seasonDone(finished.titleName, finished.season);
+      setSaid({ text, n: Date.now(), save: true });
+      playSound("save");
+      setFinished(null);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [active, finished, copy]);
 
   useEffect(() => {
     if (!said) return;
-    const timer = window.setTimeout(() => setSaid(null), 6000);
+    const timer = window.setTimeout(() => setSaid(null), said.save ? 8000 : 6000);
     return () => window.clearTimeout(timer);
   }, [said]);
 
@@ -157,13 +178,13 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
           <span className="nav__name">Da Librarby</span>
         </button>
         <div className="nav__tabs">
-          {(["home", ...kinds] as Tab[]).map((t) => (
+          {(["home", ...kinds, "stats"] as Tab[]).map((t) => (
             <button
               key={t}
               className={`nav__tab ${tab === t && openTitle == null && !query.trim() ? "is-active" : ""}`}
               onClick={() => goTo(t)}
             >
-              {t === "home" ? "Home" : KIND_LABELS[t]}
+              {t === "home" ? "Home" : t === "stats" ? copy.statsTab : KIND_LABELS[t]}
             </button>
           ))}
         </div>
@@ -243,7 +264,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
         />
       )}
       {said && (
-        <button key={said.n} className="say" onClick={() => setSaid(null)} data-sfx="none">
+        <button key={said.n} className={`say ${said.save ? "say--save" : ""}`} onClick={() => setSaid(null)} data-sfx="none">
           <Typed as="span" className="say__text" text={said.text} />
         </button>
       )}

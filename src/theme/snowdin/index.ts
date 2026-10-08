@@ -7,6 +7,16 @@ import { HEART_RED, ICONS, setHeartColors } from "./art";
 import { SOUNDS } from "./sounds";
 import Decor from "./Decor";
 
+/** The game's stat screen, for watching: LV goes up with hours watched (2 h for LV 2, 8 h for
+ *  LV 3, 18 h for LV 4, ... up to LV 20), EXP is minutes watched, NEXT the minutes to the next LV. */
+function statLine(seconds: number) {
+  const hours = seconds / 3600;
+  const lv = Math.min(20, 1 + Math.floor(Math.sqrt(hours / 2)));
+  const exp = Math.floor(seconds / 60);
+  const next = lv >= 20 ? 0 : Math.max(0, Math.ceil(2 * lv * lv * 60 - exp));
+  return `* LV ${lv}    EXP ${exp}    NEXT ${next}`;
+}
+
 export const SNOWDIN: Theme = {
   id: "snowdin",
   name: "Snowdin",
@@ -99,6 +109,11 @@ export const SNOWDIN: Theme = {
         "annoying dog": "* A little white dog runs off with your search. You let it.",
         "spaghetti": "* There is a plate of cold spaghetti here. Nobody is sure who made it.",
       },
+      statsTab: "Stat",
+      statsEmpty: "* You haven't watched anything yet. Your STATs are waiting.",
+      statsLine: statLine,
+      seasonDone: (show, season) => `* (${season} of ${show} complete. Your progress was saved.)`,
+      showDone: (show) => `* (You watched every episode of ${show}. It fills you with DETERMINATION.)`,
       brandLines: [
         "* It's the Librarby. Somebody misspelled the sign.",
         "* You think about fixing the sign. You decide it has character.",

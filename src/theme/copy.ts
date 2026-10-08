@@ -24,6 +24,15 @@ export interface Copy {
   searchSecrets: Record<string, string>;
   /** Clicking the app's name while already on Home says these, one after another. */
   brandLines: string[];
+  /** Said (with the "save" sound) back in the library after watching the last episode of a season... */
+  seasonDone: (show: string, season: string) => string;
+  /** ...or of a whole show. */
+  showDone: (show: string) => string;
+  /** The watch-time page: its name in the navigation and as its title, and what it says while empty. */
+  statsTab: string;
+  statsEmpty: string;
+  /** An extra line under the page's title, given the seconds ever watched. None by default. */
+  statsLine?: (seconds: number) => string;
 }
 
 export const COPY: Copy = {
@@ -39,6 +48,10 @@ export const COPY: Copy = {
   december: [],
   searchSecrets: {},
   brandLines: [],
+  seasonDone: (show, season) => `${season} of ${show} finished. On to the next one!`,
+  showDone: (show) => `You've finished ${show}. Every episode watched!`,
+  statsTab: "Watch time",
+  statsEmpty: "Nothing watched yet. Once you've watched something, how much and when shows up here.",
 };
 
 export function useCopy(): Copy {

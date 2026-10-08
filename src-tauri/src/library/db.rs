@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 8;
+const SCHEMA_VERSION: i32 = 9;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -179,6 +179,9 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
                  added_at INTEGER NOT NULL
              );",
         )?;
+    }
+    if version < 9 {
+        conn.execute_batch(super::watch::SCHEMA_V9)?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)

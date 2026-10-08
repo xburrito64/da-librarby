@@ -23,6 +23,7 @@ import { getSetting, setSetting } from "../ui/settings";
 import type { Tab } from "./LibraryView";
 import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, UndoIcon } from "../ui/icons";
 import Typed from "../ui/Typed";
+import WatchStats from "./WatchStats";
 import { useCopy } from "../theme/copy";
 import { playSound } from "../theme/sound";
 
@@ -119,6 +120,7 @@ export default function Browse({ tab, titles, offline, query, continueList, load
   if (!loaded) content = null;
   else if (!hasLibraries || titles.length === 0) content = <Empty hasLibraries={hasLibraries} onAddFolder={onAddFolder} />;
   else if (query) content = <Search query={query} titles={titles} onOpen={onOpen} onPlay={onPlay} onPlayTitle={play} />;
+  else if (tab === "stats") content = <WatchStats titles={titles} onOpen={onOpen} />;
   else if (tab === "home")
     content = (
       <>

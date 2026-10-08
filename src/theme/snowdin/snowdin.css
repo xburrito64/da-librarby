@@ -496,6 +496,105 @@
   animation: sd-appear 0.12s steps(2) both;
 }
 
+/* ---------- Stat: the watch-time page as the game's stat screen ---------- */
+
+:root[data-theme="snowdin"] .stats__flavor {
+  margin: -10px 0 28px;
+  color: var(--text);
+  font-size: 22px;
+}
+
+:root[data-theme="snowdin"] .stats__tile,
+:root[data-theme="snowdin"] .stats__panel {
+  border: 4px solid var(--line);
+  border-radius: 0;
+  background: var(--sd-box);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="snowdin"] .stats__tile-label,
+:root[data-theme="snowdin"] .stats__heading {
+  color: var(--sd-amber);
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .stats__tile-value {
+  font-size: 34px;
+}
+
+:root[data-theme="snowdin"] .stats__tile-note,
+:root[data-theme="snowdin"] .stats__label,
+:root[data-theme="snowdin"] .stats__show-time,
+:root[data-theme="snowdin"] .stats__habit,
+:root[data-theme="snowdin"] .stats__note,
+:root[data-theme="snowdin"] .stats__axis-note {
+  font-size: 15px;
+}
+
+/* Bars like the HP bar: yellow, square. */
+:root[data-theme="snowdin"] .stats__bar,
+:root[data-theme="snowdin"] .stats__meter span {
+  border-radius: 0;
+  background: var(--accent);
+  opacity: 0.8;
+}
+
+:root[data-theme="snowdin"] .stats__bar-area {
+  border-bottom: 3px solid var(--line);
+}
+
+:root[data-theme="snowdin"] .stats__meter {
+  height: 9px;
+  border-radius: 0;
+  background: var(--sd-hp);
+}
+
+:root[data-theme="snowdin"] .stats__col::after {
+  border: 3px solid var(--line);
+  border-radius: 0;
+  background: var(--sd-box);
+  font-size: 15px;
+}
+
+:root[data-theme="snowdin"] .stats__thumb {
+  border: 2px solid var(--line);
+  border-radius: 0;
+}
+
+:root[data-theme="snowdin"] .stats__show {
+  position: relative;
+  border: 3px solid transparent;
+  border-radius: 0;
+}
+
+:root[data-theme="snowdin"] .stats__show:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: none;
+}
+
+:root[data-theme="snowdin"] .stats__show-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* A season finished: the save star twinkles beside the message, like at a save point. */
+:root[data-theme="snowdin"] .say--save {
+  padding-left: 82px;
+  color: var(--sd-amber);
+}
+
+:root[data-theme="snowdin"] .say--save::before {
+  content: "";
+  position: absolute;
+  left: 26px;
+  top: 26px;
+  width: 36px;
+  height: 36px;
+  background: var(--sd-star) center / contain no-repeat;
+  image-rendering: pixelated;
+  animation: sd-sparkle 1.2s steps(1) infinite;
+}
+
 :root[data-theme="snowdin"] .search__secret {
   max-width: 760px;
   padding: 16px 20px;

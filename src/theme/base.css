@@ -2513,6 +2513,286 @@ select.input {
   color: var(--on-accent);
 }
 
+/* ---------- Watch time ---------- */
+
+.stats {
+  max-width: 1280px;
+}
+
+.stats__periods {
+  align-self: center;
+  margin: 0;
+}
+
+.stats__flavor {
+  margin: -14px 0 26px;
+  color: var(--muted);
+  font-size: 15px;
+  white-space: pre;
+}
+
+.stats__empty {
+  max-width: 560px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.stats__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.stats__tile,
+.stats__panel {
+  box-sizing: border-box;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.stats__tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stats__tile-label,
+.stats__heading {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-label);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: var(--label-transform);
+  letter-spacing: var(--label-tracking);
+}
+
+.stats__tile-value {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-style: var(--display-style);
+  letter-spacing: var(--display-tracking);
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.stats__tile-note {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.stats__panel {
+  margin-bottom: 18px;
+}
+
+.stats__heading {
+  margin-bottom: 18px;
+}
+
+/* Bars: one column per day, month, year or hour; the value shows on hover. */
+.stats__chart {
+  display: flex;
+  height: 180px;
+}
+
+.stats__chart--hours {
+  height: 120px;
+}
+
+.stats__col {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stats__bar-area {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  padding: 0 1px;
+  border-bottom: 1px solid var(--line);
+}
+
+.stats__bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: var(--accent);
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+
+.stats__col.is-current .stats__bar,
+.stats__col:hover .stats__bar {
+  opacity: 1;
+}
+
+.stats__label {
+  height: 18px;
+  padding-top: 6px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stats__col.is-current .stats__label {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.stats__col::after {
+  content: attr(data-tip);
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+.stats__col:hover::after {
+  opacity: 1;
+}
+
+/* Keep the first and last tips inside the panel. */
+.stats__col:first-child::after {
+  left: 0;
+  transform: none;
+}
+
+.stats__col:last-child::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.stats__axis-note,
+.stats__note,
+.stats__none {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.stats__split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 18px;
+}
+
+.stats__split .stats__panel {
+  margin-bottom: 0;
+}
+
+.stats__top {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats__show {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 6px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  text-align: left;
+}
+
+.stats__show:hover {
+  background: var(--surface-hover);
+}
+
+.stats__thumb {
+  flex: none;
+  width: 34px;
+  height: 50px;
+  overflow: hidden;
+  border-radius: calc(var(--radius-card) / 2);
+  background: var(--surface-hover);
+}
+
+.stats__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stats__show-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.stats__show-name {
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats__meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-hover);
+}
+
+.stats__meter span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.stats__show-time {
+  flex: none;
+  min-width: 52px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.stats__habit {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.stats__habit strong {
+  color: var(--text);
+}
+
+.stats__note {
+  margin-top: 22px;
+}
+
 /* Colour options: a row of swatches, the last one for any colour. */
 .swatches {
   display: flex;

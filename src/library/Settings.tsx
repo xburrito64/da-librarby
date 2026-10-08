@@ -307,6 +307,7 @@ const SHORTCUTS: { group: string; keys: [string, string][] }[] = [
       ["Space / K", "Pause / play"],
       ["← / →", "Back / forward 5 seconds (with Shift: 30)"],
       ["J / L", "Back / forward 10 seconds"],
+      [", / .", "One frame back / forward (pauses)"],
       ["↑ / ↓", "Volume up / down"],
       ["M", "Mute"],
       ["N", "Next episode"],

@@ -35,6 +35,25 @@ CREATE TABLE IF NOT EXISTS continue_hidden (
 );
 ";
 
+/// Time spent watching, per file and hour, for the watch-time page. Filled in as videos play;
+/// what was watched before it existed is estimated once from the watch history (a finished file
+/// counts in full, a started one up to where it was stopped, at the time it was last played).
+pub const SCHEMA_V9: &str = "
+CREATE TABLE IF NOT EXISTS watch_log (
+    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    hour    INTEGER NOT NULL,
+    seconds REAL NOT NULL,
+    PRIMARY KEY (file_id, hour)
+);
+INSERT OR IGNORE INTO watch_log (file_id, hour, seconds)
+    SELECT file_id, updated_at / 3600, CASE WHEN watched = 1 THEN duration ELSE position END
+    FROM watch WHERE duration > 0 AND (watched = 1 OR position > 0);
+";
+
+/// Playback moving further than this many times the time that passed (plus a little) between two
+/// saves was a jump, not watching, and isn't counted.
+const MAX_SPEED: f64 = 4.0;
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Progress {
@@ -105,14 +124,99 @@ pub fn progress_for_title(conn: &Connection, title_id: i64) -> rusqlite::Result<
 
 /// Records how far a file has been played. Returns true when it just became watched.
 pub fn save_progress(conn: &Connection, file_id: i64, position: f64, duration: f64) -> rusqlite::Result<bool> {
-    let was_watched = progress(conn, file_id)?.is_some_and(|p| p.watched);
+    let before = progress(conn, file_id)?;
+    let was_watched = before.as_ref().is_some_and(|p| p.watched);
     let finished = duration > 0.0 && position >= duration * WATCHED_AT;
+    let time = now();
     conn.execute(
         "INSERT INTO watch (file_id, position, duration, watched, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)
          ON CONFLICT (file_id) DO UPDATE SET position = ?2, duration = ?3, watched = watched OR ?4, updated_at = ?5",
-        params![file_id, position.max(0.0), duration.max(0.0), finished, now()],
+        params![file_id, position.max(0.0), duration.max(0.0), finished, time],
     )?;
+
+    // Time watched since the last save (the player saves every few seconds).
+    let watched = match &before {
+        Some(p) => {
+            let moved = position - p.position;
+            let passed = (time - p.updated_at).max(0) as f64;
+            if moved > 0.0 && moved <= passed * MAX_SPEED + 10.0 { moved } else { 0.0 }
+        }
+        None if position <= 15.0 => position.max(0.0),
+        None => 0.0,
+    };
+    if watched > 0.0 {
+        conn.execute(
+            "INSERT INTO watch_log (file_id, hour, seconds) VALUES (?1, ?2, ?3)
+             ON CONFLICT (file_id, hour) DO UPDATE SET seconds = seconds + ?3",
+            params![file_id, time / 3600, watched],
+        )?;
+    }
     Ok(finished && !was_watched)
+}
+
+/// Everything the watch-time page adds up (it groups by day, month... in local time itself).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WatchStats {
+    /// (title id, hour since 1970, seconds watched in that hour)
+    pub time: Vec<(i64, i64, f64)>,
+    /// (title id, "episode" or "movie", when it was finished): finished by watching, not marked by hand.
+    pub finished: Vec<(i64, String, i64)>,
+}
+
+pub fn stats(conn: &Connection) -> rusqlite::Result<WatchStats> {
+    let mut stmt = conn.prepare(
+        "SELECT f.title_id, l.hour, SUM(l.seconds) FROM watch_log l JOIN files f ON f.id = l.file_id
+         GROUP BY f.title_id, l.hour",
+    )?;
+    let time = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?.collect::<rusqlite::Result<_>>()?;
+    let mut stmt = conn.prepare(
+        "SELECT f.title_id, f.role, w.updated_at FROM watch w JOIN files f ON f.id = w.file_id
+         WHERE w.watched = 1 AND w.duration > 0 AND f.role IN ('episode', 'movie')",
+    )?;
+    let finished = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?.collect::<rusqlite::Result<_>>()?;
+    Ok(WatchStats { time, finished })
+}
+
+/// A season (or a whole show) finished by watching its last unwatched episode.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Finished {
+    pub title_id: i64,
+    pub title_name: String,
+    /// "Season 2", "Specials", an arc's name...
+    pub season: String,
+    /// Every episode of the show is watched now.
+    pub show_done: bool,
+}
+
+/// After `file_id` became watched: did that complete its season (and maybe the show)?
+pub fn finished_season(conn: &Connection, file_id: i64) -> rusqlite::Result<Option<Finished>> {
+    let row = conn
+        .query_row(
+            "SELECT f.title_id, t.name, f.season_id, s.label FROM files f
+             JOIN titles t ON t.id = f.title_id JOIN seasons s ON s.id = f.season_id
+             WHERE f.id = ?1 AND f.role = 'episode'",
+            [file_id],
+            |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, i64>(2)?, r.get::<_, String>(3)?)),
+        )
+        .optional()?;
+    let Some((title_id, title_name, season_id, season)) = row else { return Ok(None) };
+    let unwatched = |filter: &str, id: i64| -> rusqlite::Result<i64> {
+        conn.query_row(
+            &format!(
+                "SELECT COUNT(*) FROM files f LEFT JOIN watch w ON w.file_id = f.id
+                 WHERE {filter} = ?1 AND f.present = 1 AND f.role = 'episode' AND COALESCE(w.watched, 0) = 0"
+            ),
+            [id],
+            |r| r.get(0),
+        )
+    };
+    if unwatched("f.season_id", season_id)? > 0 {
+        return Ok(None);
+    }
+    let show_done = unwatched("f.title_id", title_id)? == 0;
+    Ok(Some(Finished { title_id, title_name, season, show_done }))
 }
 
 /// Marks files as watched or not (by hand). Either way they start from the beginning next time.
@@ -356,5 +460,40 @@ mod tests {
         // Everything watched: the show drops off the list.
         set_watched(&mut conn, &[103], true).unwrap();
         assert!(continue_watching(&conn, images).unwrap().is_empty());
+    }
+
+    #[test]
+    fn watch_time_counts_playing_but_not_jumps() {
+        let conn = setup();
+        let logged = || -> f64 { conn.query_row("SELECT COALESCE(SUM(seconds), 0) FROM watch_log", [], |r| r.get(0)).unwrap() };
+        save_progress(&conn, 101, 5.0, 1400.0).unwrap();
+        assert_eq!(logged(), 5.0);
+        // Five seconds later, five seconds further.
+        conn.execute("UPDATE watch SET updated_at = updated_at - 5", []).unwrap();
+        save_progress(&conn, 101, 10.0, 1400.0).unwrap();
+        assert_eq!(logged(), 10.0);
+        // A jump of ten minutes in five seconds isn't watching.
+        conn.execute("UPDATE watch SET updated_at = updated_at - 5", []).unwrap();
+        save_progress(&conn, 101, 610.0, 1400.0).unwrap();
+        assert_eq!(logged(), 10.0);
+        // Going back neither.
+        save_progress(&conn, 101, 0.0, 1400.0).unwrap();
+        assert_eq!(logged(), 10.0);
+        let s = stats(&conn).unwrap();
+        assert_eq!(s.time.len(), 1);
+    }
+
+    #[test]
+    fn finishing_the_last_episode_of_a_season() {
+        let conn = setup();
+        save_progress(&conn, 101, 1350.0, 1400.0).unwrap();
+        assert!(finished_season(&conn, 101).unwrap().is_none());
+        save_progress(&conn, 102, 1350.0, 1400.0).unwrap();
+        let done = finished_season(&conn, 102).unwrap().unwrap();
+        assert_eq!((done.season.as_str(), done.show_done), ("Season 1", false));
+        save_progress(&conn, 100, 1350.0, 1400.0).unwrap();
+        save_progress(&conn, 103, 1350.0, 1400.0).unwrap();
+        let done = finished_season(&conn, 103).unwrap().unwrap();
+        assert_eq!((done.season.as_str(), done.show_done), ("Season 2", true));
     }
 }

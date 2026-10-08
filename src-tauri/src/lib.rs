@@ -119,6 +119,7 @@ pub fn run() {
             library::watch_save,
             library::watch_set,
             library::watch_continue,
+            library::watch_stats,
             library::watch_hide,
             library::watch_set_title,
             library::library_search,

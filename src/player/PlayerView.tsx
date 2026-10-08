@@ -426,6 +426,9 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
         else back();
       } else if (k === "ArrowLeft") seekBy(e.shiftKey ? -30 : -5);
       else if (k === "ArrowRight") seekBy(e.shiftKey ? 30 : 5);
+      // One frame back / forward (pauses).
+      else if (k === ",") mpv.command("frame-back-step");
+      else if (k === ".") mpv.command("frame-step");
       else if (k === "j") seekBy(-10);
       else if (k === "l") seekBy(10);
       else if (k === "ArrowUp") changeVolume(5);
