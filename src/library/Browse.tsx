@@ -83,7 +83,9 @@ const NO_FILTERS: Filters = { status: "all", genre: null, myList: false };
 function statusOf(t: TitleSummary): Exclude<Status, "all" | "new"> {
   const total = Math.max(1, t.episodes + t.movies);
   if (t.watched >= total) return "finished";
-  return t.watched > 0 || t.lastWatched != null ? "started" : "unstarted";
+  // Only what's really been watched counts: opening something for a moment, or progress taken
+  // away again ("Mark as unwatched", "Play from the beginning"), doesn't.
+  return t.watched > 0 || t.started > 0 ? "started" : "unstarted";
 }
 
 function matches(t: TitleSummary, status: Status) {

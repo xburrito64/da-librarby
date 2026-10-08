@@ -47,6 +47,8 @@ export interface TitleSummary {
   lastWatched: number | null;
   /** When it was put on My List (null = it isn't). */
   listedAt: number | null;
+  /** Episodes and movies stopped part-way (far enough in to resume, not finished). */
+  started: number;
 }
 
 /** Information from AniList/TMDB. */

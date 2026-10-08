@@ -491,6 +491,8 @@ pub struct TitleSummary {
     pub last_watched: Option<i64>,
     /// When it was put on My List (None = it isn't).
     pub listed_at: Option<i64>,
+    /// Episodes and movies stopped part-way (far enough in to resume, not finished).
+    pub started: i64,
 }
 
 /// Things count as new for two weeks after they show up...
@@ -525,7 +527,10 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                 (SELECT MAX(w.updated_at) FROM watch w JOIN files f ON f.id = w.file_id WHERE f.title_id = t.id),
                 t.added_at > (SELECT MIN(f.added_at) FROM files f WHERE f.library_id = t.library_id) + ?1
                   AND t.added_at > ?2,
-                (SELECT added_at FROM my_list WHERE title_id = t.id)
+                (SELECT added_at FROM my_list WHERE title_id = t.id),
+                (SELECT COUNT(*) FROM watch w JOIN files f ON f.id = w.file_id
+                  WHERE f.title_id = t.id AND f.present = 1 AND f.role IN ('episode', 'movie')
+                    AND w.watched = 0 AND w.position >= ?3)
          FROM titles t JOIN libraries l ON l.id = t.library_id
          LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
@@ -535,7 +540,7 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
     for (_, title_id) in new_files(conn)? {
         *new_counts.entry(title_id).or_default() += 1;
     }
-    let rows = stmt.query_map(params![FIRST_SCAN_SECONDS, now() - NEW_FOR_SECONDS], |r| {
+    let rows = stmt.query_map(params![FIRST_SCAN_SECONDS, now() - NEW_FOR_SECONDS, super::watch::MIN_RESUME_SECONDS], |r| {
         let looked_up: bool = r.get(14)?;
         let id: i64 = r.get(0)?;
         Ok(TitleSummary {
@@ -563,6 +568,7 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
             last_watched: r.get(20)?,
             is_new: r.get::<_, Option<bool>>(21)?.unwrap_or(false),
             listed_at: r.get(22)?,
+            started: r.get(23)?,
         })
     })?;
     rows.collect()
