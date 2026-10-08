@@ -3,7 +3,7 @@
 import "@fontsource-variable/pixelify-sans";
 import "./snowdin.css";
 import type { Theme } from "../themes";
-import { ICONS, setHeartColor } from "./art";
+import { HEART_RED, ICONS, setHeartColors } from "./art";
 import { SOUNDS } from "./sounds";
 import Decor from "./Decor";
 
@@ -22,7 +22,7 @@ export const SNOWDIN: Theme = {
         kind: "color",
         // The seven colours a soul can have in the game.
         choices: [
-          { value: "#ff0000", label: "Red: Determination" },
+          { value: HEART_RED, label: "Red: Determination" },
           { value: "#fca600", label: "Orange: Bravery" },
           { value: "#ffff00", label: "Yellow: Justice" },
           { value: "#00c000", label: "Green: Kindness" },
@@ -30,7 +30,13 @@ export const SNOWDIN: Theme = {
           { value: "#003cff", label: "Blue: Integrity" },
           { value: "#d535d9", label: "Purple: Perseverance" },
         ],
-        default: "#ff0000",
+        default: HEART_RED,
+      },
+      {
+        id: "pointerOnly",
+        label: "Colour only the pointer",
+        hint: "The heart colour is used for the mouse pointer only; the other hearts stay red.",
+        default: false,
       },
       { id: "typing", label: "Typing text", hint: "Descriptions type themselves out the first time you see them.", default: true },
       { id: "sounds", label: "Sounds", hint: "Little blips when you point at and pick things. Never during a video.", default: true },
@@ -104,7 +110,8 @@ export const SNOWDIN: Theme = {
     typing: true,
     icons: ICONS,
     apply: (options) => {
-      setHeartColor(String(options.heart ?? "#ff0000"));
+      const color = String(options.heart ?? HEART_RED);
+      setHeartColors(options.pointerOnly === true ? HEART_RED : color, color);
       document.documentElement.classList.toggle("sd-heart-pointer", options.pointer !== false);
     },
     Decor,

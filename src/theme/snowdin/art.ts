@@ -3,7 +3,7 @@
 import { forestScene, lightsTile, paint, townScene } from "./scenes";
 
 const PALETTE: Record<string, string> = {
-  R: "#ff0000", // the heart (its colour can be changed, see setHeartColor)
+  R: "#ff0000", // the heart (its colour can be changed, see setHeartColors)
   Y: "#fff200",
   y: "#ffd23a",
   W: "#ffffff",
@@ -116,20 +116,30 @@ function setVar(name: string, dataUrl: string) {
   document.documentElement.style.setProperty(name, `url("${dataUrl}")`);
 }
 
-let heartColor = "";
+const isColor = (c: string) => /^#[0-9a-f]{6}$/i.test(c);
+let drawn = { hearts: "", pointer: "" };
 
-/** Draws every heart (beside things, on the seek bar, the mouse pointer) in `color` ("#rrggbb"). */
-export function setHeartColor(color: string) {
-  if (!/^#[0-9a-f]{6}$/i.test(color) || color === heartColor) return;
-  heartColor = color;
-  const palette = { ...PALETTE, R: color };
-  setVar("--sd-heart", sprite(HEART, palette));
-  setVar("--sd-heart-outlined", sprite(outlined(HEART), palette));
-  // The pointer: 3 screen pixels per dot (6 on high-resolution screens), pointing from its middle.
-  const pointer = (scale: number) => `url("${sprite(outlined(HEART), palette, scale)}") ${scale / 3}x`;
-  document.documentElement.style.setProperty("--sd-pointer", `image-set(${pointer(3)}, ${pointer(6)}) 13 10`);
-  document.documentElement.style.setProperty("--sd-soul", color);
+/** Draws the hearts (beside things, on the seek bar...) in `hearts` and the mouse pointer in
+ *  `pointer` ("#rrggbb" each). */
+export function setHeartColors(hearts: string, pointer = hearts) {
+  if (!isColor(hearts) || !isColor(pointer)) return;
+  if (hearts !== drawn.hearts) {
+    const palette = { ...PALETTE, R: hearts };
+    setVar("--sd-heart", sprite(HEART, palette));
+    setVar("--sd-heart-outlined", sprite(outlined(HEART), palette));
+    document.documentElement.style.setProperty("--sd-soul", hearts);
+  }
+  if (pointer !== drawn.pointer) {
+    // 3 screen pixels per dot (6 on high-resolution screens), pointing from its middle.
+    const palette = { ...PALETTE, R: pointer };
+    const image = (scale: number) => `url("${sprite(outlined(HEART), palette, scale)}") ${scale / 3}x`;
+    document.documentElement.style.setProperty("--sd-pointer", `image-set(${image(3)}, ${image(6)}) 13 10`);
+  }
+  drawn = { hearts, pointer };
 }
+
+/** The heart's colour in the game. */
+export const HEART_RED = PALETTE.R;
 
 /** A square of scattered snowflakes (repeats in every direction); `big` flakes are 2x2. */
 function snowTile(seed: number, count: number, big: boolean) {
@@ -153,7 +163,7 @@ export function drawScenes(width: number) {
   setVar("--sd-forest", forestScene(width, festive()));
 }
 
-setHeartColor(PALETTE.R);
+setHeartColors(PALETTE.R);
 setVar("--sd-star", sprite(STAR));
 setVar("--sd-cap", sprite(CAP));
 setVar("--sd-dog", sprite(DOG));
