@@ -7,7 +7,7 @@ import { library, metadata, guessKind, img, KIND_LABELS, type Library, type Libr
 import { THEMES, type ThemeOption } from "../theme/themes";
 import { setTheme, useTheme, useThemeInfo } from "../theme/theme";
 import { setThemeOption, useThemeOptions } from "../theme/options";
-import { loadOwnFiles, openOwnFolder, useOwnFiles } from "../theme/ownFiles";
+import { loadOwnFiles, musicFiles, openOwnFolder, useOwnFiles } from "../theme/ownFiles";
 import { CheckIcon, CloseIcon, FolderIcon, RefreshIcon } from "../ui/icons";
 
 export type SettingsSection = "appearance" | "general" | "library" | "online" | "shortcuts" | "about";
@@ -228,14 +228,19 @@ function OwnFiles() {
         {wanted.music ? ", or music in the background" : ""}? Put the files in its folder, named as below (a font as .ttf,
         .otf or .woff2; sounds{wanted.music ? " and music" : ""} as .ogg, .mp3 or .wav), then press Reload. They're used
         instead of the built-in ones and stay on this PC only.
+        {wanted.music && " Several music files (music-1.ogg, music-2.ogg, ...) take turns."}
       </p>
       <div className="own-files__list">
         {rows.map((r) => {
-          const file = found(r.name);
+          const tracks = r.name === "music" && own ? musicFiles(own) : [];
+          const file = tracks[0] ?? found(r.name);
+          const names = (tracks.length > 0 ? tracks : file ? [file] : []).map((f) => f.path.split(/[\\/]/).pop());
           return (
             <div key={r.name} className="own-files__row">
               <span className="own-files__label">{r.label}</span>
-              <span className="own-files__name">{file ? file.path.split(/[\\/]/).pop() : `${r.name}.…`}</span>
+              <span className="own-files__name" title={names.join("\n")}>
+                {names.length > 1 ? `${names.length} tracks: ${names.join(", ")}` : (names[0] ?? `${r.name}.…`)}
+              </span>
               <span className={`own-files__state ${file ? "is-found" : ""}`}>
                 {file ? "In use" : "optional" in r ? "Not added" : "Built-in"}
               </span>

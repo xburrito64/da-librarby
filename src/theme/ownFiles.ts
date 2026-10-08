@@ -2,12 +2,13 @@
 // owner adds themselves. They stay on this PC; the app only looks for them.
 // A font named "font.*" replaces the theme's text font (root class "own-font");
 // sounds named after a sound ("select.wav", ...) replace the theme's own blips;
-// "music.*" plays in the background (see music.ts).
+// "music.*" plays in the background, and with several ("music-town.ogg", "music 2.mp3", ...) it
+// moves from one to the next (see music.ts).
 import { useSyncExternalStore } from "react";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { findTheme } from "./themes";
 import { setOwnSounds, type SoundName } from "./sound";
-import { setMusicFile } from "./music";
+import { setMusicFiles } from "./music";
 
 export interface OwnFiles {
   folder: string;
@@ -64,9 +65,13 @@ export async function loadOwnFiles(themeId: string) {
   }
   if (mine !== request) return;
   setOwnSounds(sounds);
-  const music = wanted?.music ? found?.files.find((f) => f.name === "music" && !/\.(ttf|otf|woff2?)$/i.test(f.path)) : undefined;
-  setMusicFile(music ? convertFileSrc(music.path) : null);
+  setMusicFiles(wanted?.music && found ? musicFiles(found).map((f) => convertFileSrc(f.path)) : []);
   changed(found);
+}
+
+/** The music files in a theme's own folder: "music.*", "music-town.*", "music 2.*", ... */
+export function musicFiles(own: OwnFiles) {
+  return own.files.filter((f) => /^music($|[\s_.\-\d])/.test(f.name) && !/\.(ttf|otf|woff2?)$/i.test(f.path));
 }
 
 /** What the current theme's own folder holds (null while unknown or for themes without one). */

@@ -55,7 +55,8 @@ Themes that leave it out look and behave exactly as before.
 - `ownFiles`: a folder on the owner's PC (`<app data>/theme-files/<theme id>/`) where they can put their own
   font (`font.ttf`, `.otf`, `.woff2`) and sound files named after the sounds (`select.wav`, ...), used
   instead of the theme's (see `ownFiles.ts`), and with `music: true` a `music.ogg` (or `.mp3`, ...) that
-  loops in the background of the library (see `music.ts`). Settings shows what's in use. The files never become part
+  loops in the background of the library; several (`music-1.ogg`, `music-town.ogg`, ...) take turns
+  (see `music.ts`). Settings shows what's in use. The files never become part
   of the app or the project.
 - `Decor`: a component drawn behind the library screens (Snowdin's falling snow), given the theme's option
   values.
