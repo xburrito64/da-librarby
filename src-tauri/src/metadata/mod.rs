@@ -225,6 +225,18 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
         return process_one_pace(&library, images, title_id, tmdb);
     }
 
+    if kind.as_deref() == Some("anime") && input.is_movie {
+        // Matched on AniList already; TMDB adds the cast, the facts and the big artwork.
+        let (mut names, year, _) = library.with_db(|c| store::anime_lookup_hints(c, title_id)).map_err(db_error)?;
+        if let Some(show) = &input.parent {
+            names.push(format!("{show} {}", input.name));
+        }
+        let names: Vec<&str> = names.iter().map(String::as_str).collect();
+        let movie = tmdb_match::movie_by_names(&names, year, tmdb)?;
+        let parts = movie_art(images, movie.as_ref(), tmdb, &mut art);
+        return library.with_db(|c| store::save_anime_movie(c, title_id, movie.as_ref(), &parts, &art)).map_err(db_error);
+    }
+
     if kind.as_deref() == Some("anime") {
         let (names, year, known) = library.with_db(|c| store::anime_lookup_hints(c, title_id)).map_err(db_error)?;
         let names: Vec<&str> = names.iter().map(String::as_str).collect();
@@ -237,16 +249,9 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
         let movie = tmdb_match::match_movie(input, tmdb)?;
         if let Some(m) = &movie {
             save_poster(images, &mut art, &format!("movie-{}", m.id), m.poster_path.as_deref());
-            art.banner = images.banner(&format!("tmdb-movie-{}", m.id), tmdb::image_url(m.backdrop_path.as_deref(), "w1280").as_deref());
-            let cast = m.credits.as_ref().map(|c| &c.cast[..c.cast.len().min(store::CAST_SHOWN)]).unwrap_or_default();
-            for person in cast {
-                let url = tmdb::image_url(person.profile_path.as_deref(), "w185");
-                if let Some(saved) = images.still(&format!("tmdb-person-{}", person.id), url.as_deref()) {
-                    art.people.insert(person.id, saved);
-                }
-            }
         }
-        return library.with_db(|c| store::save_movie_title(c, title_id, input, movie.as_ref(), &art)).map_err(db_error);
+        let parts = movie_art(images, movie.as_ref(), tmdb, &mut art);
+        return library.with_db(|c| store::save_movie_title(c, title_id, input, movie.as_ref(), &parts, &art)).map_err(db_error);
     }
 
     let matched = tmdb_match::match_tv(input, tmdb)?;
@@ -304,6 +309,24 @@ fn process_one_pace(library: &Library, images: &Images, title_id: i64, tmdb: &Tm
     let episodes = onepace::episode_info(&guide, &matches, &seasons);
     let art = store::TmdbArt { stills: save_stills(images, tmdb_id, &episodes), ..Default::default() };
     library.with_db(|c| store::save_anime_episodes(c, title_id, tmdb_id, &episodes, &art)).map_err(db_error)
+}
+
+/// A movie's wide artwork and cast photos, and the movies of its collection.
+fn movie_art(images: &Images, movie: Option<&tmdb::Movie>, tmdb: &Tmdb, art: &mut store::TmdbArt) -> Vec<tmdb::CollectionPart> {
+    let Some(m) = movie else { return Vec::new() };
+    art.banner = images.banner(&format!("tmdb-movie-{}", m.id), tmdb::image_url(m.backdrop_path.as_deref(), "w1280").as_deref());
+    let cast = m.credits.as_ref().map(|c| &c.cast[..c.cast.len().min(store::CAST_SHOWN)]).unwrap_or_default();
+    for person in cast {
+        let url = tmdb::image_url(person.profile_path.as_deref(), "w185");
+        if let Some(saved) = images.still(&format!("tmdb-person-{}", person.id), url.as_deref()) {
+            art.people.insert(person.id, saved);
+        }
+    }
+    m.belongs_to_collection
+        .as_ref()
+        .and_then(|c| tmdb.collection(c.id).ok())
+        .map(|c| c.parts)
+        .unwrap_or_default()
 }
 
 /// `key` is "tv-<id>" or "movie-<id>"; the file is named "tmdb-<key>".

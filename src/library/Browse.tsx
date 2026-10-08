@@ -11,6 +11,7 @@ import {
   reveal,
   revealTitle,
   KIND_LABELS,
+  tabOf,
   type ContinueItem,
   type FoundFile,
   type Library,
@@ -123,7 +124,7 @@ export default function Browse({ tab, titles, offline, query, continueList, load
 
   const byKind = useMemo(() => {
     const map = new Map<LibraryKind, TitleSummary[]>();
-    for (const t of titles) map.set(t.kind, [...(map.get(t.kind) ?? []), t]);
+    for (const t of titles) map.set(tabOf(t), [...(map.get(tabOf(t)) ?? []), t]);
     return map;
   }, [titles]);
 

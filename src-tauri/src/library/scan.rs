@@ -227,11 +227,68 @@ fn scan_show(dir: &Path, key: &str, parent_key: Option<&str>, out: &mut Vec<Scan
         }
     }
 
+    let movies = split_movies(&mut title);
     if !title.files.is_empty() {
         title.finish();
         out.push(title);
     }
+    out.extend(movies);
     out.extend(nested);
+}
+
+/// Movies kept in a show's folder (Naruto's, "Jujutsu Kaisen 0") become titles of their own
+/// inside the show, so each gets a movie page and is listed with the movies. A movie in a folder
+/// of its own takes that folder's extras along. A folder that is just one movie stays as it is.
+fn split_movies(title: &mut ScannedTitle) -> Vec<ScannedTitle> {
+    let episodes = title.files.iter().filter(|f| f.role == Role::Episode).count();
+    let movies = title.files.iter().filter(|f| f.role == Role::Movie).count();
+    if movies == 0 || (episodes == 0 && movies == 1) {
+        return Vec::new();
+    }
+    let show_dir = title.folder.clone();
+    let parent_dir = |f: &ScannedFile| f.path.parent().map(Path::to_path_buf).unwrap_or_default();
+    let movie_dirs: Vec<PathBuf> = title.files.iter().filter(|f| f.role == Role::Movie).map(parent_dir).collect();
+    let (movie_files, rest): (Vec<ScannedFile>, Vec<ScannedFile>) =
+        std::mem::take(&mut title.files).into_iter().partition(|f| f.role == Role::Movie);
+    title.files = rest;
+    // Folders that also hold episodes (SAO's movie among its specials) aren't the movie's own.
+    let episode_dirs: Vec<PathBuf> = title.files.iter().filter(|f| f.role == Role::Episode).map(parent_dir).collect();
+
+    let mut out = Vec::new();
+    for mut movie in movie_files {
+        let dir = parent_dir(&movie);
+        // Its own folder: not the show's, and not shared with other movies ("Movies") or episodes.
+        let own_dir = dir != show_dir && movie_dirs.iter().filter(|d| **d == dir).count() == 1 && !episode_dirs.contains(&dir);
+        let place = if own_dir { dir.clone() } else { movie.path.clone() };
+        let key = format!("{}/{}", title.key, relative_key(&show_dir, &place));
+        let name = movie.name.clone().unwrap_or_else(|| parse::file_stem(&file_name(&movie.path)).to_string());
+        let mut child = ScannedTitle::new(key, Some(title.key.clone()), name, movie.year, &dir);
+        child.kind = title.kind;
+        movie.season = None;
+        child.files.push(movie);
+        if own_dir {
+            let (extras, rest): (Vec<ScannedFile>, Vec<ScannedFile>) = std::mem::take(&mut title.files)
+                .into_iter()
+                .partition(|f| f.role == Role::Extra && f.extra.as_ref().is_some_and(|g| g.movie) && f.path.starts_with(&dir));
+            title.files = rest;
+            for mut extra in extras {
+                // "Jujutsu Kaisen 0 · Featurettes" is just "Featurettes" on the movie's own page.
+                if let Some(group) = extra.extra.as_mut() {
+                    group.label = group.label.as_deref().and_then(|l| l.split_once(" · ")).map(|(_, rest)| rest.to_string());
+                }
+                child.files.push(extra);
+            }
+        }
+        child.finish();
+        out.push(child);
+    }
+    out
+}
+
+/// `path` inside `base` as a '/'-separated key.
+fn relative_key(base: &Path, path: &Path) -> String {
+    let rel = path.strip_prefix(base).unwrap_or(path);
+    rel.components().map(|c| c.as_os_str().to_string_lossy()).collect::<Vec<_>>().join("/")
 }
 
 /// A subfolder of a show that isn't obviously a season, extras or movies folder.
@@ -624,6 +681,11 @@ mod tests {
             let titles = scan_library(Path::new(root), kind).unwrap();
             for t in titles {
                 let parent = t.parent_key.as_deref().map(|p| format!("  (inside {p})")).unwrap_or_default();
+                let extras = t.files.iter().filter(|f| f.role == Role::Extra).count();
+                if t.is_movie {
+                    println!("MOVIE {} ({:?}){parent} key={} extras={extras}", t.name, t.year, t.key);
+                    continue;
+                }
                 let kind = if t.is_movie { "MOVIE" } else { "SHOW" };
                 println!("{kind} {} ({:?}){parent}", t.name, t.year);
                 for (i, s) in t.seasons.iter().enumerate() {

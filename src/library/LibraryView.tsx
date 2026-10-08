@@ -7,6 +7,7 @@ import {
   img,
   sortName,
   KIND_LABELS,
+  tabOf,
   watch,
   type ContinueItem,
   type FinishedSeason,
@@ -41,8 +42,7 @@ export default function LibraryView({
   onShuffle,
 }: {
   active: boolean;
-  /** Plays a file, from where it was stopped or from `at` seconds. */
-  onPlay: (fileId: number, at?: number) => void;
+  onPlay: (fileId: number) => void;
   /** Plays a show's episodes in a random order. */
   onShuffle: (titleId: number) => void;
 }) {
@@ -212,7 +212,7 @@ export default function LibraryView({
     () => (titles ?? []).slice().sort((a, b) => sortName(a.name).localeCompare(sortName(b.name))),
     [titles],
   );
-  const kinds = KINDS.filter((k) => sorted.some((t) => t.kind === k));
+  const kinds = KINDS.filter((k) => sorted.some((t) => tabOf(t) === k));
 
   const status =
     scanning != null

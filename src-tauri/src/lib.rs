@@ -3,7 +3,7 @@ mod metadata;
 mod mini_player;
 mod mpv;
 mod player;
-mod scenes;
+mod fileinfo;
 mod theme_files;
 mod thumbnails;
 
@@ -81,10 +81,10 @@ pub fn run() {
             let thumbs = thumbnails::root(app.handle())?;
             std::fs::create_dir_all(&thumbs)?;
             app.asset_protocol_scope().allow_directory(&thumbs, true)?;
-            // A movie page's scenes (see scenes.rs).
-            let scenes = scenes::root(app.handle())?;
-            std::fs::create_dir_all(&scenes)?;
-            app.asset_protocol_scope().allow_directory(&scenes, true)?;
+            // Scene pictures made by an earlier version for movie pages aren't used any more.
+            if let Ok(dir) = app.path().app_local_data_dir() {
+                let _ = std::fs::remove_dir_all(dir.join("scenes"));
+            }
             app.manage(library);
             // Pick up anything that changed on disk since last time, in the background.
             library::request_scan(app.handle(), None);
@@ -108,7 +108,7 @@ pub fn run() {
             thumbnails::thumbs_open,
             thumbnails::thumbs_want,
             thumbnails::thumbs_close,
-            scenes::scenes_get,
+            fileinfo::file_info,
             theme_files::theme_files,
             theme_files::theme_files_open,
             mini_player::player_mini,
@@ -122,6 +122,7 @@ pub fn run() {
             library::library_title,
             library::watch_item,
             library::watch_next,
+            library::watch_file,
             library::watch_save,
             library::watch_set,
             library::watch_continue,

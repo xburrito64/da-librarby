@@ -88,12 +88,11 @@ export default function App() {
     setIntro({ ...at, item });
   }, []);
 
-  /** Plays a file, from where it was stopped or from `at` seconds. */
   const play = useCallback(
-    (fileId: number, at?: number) => {
+    (fileId: number) => {
       watch
         .item(fileId)
-        .then((item) => item && start(at != null ? { ...item, resume: at } : item))
+        .then((item) => item && start(item))
         .catch((e) => setError(String(e)));
     },
     [start],

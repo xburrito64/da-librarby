@@ -1,19 +1,21 @@
 // The parts of a movie's page below its description: the details line (length, when it would
-// end, picture and sound), moments from the film, the cast, and more like it from the library.
+// end, picture and sound), "About" (the film, your copy of it, your watching), the cast, and
+// more like it from the library.
 import { useEffect, useState } from "react";
-import { img, library, scenes, type FileRow, type SceneInfo, type TitleDetail, type TitleSummary, type Track } from "./api";
+import { img, fileInfo as fileInfoApi, watch, type FileInfo, type FileRow, type TitleDetail, type TitleSummary, type Track } from "./api";
 import { Card } from "./Browse";
-import { PlayIcon } from "../ui/icons";
+import { CheckIcon } from "../ui/icons";
+import { formatDuration } from "./WatchStats";
 
-/** The scenes of a file: undefined while they're being made, null if they can't be. */
-export function useScenes(path: string | undefined) {
-  const [info, setInfo] = useState<SceneInfo | null | undefined>(undefined);
+/** What's in a file: undefined while it's being found out, null if it can't be. */
+export function useFileInfo(path: string | undefined) {
+  const [info, setInfo] = useState<FileInfo | null | undefined>(undefined);
   useEffect(() => {
     setInfo(undefined);
     if (!path) return;
     let alive = true;
-    const off = scenes.onReady((p, i) => alive && p === path && setInfo(i));
-    scenes.get(path).then((i) => alive && i && setInfo(i));
+    const off = fileInfoApi.onReady((p, i) => alive && p === path && setInfo(i));
+    fileInfoApi.get(path).then((i) => alive && i && setInfo(i));
     return () => {
       alive = false;
       off.then((f) => f());
@@ -22,7 +24,7 @@ export function useScenes(path: string | undefined) {
   return info;
 }
 
-/** "1:02:03" / "12:34" */
+/** "12:34" / "1:02:03" */
 export function clock(seconds: number) {
   const s = Math.max(0, Math.floor(seconds));
   const h = Math.floor(s / 3600);
@@ -48,7 +50,7 @@ const THREE_LETTERS: Record<string, string> = {
 
 let names: Intl.DisplayNames | null = null;
 function language(code: string | null) {
-  if (!code || code === "und") return null;
+  if (!code || code === "und" || code === "xx") return null;
   const short = THREE_LETTERS[code.toLowerCase()] ?? code;
   try {
     names ??= new Intl.DisplayNames(["en"], { type: "language" });
@@ -65,7 +67,7 @@ function languages(tracks: Track[], max: number) {
   return list.length > max ? `${list.slice(0, max).join(", ")} +${list.length - max}` : list.join(", ");
 }
 
-function quality(info: SceneInfo) {
+function quality(info: FileInfo) {
   const w = info.width ?? 0;
   const h = info.height ?? 0;
   if (w >= 3200 || h >= 1800) return "4K";
@@ -74,8 +76,22 @@ function quality(info: SceneInfo) {
   return h > 0 ? `${h}p` : null;
 }
 
+function surround(channels: number | null) {
+  if (!channels) return null;
+  if (channels >= 8) return "7.1";
+  if (channels >= 6) return "5.1";
+  return channels === 1 ? "Mono" : channels === 2 ? "Stereo" : `${channels} channels`;
+}
+
+const CODECS: Record<string, string> = {
+  hevc: "HEVC", h264: "H.264", av1: "AV1", vp9: "VP9", mpeg4: "MPEG-4", mpeg2video: "MPEG-2",
+  aac: "AAC", ac3: "Dolby Digital", eac3: "Dolby Digital Plus", truehd: "Dolby TrueHD", dts: "DTS",
+  flac: "FLAC", opus: "Opus", mp3: "MP3", vorbis: "Vorbis", pcm_s16le: "PCM", pcm_s24le: "PCM",
+};
+const codec = (c: string | null) => (c ? (CODECS[c] ?? c.toUpperCase()) : null);
+
 /** "1 h 26 min · Ends at 21:43 · 1080p · 5.1 · Audio: Japanese, English · Subtitles: English". */
-export function movieDetails(file: FileRow | undefined, info: SceneInfo | null | undefined, runtime: number | null) {
+export function movieDetails(file: FileRow | undefined, info: FileInfo | null | undefined, runtime: number | null) {
   const seconds = info?.duration || file?.progress?.duration || (runtime ? runtime * 60 : 0);
   const parts: string[] = [];
   if (seconds > 60) {
@@ -87,10 +103,9 @@ export function movieDetails(file: FileRow | undefined, info: SceneInfo | null |
   }
   if (info) {
     const q = quality(info);
-    if (q) parts.push(q);
+    if (q) parts.push(info.hdr ? `${q} HDR` : q);
     const channels = Math.max(0, ...info.audio.map((a) => a.channels ?? 0));
-    if (channels >= 8) parts.push("7.1");
-    else if (channels >= 6) parts.push("5.1");
+    if (channels >= 6) parts.push(surround(channels)!);
     const audio = languages(info.audio, 3);
     if (audio) parts.push(`Audio: ${audio}`);
     const subs = languages(info.subs, 3);
@@ -99,39 +114,156 @@ export function movieDetails(file: FileRow | undefined, info: SceneInfo | null |
   return parts;
 }
 
-/** Moments from the film (one per chapter, if it has chapters); a click starts it there. */
-export function Scenes({ info, onPlay }: { info: SceneInfo | null | undefined; onPlay: (at: number) => void }) {
-  if (info === null || (info && info.scenes.length === 0)) return null;
-  const chapters = info?.scenes.some((s) => s.title) ?? false;
+function date(value: string | number | null | undefined) {
+  if (value == null) return null;
+  const d = typeof value === "number" ? new Date(value * 1000) : new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+}
+
+function money(dollars: number | null) {
+  if (!dollars) return null;
+  if (dollars >= 1e9) return `$${(dollars / 1e9).toFixed(2).replace(/\.?0+$/, "")} billion`;
+  if (dollars >= 1e6) return `$${(dollars / 1e6).toFixed(1).replace(/\.0$/, "")} million`;
+  return `$${dollars.toLocaleString("en-US")}`;
+}
+
+function bytes(n: number) {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)} GB`;
+  return `${Math.round(n / 1e6)} MB`;
+}
+
+type Row = [label: string, value: React.ReactNode];
+
+/** All about the movie: the film itself, the file you have, and your watching of it. */
+export function About({
+  title,
+  file,
+  info,
+  all,
+}: {
+  title: TitleDetail;
+  file: FileRow | undefined;
+  info: FileInfo | null | undefined;
+  all: TitleSummary[];
+}) {
+  const [watched, setWatched] = useState<{ seconds: number; first: number | null; last: number | null } | null>(null);
+  useEffect(() => {
+    if (file) watch.file(file.id).then(setWatched);
+  }, [file?.id, file?.progress?.updatedAt]);
+
+  const meta = title.meta;
+  const extra = meta?.extra;
+  const film: Row[] = [];
+  const released = date(extra?.releaseDate);
+  if (released || extra?.countries.length)
+    film.push(["Released", [released, extra?.countries.join(", ")].filter(Boolean).join(" · ")]);
+  if (extra?.originalTitle) film.push(["Original title", extra.originalTitle]);
+  const lang = language(extra?.originalLanguage ?? null);
+  if (lang) film.push(["Language", lang]);
+  if (extra?.certification) film.push(["Rated", extra.certification]);
+  if (extra?.writers.length) film.push(["Written by", extra.writers.join(", ")]);
+  if (extra?.composers.length) film.push(["Music by", extra.composers.join(", ")]);
+  if (extra?.producers.length) film.push(["Produced by", extra.producers.join(", ")]);
+  const studios = extra?.companies.length ? extra.companies.join(", ") : meta?.studio;
+  if (studios) film.push([extra?.companies.length && extra.companies.length > 1 ? "Studios" : "Studio", studios]);
+  if (extra?.budget) film.push(["Budget", money(extra.budget)]);
+  if (extra?.revenue) film.push(["Box office", money(extra.revenue)]);
+  if (meta?.score != null)
+    film.push(["Rating", `${meta.score}%${extra?.voteCount ? ` from ${extra.voteCount.toLocaleString("en-US")} votes` : ""}`]);
+  if (extra?.collection && extra.collectionParts.length > 1) {
+    const owned = new Set(all.map((t) => t.tmdbMovieId).filter((id) => id != null));
+    if (extra.tmdbId != null) owned.add(extra.tmdbId);
+    const have = extra.collectionParts.filter((p) => owned.has(p.tmdbId)).length;
+    film.push([
+      "Collection",
+      <>
+        {extra.collection} · you have {have} of {extra.collectionParts.length}
+        <span className="about__parts">
+          {extra.collectionParts.map((p) => (
+            <span key={p.tmdbId} className={owned.has(p.tmdbId) ? "is-owned" : ""}>
+              {owned.has(p.tmdbId) && <CheckIcon />}
+              {p.name}
+              {p.year ? ` (${p.year})` : ""}
+            </span>
+          ))}
+        </span>
+      </>,
+    ]);
+  }
+
+  const copy: Row[] = [];
+  if (file) {
+    const size = [bytes(file.size), info?.container?.split(",")[0].replace("matroska", "MKV").toUpperCase()];
+    if (info?.duration) size.push(`${((file.size * 8) / info.duration / 1e6).toFixed(1)} Mbit/s`);
+    copy.push(["File", size.filter(Boolean).join(" · ")]);
+  }
+  if (info) {
+    const picture = [
+      info.width && info.height ? `${quality(info)} (${info.width}×${info.height})` : null,
+      codec(info.videoCodec),
+      info.bitDepth && info.bitDepth > 8 ? `${info.bitDepth}-bit` : null,
+      info.hdr ? "HDR" : null,
+      info.fps ? `${Math.round(info.fps * 1000) / 1000} fps` : null,
+    ];
+    copy.push(["Picture", picture.filter(Boolean).join(" · ")]);
+    if (info.audio.length > 0)
+      copy.push([
+        info.audio.length > 1 ? "Audio tracks" : "Audio",
+        <span className="about__list">
+          {info.audio.map((a, i) => (
+            <span key={i}>{[language(a.lang) ?? "Unknown", surround(a.channels), codec(a.codec)].filter(Boolean).join(" · ")}</span>
+          ))}
+        </span>,
+      ]);
+    if (info.subs.length > 0) {
+      const subs = info.subs.map((s) => `${language(s.lang) ?? s.title ?? "Unknown"}${s.forced ? " (forced)" : ""}`);
+      copy.push(["Subtitles", [...new Set(subs)].join(", ")]);
+    }
+    if (info.chapters > 0) copy.push(["Chapters", info.chapters]);
+  } else if (info === undefined) copy.push(["Picture", "Having a look…"]);
+  if (file) {
+    const added = date(file.addedAt);
+    if (added) copy.push(["Added", added]);
+  }
+
+  const yours: Row[] = [];
+  const p = file?.progress;
+  if (p?.watched) yours.push(["Status", "Watched"]);
+  else if (p && p.position >= 30 && p.duration > 0)
+    yours.push(["Status", `Stopped at ${clock(p.position)}, ${Math.max(1, Math.round((p.duration - p.position) / 60))} min left`]);
+  else yours.push(["Status", "Not watched yet"]);
+  if (watched && watched.seconds >= 60) {
+    yours.push(["Time watched", formatDuration(watched.seconds)]);
+    const first = date(watched.first);
+    const last = date(watched.last);
+    if (first) yours.push([first === last ? "Watched on" : "First watched", first]);
+    if (last && last !== first) yours.push(["Last watched", last]);
+  }
+
+  const groups: [string, Row[]][] = [
+    ["The film", film],
+    ["Your copy", copy],
+    ["Your watching", yours],
+  ];
   return (
     <section className="tp__section">
-      <h2 className="section-title">{chapters ? "Chapters" : "Scenes"}</h2>
-      <div className="scenes">
-        {info
-          ? info.scenes.map((s) => (
-              <button key={s.file} className="scene" onClick={() => onPlay(s.time)} title={`Play from ${clock(s.time)}`}>
-                <span className="scene__art">
-                  <img
-                    src={img(`${info.dir}\\${s.file}`)}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    onLoad={(e) => e.currentTarget.classList.add("is-loaded")}
-                  />
-                  <span className="scene__play">
-                    <PlayIcon />
-                  </span>
-                  <span className="scene__time">{clock(s.time)}</span>
-                </span>
-                {s.title && <span className="scene__name">{s.title}</span>}
-              </button>
-            ))
-          : // Being made: places for them, so the page doesn't jump when they arrive.
-            Array.from({ length: 8 }, (_, i) => (
-              <span key={i} className="scene is-waiting">
-                <span className="scene__art" />
-              </span>
-            ))}
+      <h2 className="section-title">About</h2>
+      <div className="about">
+        {groups
+          .filter(([, rows]) => rows.length > 0)
+          .map(([heading, rows]) => (
+            <div key={heading} className="about__group">
+              <h3 className="about__heading">{heading}</h3>
+              <dl className="about__rows">
+                {rows.map(([label, value]) => (
+                  <div key={label} className="about__row">
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ))}
       </div>
     </section>
   );
@@ -186,17 +318,19 @@ function nameWords(name: string) {
   );
 }
 
-/** Other titles in the library that are like this one: the same collection or studio, shared genres, names. */
+/** Other titles in the library that are like this one: the same collection, show or studio, shared genres, names. */
 export function similarTitles(title: TitleDetail, all: TitleSummary[], max = 10) {
   const genres = new Set((title.meta?.genres ?? []).map((g) => g.toLowerCase()));
   const studio = title.meta?.studio?.toLowerCase();
   const collection = title.meta?.extra?.collectionId ?? null;
   const words = nameWords(title.name);
   return all
-    .filter((t) => t.id !== title.id && t.parentId == null)
+    .filter((t) => t.id !== title.id)
     .map((t) => {
       let score = 0;
       if (collection != null && t.collectionId === collection) score += 6;
+      // The show it's from, and the show's other movies.
+      if (title.parentId != null && (t.id === title.parentId || t.parentId === title.parentId)) score += 5;
       if (studio && t.studio?.toLowerCase() === studio) score += 3;
       score += t.genres.filter((g) => genres.has(g.toLowerCase())).length;
       if (t.isMovie && title.isMovie) score += 1;
@@ -209,11 +343,17 @@ export function similarTitles(title: TitleDetail, all: TitleSummary[], max = 10)
     .map((x) => x.t);
 }
 
-export function MoreLikeThis({ title, onOpen, onPlay }: { title: TitleDetail; onOpen: (id: number, from?: HTMLElement | null) => void; onPlay: (titleId: number) => void }) {
-  const [all, setAll] = useState<TitleSummary[]>([]);
-  useEffect(() => {
-    library.titles().then(setAll);
-  }, [title.id]);
+export function MoreLikeThis({
+  title,
+  all,
+  onOpen,
+  onPlay,
+}: {
+  title: TitleDetail;
+  all: TitleSummary[];
+  onOpen: (id: number, from?: HTMLElement | null) => void;
+  onPlay: (titleId: number) => void;
+}) {
   const similar = similarTitles(title, all);
   if (similar.length === 0) return null;
   return (

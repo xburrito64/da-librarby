@@ -164,6 +164,25 @@ pub struct WatchStats {
     pub finished: Vec<(i64, String, i64)>,
 }
 
+/// How much and when one file was watched.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileWatch {
+    /// Seconds spent watching it.
+    pub seconds: f64,
+    /// The hours (as seconds since 1970) it was first and last watched in.
+    pub first: Option<i64>,
+    pub last: Option<i64>,
+}
+
+pub fn file_watch(conn: &Connection, file_id: i64) -> rusqlite::Result<FileWatch> {
+    conn.query_row(
+        "SELECT COALESCE(SUM(seconds), 0), MIN(hour) * 3600, MAX(hour) * 3600 FROM watch_log WHERE file_id = ?1",
+        [file_id],
+        |r| Ok(FileWatch { seconds: r.get(0)?, first: r.get(1)?, last: r.get(2)? }),
+    )
+}
+
 pub fn stats(conn: &Connection) -> rusqlite::Result<WatchStats> {
     let mut stmt = conn.prepare(
         "SELECT f.title_id, l.hour, SUM(l.seconds) FROM watch_log l JOIN files f ON f.id = l.file_id

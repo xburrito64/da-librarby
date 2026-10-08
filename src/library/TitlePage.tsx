@@ -1,4 +1,5 @@
-// Show page: artwork, description, seasons and episodes, movies, extras.
+// Show and movie pages: artwork, description, seasons and episodes, movies, extras; for movies
+// also "About", the cast and more like it (MovieParts.tsx).
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   library,
@@ -16,6 +17,7 @@ import {
   type MatchSource,
   type SeasonRow,
   type TitleDetail,
+  type TitleSummary,
 } from "./api";
 import MatchPicker from "./MatchPicker";
 import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, UndoIcon } from "../ui/icons";
@@ -23,7 +25,8 @@ import { useShuffle } from "./shuffle";
 import { useContextMenu, type MenuEntry } from "../ui/ContextMenu";
 import Typed from "../ui/Typed";
 import { formatDuration } from "./WatchStats";
-import { Cast, MoreLikeThis, Scenes, movieDetails, useScenes } from "./MovieParts";
+import { About, Cast, MoreLikeThis, movieDetails, useFileInfo } from "./MovieParts";
+import { Card } from "./Browse";
 import { useCopy } from "../theme/copy";
 
 type Picking = { kind: "title" } | { kind: "season"; season: SeasonRow } | { kind: "file"; file: FileRow };
@@ -35,8 +38,7 @@ interface Props {
   /** Opened with a view transition, which already fades it in: no fade of its own. */
   still?: boolean;
   onBack: () => void;
-  /** Plays a file, from where it was stopped or from `at` seconds. */
-  onPlay: (fileId: number, at?: number) => void;
+  onPlay: (fileId: number) => void;
   /** Opens another show or movie ("more like this"). */
   onOpen: (id: number, from?: HTMLElement | null) => void;
   onScrolled: (scrolled: boolean) => void;
@@ -56,10 +58,13 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
   const [checking, setChecking] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const movieFile = title?.isMovie ? title.files.find((f) => f.role === "movie") : undefined;
-  const sceneInfo = useScenes(movieFile?.path);
+  const info = useFileInfo(movieFile?.path);
+  /** Everything in the library: for a show's movies, a movie's collection and "more like this". */
+  const [all, setAll] = useState<TitleSummary[]>([]);
 
   const load = useCallback(() => {
     library.title(id).then(setTitle);
+    library.titles().then(setAll);
   }, [id]);
 
   useEffect(() => {
@@ -79,7 +84,10 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
   const anime = title.kind === "anime";
   const titleSource: MatchSource = anime ? "anilist" : title.isMovie ? "tmdb-movie" : "tmdb-tv";
   const movieSource: MatchSource = anime ? "anilist" : "tmdb-movie";
-  const movies = title.isMovie ? [] : title.files.filter((f) => f.role === "movie");
+  // The show's movies are titles of their own, each with its page.
+  const movies = title.isMovie
+    ? []
+    : all.filter((t) => t.parentId === title.id && t.isMovie).sort((a, b) => (a.year ?? 0) - (b.year ?? 0) || a.name.localeCompare(b.name));
   const up = upNext(title);
   // Opens on the season being watched (else the first season, else the movies).
   const current =
@@ -112,7 +120,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
       if (next) onPlay(next.file.id);
     });
   const extra = meta?.extra ?? null;
-  const details = title.isMovie ? movieDetails(movieFile, sceneInfo, extra?.runtime ?? null) : [];
+  const details = title.isMovie ? movieDetails(movieFile, info, extra?.runtime ?? null) : [];
   const watchedOn =
     movieFile?.progress?.watched && !canResume(movieFile.progress)
       ? `Watched on ${new Date(movieFile.progress.updatedAt * 1000).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}`
@@ -123,7 +131,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
           name: meta?.name ?? title.name,
           score: meta?.score ?? null,
           year: year ?? null,
-          minutes: sceneInfo?.duration ? Math.round(sceneInfo.duration / 60) : (extra?.runtime ?? null),
+          minutes: info?.duration ? Math.round(info.duration / 60) : (extra?.runtime ?? null),
           tagline: extra?.tagline ?? null,
           genres: meta?.genres ?? [],
         })
@@ -170,7 +178,17 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
           {meta?.cover ? <img src={img(meta.cover)} alt="" decoding="async" /> : <span className="card__placeholder">{title.name}</span>}
         </div>
         <div className="tp__info">
-          <div className="tp__eyebrow">{[KIND_LABELS[title.kind], year, meta?.studio].filter(Boolean).join(" · ")}</div>
+          <div className="tp__eyebrow">
+            {[KIND_LABELS[title.kind], year, meta?.studio].filter(Boolean).join(" · ")}
+            {title.parentId != null && (
+              <>
+                {" · "}
+                <button className="tp__parent" onClick={() => onOpen(title.parentId!)} title={`Open ${title.parentName}`}>
+                  From {title.parentName}
+                </button>
+              </>
+            )}
+          </div>
           <h1 className="tp__title">{title.name}</h1>
           {meta?.name && meta.name.toLowerCase() !== title.name.toLowerCase() && <div className="tp__alt">{meta.name}</div>}
           {extra?.tagline && <div className="tp__tagline">{extra.tagline}</div>}
@@ -265,7 +283,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
       <div className="tp__body">
         {title.isMovie && movieFile && (
           <>
-            <Scenes info={sceneInfo} onPlay={(at) => onPlay(movieFile.id, at)} />
+            <About title={title} file={movieFile} info={info} all={all} />
             <Cast title={title} />
           </>
         )}
@@ -301,32 +319,12 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
 
             {showMovies ? (
               <div className="posters">
-                {movies.map((f) => (
-                  <div key={f.id} className="poster">
-                    <button
-                      className="card"
-                      onClick={() => playFile(f)}
-                      onContextMenu={(e) => fileMenu(e, f)}
-                      title={f.meta?.name ?? f.name ?? undefined}
-                    >
-                      <span className="card__art">
-                        {f.meta?.thumb ? (
-                          <img src={img(f.meta.thumb)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add("is-loaded")} />
-                        ) : (
-                          <span className="card__placeholder">{f.meta?.name ?? f.name ?? fileName(f.path)}</span>
-                        )}
-                        <span className="card__play">
-                          <PlayIcon />
-                        </span>
-                        <WatchMarks file={f} />
-                      </span>
-                      <span className="card__text">
-                        <span className="card__name">{f.meta?.name ?? f.name ?? fileName(f.path)}</span>
-                        <span className="card__sub">{f.meta?.year ?? f.year ?? ""}</span>
-                      </span>
-                    </button>
-                    <button className="link poster__change" onClick={() => setPicking({ kind: "file", file: f })}>
-                      Change match
+                {movies.map((m) => (
+                  <div key={m.id} className="poster">
+                    <Card title={m} onOpen={onOpen} onPlay={playTitle} />
+                    <button className="link poster__change" onClick={() => playTitle(m.id)}>
+                      <PlayIcon />
+                      Play
                     </button>
                   </div>
                 ))}
@@ -400,7 +398,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
               ))}
           </section>
         )}
-        {title.isMovie && <MoreLikeThis title={title} onOpen={onOpen} onPlay={playTitle} />}
+        {title.isMovie && <MoreLikeThis title={title} all={all} onOpen={onOpen} onPlay={playTitle} />}
       </div>
 
       {picking?.kind === "title" && (

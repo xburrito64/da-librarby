@@ -22,7 +22,7 @@ use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::mpv::{Event, Mpv};
-use crate::scenes;
+use crate::fileinfo;
 
 /// About this many pictures per video, but never closer together than `MIN_INTERVAL` seconds.
 const TARGET_COUNT: f64 = 200.0;
@@ -36,8 +36,8 @@ pub(crate) enum Msg {
     Open(String),
     Want(String, f64),
     Close,
-    /// Make the scenes of a movie's page (see scenes.rs).
-    Scenes(String),
+    /// Find out what's in a movie's file (see fileinfo.rs).
+    Probe(String),
 }
 
 #[derive(Default)]
@@ -166,7 +166,7 @@ impl Worker {
                     self.job = None;
                     self.unload();
                 }
-                Some(Msg::Scenes(path)) => self.scenes(path),
+                Some(Msg::Probe(path)) => self.probe(path),
                 None => self.step(),
             }
         }
@@ -286,67 +286,24 @@ impl Worker {
         }
     }
 
-    /// Makes the scenes and file details for a movie's page, and lets the page know.
-    fn scenes(&mut self, path: String) {
-        let Some(dir) = scenes::dir_for(&self.app, &path) else { return };
-        if let Some(info) = scenes::saved(&dir) {
-            let _ = self.app.emit("scenes:ready", json!({ "path": path, "info": info }));
-            return;
-        }
-        // The seek bar pictures' video (if any) has to be opened again afterwards.
-        self.unload();
-        let info = self.make_scenes(&path, &dir);
-        if let Some(mpv) = &self.mpv {
-            let _ = mpv.command(&["stop"]);
-            let _ = mpv.command(&["vf", "set", &format!("scale=w={WIDTH}:h=-2")]);
-        }
-        let _ = self.app.emit("scenes:ready", json!({ "path": path, "info": info }));
-    }
-
-    fn make_scenes(&mut self, path: &str, dir: &Path) -> Option<scenes::SceneInfo> {
-        let mpv = self.mpv()?;
-        if mpv.command(&["loadfile", path]).is_err() || !wait_for(mpv, true) {
-            return None;
-        }
-        let duration = mpv.get_property("duration").ok().and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let chapters = scenes::chapters(&mpv.get_property("chapter-list").unwrap_or_default());
-        let (audio, subs, video) = scenes::tracks(&mpv.get_property("track-list").unwrap_or_default());
-        let _ = mpv.command(&["vf", "set", &format!("scale=w={}:h=-2", scenes::WIDTH)]);
-
-        let _ = fs::remove_dir_all(dir);
-        fs::create_dir_all(dir).ok()?;
-        let mut shots = Vec::new();
-        for (i, (time, title)) in scenes::pick_moments(duration, &chapters).into_iter().enumerate() {
-            let file = format!("{i}.jpg");
-            let target = dir.join(&file);
-            // A black frame (a fade between scenes) is no good: try a little later.
-            for attempt in 0..3 {
-                let at = (time + attempt as f64 * 7.0).min((duration - 1.0).max(0.0));
-                let ok = mpv.command(&["seek", &format!("{at:.2}"), "absolute+keyframes"]).is_ok()
-                    && wait_for(mpv, false)
-                    && mpv.command(&["screenshot-to-file", &target.to_string_lossy(), "video"]).is_ok();
-                if !ok {
-                    break;
-                }
-                if scenes::brightness(&target).is_some_and(|b| b >= 22.0) || attempt == 2 {
-                    shots.push(scenes::Scene { time: at, file: file.clone(), title: title.clone() });
-                    break;
-                }
+    /// Finds out what's in a movie's file for its page (see fileinfo.rs), and lets the page know.
+    fn probe(&mut self, path: String) {
+        let Some(file) = fileinfo::file_for(&self.app, &path) else { return };
+        let info = match fileinfo::saved(&file) {
+            Some(info) => Some(info),
+            None => {
+                // The seek bar pictures' video (if any) has to be opened again afterwards.
+                self.unload();
+                let info = self.mpv().and_then(|mpv| {
+                    let opened = mpv.command(&["loadfile", &path]).is_ok() && wait_for(mpv, true);
+                    let info = if opened { fileinfo::probe(mpv, &file) } else { None };
+                    let _ = mpv.command(&["stop"]);
+                    info
+                });
+                info
             }
-        }
-        let info = scenes::SceneInfo {
-            version: scenes::VERSION,
-            duration,
-            width: video.as_ref().map(|v| v.0),
-            height: video.as_ref().map(|v| v.1),
-            video_codec: video.map(|v| v.2).filter(|c| !c.is_empty()),
-            audio,
-            subs,
-            scenes: shots,
-            dir: String::new(),
         };
-        fs::write(dir.join("scenes.json"), serde_json::to_vec(&info).ok()?).ok()?;
-        scenes::saved(dir)
+        let _ = self.app.emit("fileinfo:ready", json!({ "path": path, "info": info }));
     }
 
     fn unload(&mut self) {

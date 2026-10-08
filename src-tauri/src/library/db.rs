@@ -428,6 +428,15 @@ pub fn apply_scan(conn: &mut Connection, library_id: i64, titles: &[ScannedTitle
                 }
             }
         }
+        if !existing_titles.contains_key(&title.key) {
+            // A title made from files that were already here (a movie moved out of its show into
+            // a title of its own) isn't new: it dates from its oldest file.
+            tx.execute(
+                "UPDATE titles SET added_at = COALESCE((SELECT MIN(added_at) FROM files WHERE title_id = ?1), added_at)
+                 WHERE id = ?1",
+                [title_id],
+            )?;
+        }
     }
 
     for old in existing_files.values() {
@@ -505,6 +514,10 @@ pub struct TitleSummary {
     /// Studio (or production company) and, for movies, the collection it belongs to: for "more like this".
     pub studio: Option<String>,
     pub collection_id: Option<i64>,
+    /// The show a movie (or spin-off) is part of.
+    pub parent_name: Option<String>,
+    /// For movies: the TMDB movie, to tell which of a collection's movies are here.
+    pub tmdb_movie_id: Option<i64>,
 }
 
 /// Things count as new for two weeks after they show up...
@@ -543,7 +556,8 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                 (SELECT COUNT(*) FROM watch w JOIN files f ON f.id = w.file_id
                   WHERE f.title_id = t.id AND f.present = 1 AND f.role IN ('episode', 'movie')
                     AND w.watched = 0 AND w.position >= ?3),
-                m.studio, m.extra
+                m.studio, m.extra, (SELECT p.name FROM titles p WHERE p.id = t.parent_id),
+                CASE WHEN m.provider = 'tmdb' AND t.is_movie = 1 THEN m.provider_id END
          FROM titles t JOIN libraries l ON l.id = t.library_id
          LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
@@ -556,6 +570,7 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
     let rows = stmt.query_map(params![FIRST_SCAN_SECONDS, now() - NEW_FOR_SECONDS, super::watch::MIN_RESUME_SECONDS], |r| {
         let looked_up: bool = r.get(14)?;
         let id: i64 = r.get(0)?;
+        let extra = r.get::<_, Option<String>>(25)?.and_then(|e| serde_json::from_str::<MovieExtra>(&e).ok());
         Ok(TitleSummary {
             id: r.get(0)?,
             library_id: r.get(1)?,
@@ -583,10 +598,12 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
             listed_at: r.get(22)?,
             started: r.get(23)?,
             studio: r.get(24)?,
-            collection_id: r
-                .get::<_, Option<String>>(25)?
-                .and_then(|e| serde_json::from_str::<MovieExtra>(&e).ok())
-                .and_then(|e| e.collection_id),
+            collection_id: extra.as_ref().and_then(|e| e.collection_id),
+            parent_name: r.get(26)?,
+            tmdb_movie_id: r
+                .get::<_, Option<String>>(27)?
+                .and_then(|i| i.parse().ok())
+                .or(extra.as_ref().and_then(|e| e.tmdb_id)),
         })
     })?;
     rows.collect()
@@ -627,15 +644,55 @@ pub struct TitleMeta {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MovieExtra {
+    /// `MovieExtra::VERSION` when made; older ones are looked up again.
+    #[serde(default)]
+    pub v: u32,
+    /// The TMDB movie (anime movies are matched on AniList first, then here).
+    pub tmdb_id: Option<i64>,
     pub tagline: Option<String>,
     /// Minutes.
     pub runtime: Option<i32>,
     pub collection: Option<String>,
     pub collection_id: Option<i64>,
+    /// The collection's movies, in order.
+    #[serde(default)]
+    pub collection_parts: Vec<CollectionPart>,
     #[serde(default)]
     pub directors: Vec<String>,
     #[serde(default)]
+    pub writers: Vec<String>,
+    #[serde(default)]
+    pub composers: Vec<String>,
+    #[serde(default)]
+    pub producers: Vec<String>,
+    #[serde(default)]
+    pub companies: Vec<String>,
+    #[serde(default)]
+    pub countries: Vec<String>,
+    /// "1988-04-16"
+    pub release_date: Option<String>,
+    pub original_title: Option<String>,
+    /// Two letters ("ja").
+    pub original_language: Option<String>,
+    pub certification: Option<String>,
+    /// US dollars.
+    pub budget: Option<i64>,
+    pub revenue: Option<i64>,
+    pub vote_count: Option<i64>,
+    #[serde(default)]
     pub cast: Vec<Person>,
+}
+
+impl MovieExtra {
+    pub const VERSION: u32 = 2;
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionPart {
+    pub tmdb_id: i64,
+    pub name: String,
+    pub year: Option<i32>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -668,6 +725,8 @@ pub struct FileRow {
     pub extra_group: Option<String>,
     /// For extras: belongs to a movie (shown on the movies tab).
     pub extra_movie: bool,
+    /// When it showed up in the library (seconds).
+    pub added_at: i64,
 }
 
 #[derive(Debug, Serialize)]
@@ -693,18 +752,23 @@ pub struct TitleDetail {
     pub files: Vec<FileRow>,
     /// When it was put on My List (None = it isn't).
     pub listed_at: Option<i64>,
+    /// The show a movie (or spin-off) is part of.
+    pub parent_id: Option<i64>,
+    pub parent_name: Option<String>,
 }
 
 pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Result<Option<TitleDetail>> {
     let head = conn
         .query_row(
-            "SELECT t.name, t.year, t.is_movie, t.folder, COALESCE(t.kind, l.kind) FROM titles t
-             JOIN libraries l ON l.id = t.library_id WHERE t.id = ?1",
+            "SELECT t.name, t.year, t.is_movie, t.folder, COALESCE(t.kind, l.kind), p.id, p.name FROM titles t
+             JOIN libraries l ON l.id = t.library_id
+             LEFT JOIN titles p ON p.id = t.parent_id AND p.present = 1
+             WHERE t.id = ?1",
             [id],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get::<_, String>(4)?)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get::<_, String>(4)?, r.get(5)?, r.get(6)?)),
         )
         .optional()?;
-    let Some((name, year, is_movie, folder, kind)) = head else { return Ok(None) };
+    let Some((name, year, is_movie, folder, kind, parent_id, parent_name)) = head else { return Ok(None) };
     let kind = LibraryKind::parse(&kind).unwrap_or(LibraryKind::Shows);
 
     let meta = conn
@@ -787,7 +851,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
     let mut stmt = conn.prepare(
         "SELECT f.id, f.path, f.role, f.season_id, f.episode, f.episode_end, f.name, f.year, f.size,
                 fm.file_id IS NOT NULL, fm.provider_id, fm.locked, fm.name, fm.description, fm.year,
-                fm.cover, fm.thumb, fm.provider_episode, f.extra_group, f.extra_movie
+                fm.cover, fm.thumb, fm.provider_episode, f.extra_group, f.extra_movie, f.added_at
          FROM files f LEFT JOIN file_meta fm ON fm.file_id = f.id
          WHERE f.title_id = ?1 AND f.present = 1 ORDER BY f.sort",
     )?;
@@ -825,12 +889,13 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
                 is_new: new.contains(&r.get::<_, i64>(0)?),
                 extra_group: r.get(18)?,
                 extra_movie: r.get(19)?,
+                added_at: r.get(20)?,
             })
         })?
         .collect::<rusqlite::Result<_>>()?;
 
     let listed_at = conn.query_row("SELECT added_at FROM my_list WHERE title_id = ?1", [id], |r| r.get(0)).optional()?;
-    Ok(Some(TitleDetail { id, kind, name, year, is_movie, folder, meta, seasons, files, listed_at }))
+    Ok(Some(TitleDetail { id, kind, name, year, is_movie, folder, meta, seasons, files, listed_at, parent_id, parent_name }))
 }
 
 /// Puts a title on My List or takes it off.

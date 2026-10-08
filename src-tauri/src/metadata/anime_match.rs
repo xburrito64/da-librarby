@@ -25,6 +25,8 @@ pub struct ShowInput {
     /// From the folder name, if it has one ("South Park (1997)").
     pub year: Option<i32>,
     pub is_movie: bool,
+    /// The show a movie is kept in ("Hunter x Hunter" for "Phantom Rouge").
+    pub parent: Option<String>,
     pub locked_root: Locked,
     pub seasons: Vec<SeasonInput>,
     pub movies: Vec<MovieInput>,
@@ -160,10 +162,23 @@ fn fetch_one(src: &mut dyn Source, id: i64) -> Result<Option<Media>, Error> {
 /// Searches for the show and walks back to its first season.
 fn find_root(input: &ShowInput, src: &mut dyn Source, seen: &mut Vec<Media>) -> Result<Option<Media>, Error> {
     let formats: Option<&[&str]> = if input.is_movie { Some(&["MOVIE", "OVA", "SPECIAL", "ONA"]) } else { None };
-    let results = src.search(&input.name, formats)?;
     // "Hunter x Hunter (2011)": the name with its year tells it apart from the 1999 series.
     let mut names = vec![input.name.clone()];
     names.extend(input.year.map(|y| format!("{} {y}", input.name)));
+    // A movie kept in a show's folder may be named without the show ("Phantom Rouge").
+    let with_show = input
+        .parent
+        .as_deref()
+        .filter(|p| !normalize(&input.name).starts_with(&normalize(p)))
+        .map(|p| format!("{p} {}", input.name));
+    names.extend(with_show.clone());
+    let mut results = src.search(&input.name, formats)?;
+    if let Some(query) = &with_show {
+        let found = |r: &[Media]| r.iter().any(|m| names.iter().any(|n| best_similarity(n, &m.all_titles()) >= MIN_SIMILARITY));
+        if !found(&results) {
+            results = src.search(query, formats)?;
+        }
+    }
 
     let best = results
         .iter()
@@ -493,6 +508,7 @@ mod tests {
             name: "Show".into(),
             year: None,
             is_movie: false,
+            parent: None,
             locked_root: None,
             seasons: vec![season(10, 1, 1..=23), season(20, 2, 1..=12)],
             movies: vec![MovieInput { file_id: 99, name: "Show Movie".into(), year: None, locked: None }],
@@ -519,6 +535,7 @@ mod tests {
             name: "Naruto".into(),
             year: None,
             is_movie: false,
+            parent: None,
             locked_root: None,
             seasons: vec![season(1, 1, 1..=57), season(2, 2, 58..=100)],
             movies: vec![],
@@ -543,6 +560,7 @@ mod tests {
             name: "Hunter x Hunter".into(),
             year: Some(2011),
             is_movie: false,
+            parent: None,
             locked_root: None,
             seasons: vec![season(10, 1, 1..=26), season(20, 1, 27..=38)],
             movies: vec![],
@@ -640,7 +658,7 @@ mod live {
                 .map(|(j, f)| MovieInput { file_id: j as i64, name: f.name.clone().unwrap_or_default(), year: f.year, locked: None })
                 .collect();
             let _ = ids(());
-            let input = ShowInput { name: t.name.clone(), year: t.year, is_movie: t.is_movie, locked_root: None, seasons, movies };
+            let input = ShowInput { name: t.name.clone(), year: t.year, is_movie: t.is_movie, parent: None, locked_root: None, seasons, movies };
             let m = match_show(&input, &mut src).unwrap();
             println!("=== {} -> {}", t.name, m.root.as_ref().map(|r| format!("{} {} ({:?})", r.id, r.display_title(), r.format)).unwrap_or("NO MATCH".into()));
             for (s, sm) in t.seasons.iter().zip(&m.seasons) {

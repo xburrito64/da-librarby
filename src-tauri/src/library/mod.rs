@@ -187,6 +187,12 @@ pub async fn watch_item(library: State<'_, Library>, file_id: i64) -> Result<Opt
     library.with_db(|c| watch::play_item(c, &library.images_dir, file_id))
 }
 
+/// How much and when a file was watched (for a movie's page).
+#[tauri::command]
+pub async fn watch_file(library: State<'_, Library>, file_id: i64) -> Result<watch::FileWatch, String> {
+    library.with_db(|c| watch::file_watch(c, file_id))
+}
+
 /// The episode that plays after this one.
 #[tauri::command]
 pub async fn watch_next(library: State<'_, Library>, file_id: i64) -> Result<Option<watch::PlayItem>, String> {

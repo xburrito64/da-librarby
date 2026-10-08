@@ -71,7 +71,14 @@ pub fn match_movie(input: &ShowInput, tmdb: &Tmdb) -> Result<Option<Movie>, Erro
         Some(None) => Ok(None),
         None => {
             let year = input.year.or_else(|| input.movies.first().and_then(|m| m.year));
-            find_movie(&input.name, year, tmdb)
+            match find_movie(&input.name, year, tmdb)? {
+                Some(movie) => Ok(Some(movie)),
+                // A movie kept in a show's folder may be named without the show.
+                None => match &input.parent {
+                    Some(show) => find_movie(&format!("{show} {}", input.name), year, tmdb),
+                    None => Ok(None),
+                },
+            }
         }
     }
 }
@@ -133,6 +140,20 @@ fn find_movie(name: &str, year: Option<i32>, tmdb: &Tmdb) -> Result<Option<Movie
         Some(best) => Ok(Some(tmdb.movie(best.id)?)),
         None => Ok(None),
     }
+}
+
+/// A movie by any of its names (an anime movie by the titles AniList knows it by).
+pub fn movie_by_names(names: &[&str], year: Option<i32>, tmdb: &Tmdb) -> Result<Option<Movie>, Error> {
+    for name in names {
+        let mut results = tmdb.search_movie(name, year)?;
+        if results.is_empty() && year.is_some() {
+            results = tmdb.search_movie(name, None)?;
+        }
+        if let Some(best) = pick(results, names, year, true) {
+            return Ok(Some(tmdb.movie(best.id)?));
+        }
+    }
+    Ok(None)
 }
 
 /// The result whose name is closest, preferring the right year, then popularity.

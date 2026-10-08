@@ -131,8 +131,62 @@ pub struct Movie {
     pub production_companies: Vec<Named>,
     pub tagline: Option<String>,
     pub belongs_to_collection: Option<Collection>,
+    pub budget: Option<i64>,
+    pub revenue: Option<i64>,
+    pub vote_count: Option<i64>,
+    /// Two letters ("ja").
+    pub original_language: Option<String>,
+    #[serde(default)]
+    pub production_countries: Vec<Named>,
     /// Asked for along with the movie.
     pub credits: Option<Credits>,
+    pub release_dates: Option<ReleaseDates>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ReleaseDates {
+    #[serde(default)]
+    pub results: Vec<CountryReleases>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CountryReleases {
+    pub iso_3166_1: String,
+    #[serde(default)]
+    pub release_dates: Vec<ReleaseDate>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseDate {
+    #[serde(default)]
+    pub certification: String,
+}
+
+impl Movie {
+    /// The age rating: the US one if there is one, else the first given ("G", "FSK 6" is "6").
+    pub fn certification(&self) -> Option<String> {
+        let results = &self.release_dates.as_ref()?.results;
+        let rating = |c: &CountryReleases| {
+            c.release_dates.iter().map(|d| d.certification.trim()).find(|r| !r.is_empty()).map(|r| (r.to_string(), c.iso_3166_1.clone()))
+        };
+        let (rating, country) = results.iter().filter(|c| c.iso_3166_1 == "US").find_map(rating).or_else(|| results.iter().find_map(rating))?;
+        Some(if country == "US" { rating } else { format!("{rating} ({country})") })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CollectionDetail {
+    pub id: i64,
+    pub name: String,
+    #[serde(default)]
+    pub parts: Vec<CollectionPart>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CollectionPart {
+    pub id: i64,
+    pub title: String,
+    pub release_date: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -238,7 +292,12 @@ impl Tmdb {
 
     /// A movie with its cast and crew.
     pub fn movie(&self, id: i64) -> Result<Movie, Error> {
-        self.get(&format!("/movie/{id}"), &[("append_to_response", "credits".to_string())])
+        self.get(&format!("/movie/{id}"), &[("append_to_response", "credits,release_dates".to_string())])
+    }
+
+    /// The movies of a collection ("The Lord of the Rings Collection").
+    pub fn collection(&self, id: i64) -> Result<CollectionDetail, Error> {
+        self.get(&format!("/collection/{id}"), &[])
     }
 
     fn get<T: DeserializeOwned>(&self, path: &str, params: &[(&str, String)]) -> Result<T, Error> {

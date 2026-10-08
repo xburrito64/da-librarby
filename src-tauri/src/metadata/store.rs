@@ -8,7 +8,7 @@ use super::anilist::Media;
 use super::anime_match::{EpisodeInput, Locked, MovieInput, SeasonInput, ShowInput, ShowMatch};
 use super::images::SavedCover;
 use super::onepace;
-use super::tmdb::{year_of, Episode, Movie, Named};
+use super::tmdb::{year_of, CollectionPart, Episode, Movie, Named};
 use super::tmdb_match::TvMatch;
 use crate::library::db::now;
 
@@ -42,7 +42,8 @@ pub fn is_anime(conn: &Connection, title_id: i64) -> rusqlite::Result<bool> {
 pub fn load_show_input(conn: &Connection, title_id: i64) -> rusqlite::Result<Option<ShowInput>> {
     let head = conn
         .query_row(
-            "SELECT t.name, t.is_movie, m.locked, m.provider_id, t.year FROM titles t
+            "SELECT t.name, t.is_movie, m.locked, m.provider_id, t.year,
+                    (SELECT p.name FROM titles p WHERE p.id = t.parent_id) FROM titles t
              LEFT JOIN title_meta m ON m.title_id = t.id WHERE t.id = ?1",
             [title_id],
             |r| {
@@ -52,11 +53,12 @@ pub fn load_show_input(conn: &Connection, title_id: i64) -> rusqlite::Result<Opt
                     r.get::<_, Option<bool>>(2)?,
                     r.get::<_, Option<String>>(3)?,
                     r.get::<_, Option<i32>>(4)?,
+                    r.get::<_, Option<String>>(5)?,
                 ))
             },
         )
         .optional()?;
-    let Some((name, is_movie, locked, provider_id, year)) = head else { return Ok(None) };
+    let Some((name, is_movie, locked, provider_id, year, parent)) = head else { return Ok(None) };
     let locked_root = locked_choice(locked, provider_id);
 
     let mut stmt = conn.prepare(
@@ -110,7 +112,7 @@ pub fn load_show_input(conn: &Connection, title_id: i64) -> rusqlite::Result<Opt
         })?
         .collect::<rusqlite::Result<_>>()?;
 
-    Ok(Some(ShowInput { name, year, is_movie, locked_root, seasons, movies }))
+    Ok(Some(ShowInput { name, year, is_movie, parent, locked_root, seasons, movies }))
 }
 
 fn locked_choice(locked: Option<bool>, provider_id: Option<String>) -> Locked {
@@ -398,14 +400,19 @@ pub fn titles_needing_tmdb(conn: &Connection) -> rusqlite::Result<Vec<i64>> {
          WHERE t.present = 1 AND (
            (COALESCE(t.kind, l.kind) IN ('shows', 'movies') AND (
                NOT EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id)
-               -- Movies matched before their cast and the like were kept.
+               -- Movies matched before everything for their page was kept.
                OR (t.is_movie = 1 AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id
-                                              AND m.provider_id IS NOT NULL AND m.extra IS NULL))
+                                              AND m.provider_id IS NOT NULL
+                                              AND COALESCE(json_extract(m.extra, '$.v'), 0) < ?1))
                OR EXISTS (SELECT 1 FROM seasons s WHERE s.title_id = t.id AND s.present = 1
                           AND NOT EXISTS (SELECT 1 FROM season_meta sm WHERE sm.season_id = s.id))
                OR EXISTS (SELECT 1 FROM files f WHERE f.title_id = t.id AND f.present = 1
                           AND f.role IN ('episode', 'movie')
                           AND NOT EXISTS (SELECT 1 FROM file_meta fm WHERE fm.file_id = f.id))))
+           -- Anime movies: their cast and facts come from TMDB.
+           OR (COALESCE(t.kind, l.kind) = 'anime' AND t.is_movie = 1
+               AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id
+                           AND COALESCE(json_extract(m.extra, '$.v'), 0) < ?1))
            OR (COALESCE(t.kind, l.kind) = 'anime'
                AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id)
                AND EXISTS (SELECT 1 FROM files f JOIN file_meta fm ON fm.file_id = f.id
@@ -413,7 +420,7 @@ pub fn titles_needing_tmdb(conn: &Connection) -> rusqlite::Result<Vec<i64>> {
                              AND fm.details_at IS NULL)))
          ORDER BY t.name",
     )?;
-    let ids = stmt.query_map([], |r| r.get(0))?.collect();
+    let ids = stmt.query_map([crate::library::db::MovieExtra::VERSION], |r| r.get(0))?.collect();
     ids
 }
 
@@ -458,10 +465,46 @@ pub struct TmdbArt {
 /// How many of a movie's cast are shown on its page.
 pub const CAST_SHOWN: usize = 12;
 
-/// The cast, director, tagline and collection of a movie, as kept in `title_meta.extra`.
-fn movie_extra(m: &Movie, art: &TmdbArt) -> String {
+/// Everything about a movie for its page, as kept in `title_meta.extra` ("{v}" alone when there's
+/// no movie, so it isn't looked for again).
+pub fn movie_extra(m: Option<&Movie>, parts: &[CollectionPart], art: &TmdbArt) -> String {
+    use crate::library::db::MovieExtra;
+    let Some(m) = m else {
+        return serde_json::to_string(&MovieExtra { v: MovieExtra::VERSION, ..Default::default() }).unwrap_or_default();
+    };
     let credits = m.credits.clone().unwrap_or_default();
-    let extra = crate::library::db::MovieExtra {
+    let crew = |jobs: &[&str], max: usize| -> Vec<String> {
+        let mut names: Vec<String> = Vec::new();
+        for c in credits.crew.iter().filter(|c| c.job.as_deref().is_some_and(|j| jobs.contains(&j))) {
+            if !names.contains(&c.name) && names.len() < max {
+                names.push(c.name.clone());
+            }
+        }
+        names
+    };
+    let extra = MovieExtra {
+        v: MovieExtra::VERSION,
+        tmdb_id: Some(m.id),
+        collection_parts: parts
+            .iter()
+            .map(|p| crate::library::db::CollectionPart {
+                tmdb_id: p.id,
+                name: p.title.clone(),
+                year: crate::metadata::tmdb::year_of(p.release_date.as_deref()),
+            })
+            .collect(),
+        writers: crew(&["Screenplay", "Writer", "Story", "Novel", "Original Story", "Author"], 4),
+        composers: crew(&["Original Music Composer", "Music", "Composer"], 3),
+        producers: crew(&["Producer"], 3),
+        companies: m.production_companies.iter().take(4).map(|c| c.name.clone()).collect(),
+        countries: m.production_countries.iter().map(|c| c.name.clone()).collect(),
+        release_date: m.release_date.clone().filter(|d| !d.is_empty()),
+        original_title: m.original_title.clone().filter(|t| *t != m.title),
+        original_language: m.original_language.clone(),
+        certification: m.certification(),
+        budget: m.budget.filter(|b| *b > 0),
+        revenue: m.revenue.filter(|r| *r > 0),
+        vote_count: m.vote_count.filter(|v| *v > 0),
         tagline: m.tagline.clone().filter(|t| !t.trim().is_empty()),
         runtime: m.runtime.filter(|r| *r > 0),
         collection: m.belongs_to_collection.as_ref().map(|c| c.name.clone()),
@@ -601,7 +644,14 @@ fn save_movie_file(conn: &Connection, file_id: i64, movie: Option<&Movie>, locke
 }
 
 /// A title that is one movie: the movie's info is both the title's and the file's.
-pub fn save_movie_title(conn: &mut Connection, title_id: i64, input: &ShowInput, movie: Option<&Movie>, art: &TmdbArt) -> rusqlite::Result<()> {
+pub fn save_movie_title(
+    conn: &mut Connection,
+    title_id: i64,
+    input: &ShowInput,
+    movie: Option<&Movie>,
+    parts: &[CollectionPart],
+    art: &TmdbArt,
+) -> rusqlite::Result<()> {
     let tx = conn.transaction()?;
     let now = now();
     let cover = movie.and_then(|m| art.covers.get(&format!("movie-{}", m.id)));
@@ -625,13 +675,23 @@ pub fn save_movie_title(conn: &mut Connection, title_id: i64, input: &ShowInput,
             cover.map(|c| c.thumb.clone()),
             art.banner,
             now,
-            movie.map(|m| movie_extra(m, art)),
+            movie.map(|m| movie_extra(Some(m), parts, art)),
         ],
     )?;
     for m in &input.movies {
         save_movie_file(&tx, m.file_id, movie, false, art, now)?;
     }
     tx.commit()
+}
+
+/// An anime movie matched on AniList gets its cast, facts and big artwork from TMDB (AniList's
+/// description and cover stay).
+pub fn save_anime_movie(conn: &Connection, title_id: i64, movie: Option<&Movie>, parts: &[CollectionPart], art: &TmdbArt) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE title_meta SET extra = ?2, tmdb_id = ?3, banner = COALESCE(?4, banner) WHERE title_id = ?1",
+        params![title_id, movie_extra(movie, parts, art), movie.map(|m| m.id.to_string()), art.banner],
+    )?;
+    Ok(())
 }
 
 /// Adds TMDB episode descriptions and thumbnails to an anime already matched on AniList.

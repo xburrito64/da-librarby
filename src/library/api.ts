@@ -52,6 +52,10 @@ export interface TitleSummary {
   /** For "more like this": the studio, and the collection a movie belongs to. */
   studio: string | null;
   collectionId: number | null;
+  /** The show a movie (or spin-off) is part of. */
+  parentName: string | null;
+  /** Movies: the TMDB movie, to tell which of a collection's movies are here. */
+  tmdbMovieId: number | null;
 }
 
 /** Information from AniList/TMDB. */
@@ -80,26 +84,45 @@ export interface TitleMeta extends Meta {
 }
 
 export interface MovieExtra {
+  tmdbId: number | null;
   tagline: string | null;
   /** Minutes. */
   runtime: number | null;
   collection: string | null;
   collectionId: number | null;
+  collectionParts: { tmdbId: number; name: string; year: number | null }[];
   directors: string[];
+  writers: string[];
+  composers: string[];
+  producers: string[];
+  companies: string[];
+  countries: string[];
+  /** "1988-04-16" */
+  releaseDate: string | null;
+  originalTitle: string | null;
+  /** Two letters ("ja"). */
+  originalLanguage: string | null;
+  certification: string | null;
+  /** US dollars. */
+  budget: number | null;
+  revenue: number | null;
+  voteCount: number | null;
   cast: { name: string; character: string | null; photo: string | null }[];
 }
 
-/** Moments from a movie and what's in its file (see src-tauri/src/scenes.rs). */
-export interface SceneInfo {
+/** What's in a movie's file (see src-tauri/src/fileinfo.rs). */
+export interface FileInfo {
   duration: number;
   width: number | null;
   height: number | null;
   videoCodec: string | null;
+  bitDepth: number | null;
+  hdr: boolean;
+  fps: number | null;
+  container: string | null;
   audio: Track[];
   subs: Track[];
-  scenes: { time: number; file: string; title: string | null }[];
-  /** Folder of the pictures. */
-  dir: string;
+  chapters: number;
 }
 
 export interface Track {
@@ -107,13 +130,14 @@ export interface Track {
   title: string | null;
   codec: string | null;
   channels: number | null;
+  forced: boolean;
 }
 
-export const scenes = {
-  /** What's saved for a file, or null while it's being made (then `onReady` follows). */
-  get: (path: string) => invoke<SceneInfo | null>("scenes_get", { path }),
-  onReady: (callback: (path: string, info: SceneInfo | null) => void) =>
-    listen<{ path: string; info: SceneInfo | null }>("scenes:ready", (e) => callback(e.payload.path, e.payload.info)),
+export const fileInfo = {
+  /** What's known about a file, or null while it's being found out (then `onReady` follows). */
+  get: (path: string) => invoke<FileInfo | null>("file_info", { path }),
+  onReady: (callback: (path: string, info: FileInfo | null) => void) =>
+    listen<{ path: string; info: FileInfo | null }>("fileinfo:ready", (e) => callback(e.payload.path, e.payload.info)),
 };
 
 export interface SeasonRow {
@@ -142,6 +166,8 @@ export interface FileRow {
   progress: Progress | null;
   /** Added recently and not started yet. */
   isNew: boolean;
+  /** When it showed up in the library (seconds). */
+  addedAt: number;
 }
 
 /** How far a file has been played. Times in seconds. */
@@ -164,6 +190,9 @@ export interface TitleDetail {
   files: FileRow[];
   /** When it was put on My List (null = it isn't). */
   listedAt: number | null;
+  /** The show a movie (or spin-off) is part of. */
+  parentId: number | null;
+  parentName: string | null;
 }
 
 export const library = {
@@ -267,7 +296,7 @@ export const KIND_LABELS: Record<LibraryKind, string> = { anime: "Anime", shows:
 export function describe(t: TitleSummary) {
   const parts: (string | number)[] = [];
   if (t.year != null) parts.push(t.year);
-  if (t.isMovie) parts.push("Movie");
+  if (t.isMovie) parts.push(t.parentName ?? "Movie");
   else {
     if (t.seasons > 1) parts.push(`${t.seasons} seasons`);
     if (t.episodes) parts.push(`${t.episodes} episode${t.episodes === 1 ? "" : "s"}`);
@@ -317,7 +346,14 @@ export const watch = {
   /** Removes a show from "continue watching" until something of it is watched again. */
   hide: (titleId: number) => invoke<void>("watch_hide", { titleId }),
   setTitle: (titleId: number, watched: boolean) => invoke<void>("watch_set_title", { titleId, watched }),
+  /** How much and when a file was watched. */
+  file: (fileId: number) => invoke<{ seconds: number; first: number | null; last: number | null }>("watch_file", { fileId }),
 };
+
+/** Which page of the library a title is listed on: every movie is with the movies. */
+export function tabOf(t: { kind: LibraryKind; isMovie: boolean }): LibraryKind {
+  return t.isMovie ? "movies" : t.kind;
+}
 
 /** "S1E3" / "E3" / "" for a play item. */
 export function itemCode(item: PlayItem) {

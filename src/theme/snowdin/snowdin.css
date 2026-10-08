@@ -2621,30 +2621,38 @@
   font-size: 15px;
 }
 
-/* ---------- Movie pages: scenes and cast in the game's white frames ---------- */
+/* ---------- Movie pages: "About" and the cast in the game's white frames ---------- */
 
 :root[data-theme="snowdin"] .tp--movie {
   --tp-art-h: max(540px, calc(100vh - 230px));
 }
 
-:root[data-theme="snowdin"] .scene__art {
-  border: 3px solid var(--line);
-  transition: none;
-}
-
-:root[data-theme="snowdin"] .scene:hover .scene__art,
-:root[data-theme="snowdin"] .scene:focus-visible .scene__art {
-  border-color: var(--accent);
-  box-shadow: none;
-}
-
-:root[data-theme="snowdin"] .scene:hover .scene__art img {
-  transform: none;
-}
-
-:root[data-theme="snowdin"] .scene__time {
+/* "About" in the game's stat-screen boxes. */
+:root[data-theme="snowdin"] .about__group {
+  border: 4px solid var(--line);
   border-radius: 0;
-  background: #000;
+  background: rgba(6, 6, 12, 0.88);
+}
+
+:root[data-theme="snowdin"] .about__heading {
+  font-size: 15px;
+  color: var(--sd-amber);
+}
+
+:root[data-theme="snowdin"] .about__heading::before {
+  content: "";
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.55em;
+  background: currentColor;
+  -webkit-mask: var(--sd-asterisk) center / contain no-repeat;
+  mask: var(--sd-asterisk) center / contain no-repeat;
+  vertical-align: 0.05em;
+}
+
+:root[data-theme="snowdin"] .about__row {
+  font-size: 15px;
 }
 
 :root[data-theme="snowdin"] .person__photo {
