@@ -15,6 +15,9 @@ Windows only for now.
 - **Covers and info.** Anime from [AniList](https://anilist.co), shows and movies from
   [TMDB](https://www.themoviedb.org): covers, banners, descriptions, episode names and pictures.
   Everything is saved on your computer, so the library works offline. Wrong match? Fix it by hand.
+- **Movie pages** with the artwork across the whole window, the cast, everything about the film,
+  your copy of it (picture, audio and subtitle tracks) and your watching, and more like it from
+  your library. Movies kept in a show's folder get a page of their own too.
 - **A proper player.** Built on [mpv](https://mpv.io), so it plays practically anything without
   converting. Pictures on the seek bar show where you'll land. Chapters, audio and subtitle tracks
   (remembered per show), subtitle size and position, playback speed, skip intro/credits, frame by
@@ -39,12 +42,14 @@ Windows only for now.
    Windows may warn about an "unknown publisher", because the installer isn't signed (signing costs
    money). Click **More info → Run anyway**.
 2. Open **Settings → Library folders** and add the folders (or whole drives) with your videos.
-3. For shows and movies, add a free TMDB key in **Settings → Online info**:
-   create an account on [themoviedb.org](https://www.themoviedb.org/signup), go to
-   **Settings → API**, request a key (personal use), and paste the "API Key". Anime info from
-   AniList needs no key.
+3. For shows and movies, add a free TMDB key in **Settings → Online info**, which explains it step
+   by step: create an account on [themoviedb.org](https://www.themoviedb.org/signup), go to
+   **Settings → API**, request a key (personal use), and paste the "API Read Access Token" or
+   "API Key". Anime info from AniList needs no key.
 
-That's it. Covers and info fill in over the next few minutes.
+That's it. Covers and info fill in over the next few minutes. When a new version comes out, a
+small note in the app says so, with a download button; running the new installer keeps your
+library, watch history and settings.
 
 ### How to name your folders
 
@@ -71,7 +76,7 @@ Movies\
 
 Extras are listed under headings taken from their folders: an `Extras` folder inside a season
 folder goes under that season, folders inside a general `Extras` folder (`Season 01`, `TV Shorts`)
-each get their own heading, and a movie's extras show on the Movies tab.
+each get their own heading, and a movie's extras show on that movie's page.
 
 Release tags like `[1080p]`, `WEB-DL` or group names are ignored. Episodes numbered from 1 to 500
 across seasons, double episodes (`S01E01-E02`), episode 0 and in-between episodes (`E16.5`) are
@@ -81,7 +86,8 @@ hand.
 ## Privacy
 
 Your library stays on your computer. The app only talks to AniList, TMDB and their image servers
-(for info and pictures) and to GitHub (for the One Pace episode guide). There's no account, no
+(for info and pictures) and to GitHub (for the One Pace episode guide, and to see whether there's a
+newer version; that can be turned off in Settings → About). There's no account, no
 tracking and no telemetry. Your TMDB key is stored only on your computer.
 
 ## Building from source
