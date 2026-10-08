@@ -1511,6 +1511,17 @@
   padding-left: 30px;
 }
 
+:root[data-theme="snowdin"] .extras__heading {
+  padding-left: 45px;
+  font-size: 16px;
+  color: var(--sd-amber);
+}
+
+:root[data-theme="snowdin"] .extras__heading::after {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
 :root[data-theme="snowdin"] .extra {
   position: relative;
   border: 3px solid transparent;

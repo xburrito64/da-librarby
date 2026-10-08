@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 6;
+const SCHEMA_VERSION: i32 = 7;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -163,6 +163,14 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
     if version < 6 {
         conn.execute_batch(super::watch::SCHEMA_V6)?;
     }
+    if version < 7 {
+        // Extras are listed under headings ("Season 15", "TV Shorts"), and a movie's extras
+        // only on the movies tab. Filled in by the next scan.
+        conn.execute_batch(
+            "ALTER TABLE files ADD COLUMN extra_group TEXT;
+             ALTER TABLE files ADD COLUMN extra_movie INTEGER NOT NULL DEFAULT 0;",
+        )?;
+    }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
 }
@@ -252,6 +260,8 @@ struct ExistingFile {
     year: Option<i32>,
     sort: i64,
     present: bool,
+    extra_group: Option<String>,
+    extra_movie: bool,
 }
 
 /// Brings the database in line with a fresh scan of one library, touching only what changed.
@@ -267,7 +277,8 @@ pub fn apply_scan(conn: &mut Connection, library_id: i64, titles: &[ScannedTitle
     };
     let existing_files: HashMap<String, ExistingFile> = {
         let mut stmt = tx.prepare(
-            "SELECT path, id, title_id, season_id, size, mtime, role, episode, episode_end, name, year, sort, present
+            "SELECT path, id, title_id, season_id, size, mtime, role, episode, episode_end, name, year, sort, present,
+                    extra_group, extra_movie
              FROM files WHERE library_id = ?1",
         )?;
         let rows = stmt.query_map([library_id], |r| {
@@ -286,6 +297,8 @@ pub fn apply_scan(conn: &mut Connection, library_id: i64, titles: &[ScannedTitle
                     year: r.get(10)?,
                     sort: r.get(11)?,
                     present: r.get(12)?,
+                    extra_group: r.get(13)?,
+                    extra_movie: r.get(14)?,
                 },
             ))
         })?;
@@ -346,6 +359,8 @@ pub fn apply_scan(conn: &mut Connection, library_id: i64, titles: &[ScannedTitle
             let path = file.path.to_string_lossy();
             let season_id = file.season.map(|i| season_ids[i]);
             let role = file.role.as_str();
+            let extra_group = file.extra.as_ref().and_then(|g| g.label.clone());
+            let extra_movie = file.extra.as_ref().is_some_and(|g| g.movie);
             match existing_files.get(path.as_ref()) {
                 Some(old) => {
                     seen_files.insert(old.id);
@@ -359,15 +374,19 @@ pub fn apply_scan(conn: &mut Connection, library_id: i64, titles: &[ScannedTitle
                         && old.episode_end == file.episode_end
                         && old.name == file.name
                         && old.year == file.year
-                        && old.sort == file.sort;
+                        && old.sort == file.sort
+                        && old.extra_group == extra_group
+                        && old.extra_movie == extra_movie;
                     if !same {
                         tx.execute(
                             "UPDATE files SET title_id = ?2, season_id = ?3, size = ?4, mtime = ?5, role = ?6,
-                                 episode = ?7, episode_end = ?8, name = ?9, year = ?10, sort = ?11, present = 1
+                                 episode = ?7, episode_end = ?8, name = ?9, year = ?10, sort = ?11, present = 1,
+                                 extra_group = ?12, extra_movie = ?13
                              WHERE id = ?1",
                             params![
                                 old.id, title_id, season_id, file.size as i64, file.mtime, role,
-                                file.episode, file.episode_end, file.name, file.year, file.sort
+                                file.episode, file.episode_end, file.name, file.year, file.sort, extra_group,
+                                extra_movie
                             ],
                         )?;
                         if old.present { stats.updated += 1 } else { stats.added += 1 }
@@ -376,11 +395,12 @@ pub fn apply_scan(conn: &mut Connection, library_id: i64, titles: &[ScannedTitle
                 None => {
                     tx.execute(
                         "INSERT INTO files (library_id, title_id, season_id, path, size, mtime, role,
-                                            episode, episode_end, name, year, sort, added_at)
-                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                                            episode, episode_end, name, year, sort, added_at, extra_group, extra_movie)
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
                         params![
                             library_id, title_id, season_id, path, file.size as i64, file.mtime, role,
-                            file.episode, file.episode_end, file.name, file.year, file.sort, now
+                            file.episode, file.episode_end, file.name, file.year, file.sort, now, extra_group,
+                            extra_movie
                         ],
                     )?;
                     stats.added += 1;
@@ -578,6 +598,10 @@ pub struct FileRow {
     pub provider_episode: Option<i32>,
     pub progress: Option<super::watch::Progress>,
     pub is_new: bool,
+    /// For extras: the heading it's listed under ("Season 15", "TV Shorts"), if any.
+    pub extra_group: Option<String>,
+    /// For extras: belongs to a movie (shown on the movies tab).
+    pub extra_movie: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -687,7 +711,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
     let mut stmt = conn.prepare(
         "SELECT f.id, f.path, f.role, f.season_id, f.episode, f.episode_end, f.name, f.year, f.size,
                 fm.file_id IS NOT NULL, fm.provider_id, fm.locked, fm.name, fm.description, fm.year,
-                fm.cover, fm.thumb, fm.provider_episode
+                fm.cover, fm.thumb, fm.provider_episode, f.extra_group, f.extra_movie
          FROM files f LEFT JOIN file_meta fm ON fm.file_id = f.id
          WHERE f.title_id = ?1 AND f.present = 1 ORDER BY f.sort",
     )?;
@@ -723,6 +747,8 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
                 provider_episode: r.get(17)?,
                 progress: progress.get(&r.get::<_, i64>(0)?).cloned(),
                 is_new: new.contains(&r.get::<_, i64>(0)?),
+                extra_group: r.get(18)?,
+                extra_movie: r.get(19)?,
             })
         })?
         .collect::<rusqlite::Result<_>>()?;

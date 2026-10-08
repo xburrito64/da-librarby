@@ -1408,6 +1408,37 @@
   gap: 4px 20px;
 }
 
+.extras-group + .extras-group {
+  margin-top: 26px;
+}
+
+.extras__heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 6px;
+  padding: 0 12px;
+  font-family: var(--font-label);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: var(--label-transform);
+  letter-spacing: var(--label-tracking);
+  color: var(--text);
+}
+
+/* A thin rule running from the heading to the edge. */
+.extras__heading::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.extras__count {
+  color: var(--muted);
+  font-weight: 500;
+}
+
 .extra {
   display: flex;
   align-items: center;

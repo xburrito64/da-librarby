@@ -63,13 +63,17 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
   const titleSource: MatchSource = anime ? "anilist" : title.isMovie ? "tmdb-movie" : "tmdb-tv";
   const movieSource: MatchSource = anime ? "anilist" : "tmdb-movie";
   const movies = title.isMovie ? [] : title.files.filter((f) => f.role === "movie");
-  const extras = title.files.filter((f) => f.role === "extra");
   const up = upNext(title);
   // Opens on the season being watched (else the first season, else the movies).
   const current =
     tab ?? (up?.file.role === "episode" ? up.file.seasonId : null) ?? title.seasons[0]?.id ?? (movies.length > 0 ? "movies" : null);
   const season = current === "movies" ? undefined : (title.seasons.find((s) => s.id === current) ?? title.seasons[0]);
   const showMovies = current === "movies" || (!season && movies.length > 0);
+  // With both seasons and movies, the movies tab shows the movies' extras and the seasons the rest.
+  const split = title.seasons.length > 0 && movies.length > 0;
+  const extras = title.files.filter((f) => f.role === "extra" && (!split || f.extraMovie === showMovies));
+  const extraGroups = groupExtras(extras);
+  const extraHeadings = extraGroups.length > 1 || extraGroups[0]?.label != null;
   const tabCount = title.seasons.length + (movies.length > 0 ? 1 : 0);
   const episodes = season && !showMovies ? title.files.filter((f) => f.role === "episode" && f.seasonId === season.id) : [];
   const upCode = up && up.file.role === "episode" ? episodeCode(up.file, title.seasons.find((s) => s.id === up.file.seasonId)?.number ?? null) : "";
@@ -282,16 +286,25 @@ export default function TitlePage({ id, onBack, onPlay, onScrolled }: Props) {
               Extras <span className="section-title__count">{extras.length}</span>
               <ChevronDown />
             </button>
-            {showExtras && (
-              <div className="extras">
-                {extras.map((f) => (
-                  <button key={f.id} className="extra" onClick={() => playFile(f)} onContextMenu={(e) => fileMenu(e, f)}>
-                    <PlayIcon />
-                    <span>{f.name ?? fileName(f.path)}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            {showExtras &&
+              extraGroups.map((group) => (
+                <div key={group.label ?? ""} className="extras-group">
+                  {extraHeadings && (
+                    <h3 className="extras__heading">
+                      {group.label ?? "More"}
+                      <span className="extras__count">{group.files.length}</span>
+                    </h3>
+                  )}
+                  <div className="extras">
+                    {group.files.map((f) => (
+                      <button key={f.id} className="extra" onClick={() => playFile(f)} onContextMenu={(e) => fileMenu(e, f)}>
+                        <PlayIcon />
+                        <span>{f.name ?? fileName(f.path)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
           </section>
         )}
       </div>
@@ -377,6 +390,17 @@ function Episode({ file, code, onPlay, onMenu }: { file: FileRow; code: string; 
       </button>
     </div>
   );
+}
+
+/** Extras under their headings ("Season 15", "TV Shorts"; null = the rest). They come sorted. */
+function groupExtras(extras: FileRow[]) {
+  const groups: { label: string | null; files: FileRow[] }[] = [];
+  for (const f of extras) {
+    const last = groups[groups.length - 1];
+    if (last && last.label === f.extraGroup) last.files.push(f);
+    else groups.push({ label: f.extraGroup, files: [f] });
+  }
+  return groups;
 }
 
 /** Progress bar for something stopped part-way, a tick for something watched. */

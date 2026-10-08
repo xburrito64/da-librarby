@@ -81,6 +81,10 @@ export interface FileRow {
   id: number;
   path: string;
   role: "episode" | "movie" | "extra";
+  /** For extras: the heading it's listed under ("Season 15", "TV Shorts"), if any. */
+  extraGroup: string | null;
+  /** For extras: belongs to a movie, so it's shown on the movies tab. */
+  extraMovie: boolean;
   seasonId: number | null;
   episode: number | null;
   episodeEnd: number | null;

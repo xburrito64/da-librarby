@@ -39,7 +39,8 @@ re!(SEASON_TOKEN, r"(?i)(?:^|[\s._\-])S(\d{1,3})(?:$|[\s._\-+])");
 re!(SEASON_WORD, r"(?i)\bseason[\s._\-]*(\d{1,3})\b");
 re!(SPECIALS, r"(?i)\b(specials?|sp)\b");
 re!(EXTRAS, r"(?i)\b(extras?|featurettes?|bonus|behind the scenes|nc|ncop|nced|creditless|artworks?|screens|screenshots|soundtracks?|ost|samples?|trailers?|interviews?|deleted scenes|making of|menus?)\b");
-re!(MOVIES_FOLDER, r"(?i)^(movies|films)$");
+re!(LEADING_SEASON, r"(?i)^(season\s*\d{1,3}|s\d{1,3}(e\d{1,4})?)(\s*[-–:.]\s+|\s+)");
+re!(MOVIES_FOLDER,r"(?i)^(movies|films)$");
 re!(SXXEYY, r"(?i)\bS(\d{1,3})\s*E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?(?:-?E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?)?");
 re!(EPISODE_ONLY, r"(?i)(?:^|[\s\-_.])E(?:p|pisode)?\s?(\d{1,4}(?:\.\d+)?)(?:$|[\s\-_.])");
 re!(ABSOLUTE, r"(?:^|\s-\s)(\d{1,4})(?:\s-\s|$)");
@@ -156,6 +157,46 @@ pub fn classify_folder(name: &str) -> FolderKind {
     } else {
         FolderKind::Other
     }
+}
+
+/// The season an extras folder belongs to: "Season 01" -> 1, "Jujutsu Kaisen S01 Extras" -> 1.
+pub fn extras_season(name: &str) -> Option<i32> {
+    season_number(&strip_tags(name))
+}
+
+/// Name of an extra as shown, without the show's name, its folder's name and the season in front
+/// (it's listed under that heading anyway): "South Park - S01E14 [EXTRA] - Jay Leno's Appearance" ->
+/// "Jay Leno's Appearance", "Season 01 - Behind the Scenes" -> "Behind the Scenes",
+/// "Lost Mystery Shack Interviews Zendaya" -> "Zendaya". Never leaves just a number.
+pub fn extra_name(stem: &str, show: &str, folder: Option<&str>) -> String {
+    let name = clean_text(&strip_tags(stem));
+    let mut rest = without_prefix(&name, show);
+    if let Some(folder) = folder {
+        rest = without_prefix(rest, &clean_text(&strip_tags(folder)));
+    }
+    let rest = clean_text(&LEADING_SEASON.replace(rest, ""));
+    if rest.chars().any(char::is_alphabetic) { rest } else { name }
+}
+
+/// `s` without `prefix` (any case) and the separator after it, if it starts with it as whole words.
+fn without_prefix<'a>(s: &'a str, prefix: &str) -> &'a str {
+    if prefix.is_empty() || !s.get(..prefix.len()).is_some_and(|p| p.to_lowercase() == prefix.to_lowercase()) {
+        return s;
+    }
+    let after = &s[prefix.len()..];
+    if after.chars().next().is_some_and(|c| !c.is_alphanumeric()) {
+        after.trim_start_matches(|c: char| c.is_whitespace() || matches!(c, '-' | '–' | ':'))
+    } else {
+        s
+    }
+}
+
+/// Folders that only say "these are extras" ("Featurettes", "Bonus"), so they don't make a heading.
+pub fn generic_extras_folder(name: &str) -> bool {
+    matches!(
+        clean_text(&strip_tags(name)).to_lowercase().as_str(),
+        "extras" | "extra" | "featurettes" | "featurette" | "bonus" | "bonus features" | "special features" | "bonus content"
+    )
 }
 
 /// "Chainsaw Man S01" -> 1, "Season 02" -> 2, "Sword Art Online Specials" / "S00" -> 0.
@@ -336,6 +377,31 @@ mod tests {
         assert_eq!(classify_folder("NC"), Extras);
         assert_eq!(classify_folder("Sword Art Online Extra Artwork"), Extras);
         assert_eq!(classify_folder("Movies"), Movies);
+
+        assert_eq!(extras_season("Season 01"), Some(1));
+        assert_eq!(extras_season("Jujutsu Kaisen S01 Extras"), Some(1));
+        assert_eq!(extras_season("Gravity Falls Extra"), None);
+        assert_eq!(extras_season("Lost Mystery Shack Interviews"), None);
+        assert_eq!(extras_season("Shop at Home with Mr Mystery"), None);
+        assert_eq!(extra_name("Season 01 - Behind the Scenes", "Adventure Time", Some("Season 01")), "Behind the Scenes");
+        assert_eq!(
+            extra_name("South Park - S01E14 [EXTRA] - Jay Leno's Appearance on South Park", "South Park", Some("Featurettes")),
+            "Jay Leno's Appearance on South Park"
+        );
+        assert_eq!(
+            extra_name("Jujutsu Kaisen - S01 NCED01 - Lost in Paradise", "Jujutsu Kaisen", None),
+            "NCED01 - Lost in Paradise"
+        );
+        assert_eq!(extra_name("Six Days to South Park", "South Park", None), "Six Days to South Park");
+        assert_eq!(extra_name("TV Shorts 1", "Gravity Falls", Some("TV Shorts")), "TV Shorts 1");
+        assert_eq!(
+            extra_name("Lost Mystery Shack Interviews Zendaya", "Gravity Falls", Some("Lost Mystery Shack Interviews")),
+            "Zendaya"
+        );
+        assert_eq!(extra_name("Fixin It with Soos Golf Cart", "Gravity Falls", Some("Fixin It with Soos")), "Golf Cart");
+        assert_eq!(extra_name("Menu Art", "South Park", None), "Menu Art");
+        assert!(generic_extras_folder("Featurettes"));
+        assert!(!generic_extras_folder("Deleted Scenes"));
 
         use crate::library::scan::LibraryKind;
         assert_eq!(category_folder("Anime"), Some(LibraryKind::Anime));

@@ -95,6 +95,49 @@ pub struct ScannedFile {
     pub name: Option<String>,
     pub year: Option<i32>,
     pub sort: i64,
+    /// For extras: the heading it's listed under.
+    pub extra: Option<ExtraGroup>,
+}
+
+/// Which heading an extra is listed under on the show page, taken from the folders it sits in.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ExtraGroup {
+    /// "Season 15", "Season 15 · Deleted Scenes", "Mabels Guide"; None = no heading of its own.
+    pub label: Option<String>,
+    /// Belongs to a movie, so it's shown with the movies rather than the seasons.
+    pub movie: bool,
+    /// Order of the headings: seasons by number, then named folders, then the rest.
+    pub sort: f64,
+}
+
+/// Where named extras folders ("TV Shorts") and loose extras go among the seasons' headings.
+const NAMED_EXTRAS_SORT: f64 = 2000.0;
+const LOOSE_EXTRAS_SORT: f64 = 1e9;
+/// Extras of the specials come after those of the regular seasons, like the tabs.
+const SPECIALS_EXTRAS_SORT: f64 = 999.0;
+
+impl ExtraGroup {
+    /// Extras that belong to no season or folder in particular.
+    fn general() -> Self {
+        Self { label: None, movie: false, sort: LOOSE_EXTRAS_SORT }
+    }
+
+    /// The extras of a movie, under its name (None: the title is just that movie).
+    fn movie(name: Option<String>) -> Self {
+        Self { label: name, movie: true, sort: 0.0 }
+    }
+
+    /// A subfolder: "Season 15" + "Deleted Scenes" -> "Season 15 · Deleted Scenes".
+    fn sub(&self, folder: &str) -> Self {
+        if parse::generic_extras_folder(folder) {
+            return self.clone();
+        }
+        let name = parse::clean_text(&parse::strip_tags(folder));
+        match &self.label {
+            Some(label) => Self { label: Some(format!("{label} · {name}")), ..self.clone() },
+            None => Self { label: Some(name), movie: self.movie, sort: NAMED_EXTRAS_SORT },
+        }
+    }
 }
 
 /// Scans one library folder. Fails only if the folder itself can't be read
@@ -159,7 +202,14 @@ fn scan_show(dir: &Path, key: &str, parent_key: Option<&str>, out: &mut Vec<Scan
         }
         let sub_key = format!("{key}/{}", entry.name);
         match parse::classify_folder(&entry.name) {
-            FolderKind::Extras => add_all(&mut title, &entry.path, Role::Extra),
+            FolderKind::Extras => {
+                // "Jujutsu Kaisen S01 Extras" next to the season folders belongs to season 1.
+                let group = match parse::extras_season(&entry.name) {
+                    Some(n) => title.season_extras(n),
+                    None => ExtraGroup::general(),
+                };
+                add_extras(&mut title, &entry.path, group);
+            }
             FolderKind::Season(n) => {
                 let season = title.season_by_number(n);
                 add_season_dir(&mut title, &entry.path, season, Some(n));
@@ -225,8 +275,9 @@ fn classify_other_folder(
             };
             title.push_file(video, Role::Movie, None, None, None, Some(name), year);
         }
+        let group = ExtraGroup::movie(Some(folder_name));
         for child in children.iter().filter(|c| c.is_dir) {
-            add_all(title, &child.path, Role::Extra);
+            add_extras_folder(title, child, &group);
         }
     } else if children.iter().any(|c| c.is_dir) {
         scan_show(&entry.path, sub_key, Some(key), nested);
@@ -251,7 +302,9 @@ fn add_season_dir(title: &mut ScannedTitle, dir: &Path, season: usize, folder_nu
     for entry in &entries {
         if entry.is_dir {
             if parse::classify_folder(&entry.name) == FolderKind::Extras {
-                add_all(title, &entry.path, Role::Extra);
+                let s = &title.seasons[season];
+                let sort = if s.number == Some(0) { SPECIALS_EXTRAS_SORT } else { s.sort };
+                add_extras(title, &entry.path, ExtraGroup { label: Some(s.label.clone()), movie: false, sort });
             } else {
                 add_season_dir(title, &entry.path, season, folder_number);
             }
@@ -266,10 +319,29 @@ fn add_season_dir(title: &mut ScannedTitle, dir: &Path, season: usize, folder_nu
     }
 }
 
-fn add_all(title: &mut ScannedTitle, dir: &Path, role: Role) {
-    for video in videos_recursive(dir) {
-        let name = parse::clean_text(&parse::strip_tags(parse::file_stem(&video.name)));
-        title.push_file(&video, role, None, None, None, Some(name), None);
+/// Adds the videos in an extras folder: loose ones under `group`, those in subfolders under a
+/// heading of their own ("Season 15 · Deleted Scenes", or "Mabels Guide" for general extras).
+fn add_extras(title: &mut ScannedTitle, dir: &Path, group: ExtraGroup) {
+    let Ok(entries) = list(dir) else { return };
+    for entry in &entries {
+        if entry.is_dir {
+            add_extras_folder(title, entry, &group);
+        } else if parse::is_video(&entry.name) {
+            title.push_extra(entry, group.clone());
+        }
+    }
+}
+
+/// Adds every video in a subfolder of extras under that subfolder's heading. A general extras
+/// folder split by season ("Adventure Time Extras/Season 01") goes under the seasons' headings.
+fn add_extras_folder(title: &mut ScannedTitle, folder: &Entry, parent: &ExtraGroup) {
+    let season = parse::extras_season(&folder.name).filter(|_| parent.label.is_none() && !parent.movie);
+    let group = match season {
+        Some(n) => title.season_extras(n),
+        None => parent.sub(&folder.name),
+    };
+    for video in videos_recursive(&folder.path) {
+        title.push_extra(&video, group.clone());
     }
 }
 
@@ -295,12 +367,12 @@ fn scan_movie_dir(dir: &Path, key: &str, out: &mut Vec<ScannedTitle>) {
     let (name, year) = parse::title_and_year(&file_name(dir));
     let mut title = ScannedTitle::new(key.to_string(), None, name.clone(), year, dir);
     title.push_file(videos[0], Role::Movie, None, None, None, Some(name), year);
+    let group = ExtraGroup::movie(None);
     for extra in &videos[1..] {
-        let extra_name = parse::clean_text(&parse::strip_tags(parse::file_stem(&extra.name)));
-        title.push_file(extra, Role::Extra, None, None, None, Some(extra_name), None);
+        title.push_extra(extra, group.clone());
     }
     for child in children.iter().filter(|c| c.is_dir) {
-        add_all(&mut title, &child.path, Role::Extra);
+        add_extras_folder(&mut title, child, &group);
     }
     title.finish();
     out.push(title);
@@ -337,6 +409,17 @@ impl ScannedTitle {
         self.seasons.len() - 1
     }
 
+    /// The heading for extras of season `number`, named like its tab.
+    fn season_extras(&self, number: i32) -> ExtraGroup {
+        let label = match self.seasons.iter().find(|s| s.number == Some(number)) {
+            Some(s) => s.label.clone(),
+            None if number == 0 => "Specials".to_string(),
+            None => format!("Season {number}"),
+        };
+        let sort = if number == 0 { SPECIALS_EXTRAS_SORT } else { number as f64 };
+        ExtraGroup { label: Some(label), movie: false, sort }
+    }
+
     fn add_group(&mut self, folder: &str, label: String, number: Option<f64>) -> usize {
         let sort = number.unwrap_or(1000.0 + self.seasons.len() as f64);
         self.seasons.push(ScannedSeason { key: format!("g:{folder}"), number: None, label, sort });
@@ -365,10 +448,20 @@ impl ScannedTitle {
             name,
             year,
             sort: 0,
+            extra: None,
         });
     }
 
-    /// Orders files (episodes by season and number, then movies, then extras) and
+    fn push_extra(&mut self, entry: &Entry, group: ExtraGroup) {
+        let folder = entry.path.parent().and_then(Path::file_name).map(|n| n.to_string_lossy());
+        let name = parse::extra_name(parse::file_stem(&entry.name), &self.name, folder.as_deref());
+        self.push_file(entry, Role::Extra, None, None, None, Some(name), None);
+        if let Some(file) = self.files.last_mut() {
+            file.extra = Some(group);
+        }
+    }
+
+    /// Orders files (episodes by season and number, then movies, then extras by heading) and
     /// drops seasons that ended up without episodes.
     fn finish(&mut self) {
         let seasons = &self.seasons;
@@ -376,6 +469,7 @@ impl ScannedTitle {
         self.files.sort_by(|a, b| {
             a.role
                 .cmp(&b.role)
+                .then_with(|| extra_order(a.extra.as_ref(), b.extra.as_ref()))
                 .then_with(|| season_sort(a).total_cmp(&season_sort(b)))
                 .then_with(|| match (a.episode, b.episode) {
                     (Some(x), Some(y)) => x.total_cmp(&y),
@@ -416,6 +510,20 @@ impl ScannedTitle {
             }
         }
     }
+}
+
+/// Extras of the seasons before those of the movies; headings by their place, then by name.
+fn extra_order(a: Option<&ExtraGroup>, b: Option<&ExtraGroup>) -> Ordering {
+    let (Some(a), Some(b)) = (a, b) else { return Ordering::Equal };
+    a.movie
+        .cmp(&b.movie)
+        .then_with(|| a.sort.total_cmp(&b.sort))
+        .then_with(|| match (&a.label, &b.label) {
+            (Some(x), Some(y)) => parse::natural_cmp(x, y),
+            (None, Some(_)) => Ordering::Less,
+            (Some(_), None) => Ordering::Greater,
+            (None, None) => Ordering::Equal,
+        })
 }
 
 struct Entry {
@@ -510,9 +618,16 @@ mod tests {
                 for f in t.files.iter().filter(|f| f.role == Role::Movie) {
                     println!("   movie: {} ({:?})", f.name.as_deref().unwrap_or("?"), f.year);
                 }
-                let extras = t.files.iter().filter(|f| f.role == Role::Extra).count();
-                if extras > 0 {
-                    println!("   extras: {extras}");
+                let mut last = None;
+                for f in t.files.iter().filter(|f| f.role == Role::Extra) {
+                    let group = f.extra.as_ref().map(|g| (g.movie, g.label.clone()));
+                    if group != last {
+                        let (movie, label) = group.clone().unwrap_or_default();
+                        let side = if movie { "movie extras" } else { "extras" };
+                        println!("   {side}: {}", label.as_deref().unwrap_or("(no heading)"));
+                        last = group;
+                    }
+                    println!("      {}", f.name.as_deref().unwrap_or("?"));
                 }
             }
         }

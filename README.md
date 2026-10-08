@@ -63,6 +63,10 @@ Movies\
     Your Name (2016).mkv
 ```
 
+Extras are listed under headings taken from their folders: an `Extras` folder inside a season
+folder goes under that season, folders inside a general `Extras` folder (`Season 01`, `TV Shorts`)
+each get their own heading, and a movie's extras show on the Movies tab.
+
 Release tags like `[1080p]`, `WEB-DL` or group names are ignored. Episodes numbered from 1 to 500
 across seasons, double episodes (`S01E01-E02`), episode 0 and in-between episodes (`E16.5`) are
 understood too. If something still lands in the wrong place, **Fix match** on its page sets it by
