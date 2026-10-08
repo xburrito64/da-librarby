@@ -141,7 +141,7 @@
 
 /* Opening and closing a show page: the page cross-fades while the cover glides between the
    card and the page (src/ui/transition.ts); the page's own fade would only get in the way. */
-.is-transitioning .tp {
+.tp--still {
   animation: none;
 }
 

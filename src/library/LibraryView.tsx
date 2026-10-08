@@ -26,7 +26,7 @@ import { useThemeInfo } from "../theme/theme";
 import { useThemeOptions } from "../theme/options";
 import { useCopy } from "../theme/copy";
 import { playSound } from "../theme/sound";
-import { COVER, ready, transition } from "../ui/transition";
+import { COVER, canTransition, ready, transition } from "../ui/transition";
 
 export type Tab = "home" | LibraryKind | "stats";
 
@@ -283,6 +283,7 @@ export default function LibraryView({ active, onPlay }: { active: boolean; onPla
           key={openTitle}
           id={openTitle}
           initial={openDetail?.id === openTitle ? openDetail : null}
+          still={canTransition()}
           onBack={close}
           onPlay={onPlay}
           onScrolled={setScrolled}

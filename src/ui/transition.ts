@@ -5,7 +5,7 @@ import { flushSync } from "react-dom";
 /** The name the show page's cover has (see .tp__cover in base.css). */
 export const COVER = "tp-cover";
 
-function canTransition() {
+export function canTransition() {
   return "startViewTransition" in document && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
@@ -21,8 +21,6 @@ export function transition(update: () => void, shared?: { name: string; from?: H
   const from = shared?.from;
   if (from && shared) from.style.viewTransitionName = shared.name;
   let to: HTMLElement | null = null;
-  const root = document.documentElement;
-  root.classList.add("is-transitioning");
   const t = document.startViewTransition(() => {
     // A name may only be on one element at a time.
     if (from) from.style.viewTransitionName = "";
@@ -31,7 +29,6 @@ export function transition(update: () => void, shared?: { name: string; from?: H
     if (to && shared) to.style.viewTransitionName = shared.name;
   });
   t.finished.finally(() => {
-    root.classList.remove("is-transitioning");
     if (to) to.style.viewTransitionName = "";
   });
 }

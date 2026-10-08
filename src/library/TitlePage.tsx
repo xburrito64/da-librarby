@@ -29,12 +29,14 @@ interface Props {
   id: number;
   /** Already loaded, so the page shows complete straight away. */
   initial?: TitleDetail | null;
+  /** Opened with a view transition, which already fades it in: no fade of its own. */
+  still?: boolean;
   onBack: () => void;
   onPlay: (fileId: number) => void;
   onScrolled: (scrolled: boolean) => void;
 }
 
-export default function TitlePage({ id, initial, onBack, onPlay, onScrolled }: Props) {
+export default function TitlePage({ id, initial, still, onBack, onPlay, onScrolled }: Props) {
   const [title, setTitle] = useState<TitleDetail | null>(initial ?? null);
   /** The open tab: a season's id, or the movies. null = pick automatically. */
   const [tab, setTab] = useState<number | "movies" | null>(null);
@@ -60,7 +62,7 @@ export default function TitlePage({ id, initial, onBack, onPlay, onScrolled }: P
   const meta = title?.meta;
   const color = meta?.color ?? undefined;
 
-  if (!title) return <div className="view view--hero tp" />;
+  if (!title) return <div className={`view view--hero tp ${still ? "tp--still" : ""}`} />;
 
   const anime = title.kind === "anime";
   const titleSource: MatchSource = anime ? "anilist" : title.isMovie ? "tmdb-movie" : "tmdb-tv";
@@ -115,7 +117,7 @@ export default function TitlePage({ id, initial, onBack, onPlay, onScrolled }: P
   return (
     <div
       ref={ref}
-      className="view view--hero tp"
+      className={`view view--hero tp ${still ? "tp--still" : ""}`}
       style={{ "--c": color } as React.CSSProperties}
       onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}
     >

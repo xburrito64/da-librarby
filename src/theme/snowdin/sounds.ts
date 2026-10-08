@@ -8,10 +8,8 @@ export const SOUNDS: Partial<Record<SoundName, SoundPlayer>> = {
   back: (ctx, out) => tone(ctx, out, [587, 440], { length: 0.06, level: 0.46 }),
   text: (ctx, out) => tone(ctx, out, [180 + Math.random() * 25], { length: 0.025, level: 0.2 }),
   save: (ctx, out) => tone(ctx, out, [523, 659, 784, 1047, 1319], { length: 0.075, level: 0.48 }),
-  // Three blips as the heart flashes, then a swoop down as it flies off (timed with Encounter.tsx).
-  encounter: (ctx, out) => {
-    for (let i = 0; i < 3; i++) tone(ctx, out, [1175], { length: 0.06, level: 0.45, delay: i * 0.14 });
-    tone(ctx, out, [880, 740, 587, 494, 392, 311], { length: 0.045, level: 0.4, delay: 0.46 });
-  },
+  // The battle start (Encounter.tsx): a blip for each flash of the heart, a swoop as it flies off.
+  "encounter-flicker": (ctx, out) => tone(ctx, out, [1175], { length: 0.06, level: 0.45 }),
+  "encounter-fly": (ctx, out) => tone(ctx, out, [880, 740, 587, 494, 392, 311], { length: 0.045, level: 0.4 }),
   nope: (ctx, out) => tone(ctx, out, [330, 247, 196], { length: 0.09, wave: "triangle", level: 0.8 }),
 };

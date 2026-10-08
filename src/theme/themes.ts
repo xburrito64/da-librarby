@@ -51,8 +51,9 @@ export interface ThemeExtras {
   apply?: (options: Record<string, boolean | string | undefined>) => void;
   /** Shown over everything when something is played from the library, while its "intro" option
    *  is on. It calls `onCovered` once the screen is covered (the video starts underneath) and
-   *  `onDone` when it's finished. `x`, `y`: where the click was. */
-  PlayIntro?: ComponentType<{ x: number; y: number; onCovered: () => void; onDone: () => void }>;
+   *  `onDone` when it's finished. `x`, `y`: where the click was; `sound` plays one of the
+   *  theme's sounds. */
+  PlayIntro?: ComponentType<{ x: number; y: number; sound: (name: SoundName) => void; onCovered: () => void; onDone: () => void }>;
   /** Drawn behind the library screens (e.g. falling snow); gets the theme's option values. */
   Decor?: ComponentType<{ active: boolean; options: Record<string, boolean | string | undefined> }>;
 }

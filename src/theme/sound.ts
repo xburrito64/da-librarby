@@ -5,7 +5,16 @@ import { findTheme } from "./themes";
 import { currentTheme } from "./theme";
 import { themeOption } from "./options";
 
-export type SoundName = "move" | "select" | "back" | "save" | "nope" | "text" | "encounter";
+export type SoundName =
+  | "move"
+  | "select"
+  | "back"
+  | "save"
+  | "nope"
+  | "text"
+  /** The battle start: the heart flashing (once per flash), then flying off. */
+  | "encounter-flicker"
+  | "encounter-fly";
 
 /** Plays a sound into `out`, which carries the chosen volume. */
 export type SoundPlayer = (ctx: AudioContext, out: AudioNode) => void;

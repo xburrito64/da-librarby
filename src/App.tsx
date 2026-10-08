@@ -76,7 +76,6 @@ export default function App() {
         // From the click that started it (a keyboard start begins in the middle).
         const p = lastPointer.current;
         const fresh = performance.now() - p.at < 2000;
-        playSound("encounter");
         setIntro({ x: fresh ? p.x : window.innerWidth / 2, y: fresh ? p.y : window.innerHeight / 2, item });
       })
       .catch((e) => setError(String(e)));
@@ -94,6 +93,7 @@ export default function App() {
           key={intro.item.fileId}
           x={intro.x}
           y={intro.y}
+          sound={playSound}
           onCovered={() => setPlaying(intro.item)}
           onDone={() => setIntro(null)}
         />
