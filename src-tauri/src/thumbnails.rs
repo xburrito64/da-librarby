@@ -297,10 +297,15 @@ impl Worker {
 fn wait_for(mpv: &Mpv, loading: bool) -> bool {
     let start = Instant::now();
     let limit = Duration::from_secs(if loading { 20 } else { 4 });
+    // Messages left over from before (the "stop" when the last video was let go of ends with
+    // an end-of-file) don't count: only those after this load or seek has begun.
+    let mut begun = false;
     while start.elapsed() < limit {
         match mpv.wait_event(0.25) {
-            Event::PlaybackRestart => return true,
-            Event::EndFile { .. } if loading => return false,
+            Event::StartFile if loading => begun = true,
+            Event::Seek if !loading => begun = true,
+            Event::PlaybackRestart if begun => return true,
+            Event::EndFile { .. } if loading && begun => return false,
             _ => {}
         }
     }
