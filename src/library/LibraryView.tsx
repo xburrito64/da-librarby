@@ -95,6 +95,13 @@ export default function LibraryView({
     return () => window.clearTimeout(timer);
   }, [active, finished, copy]);
 
+  // A theme can say something too (Snowdin's string of lights).
+  useEffect(() => {
+    const onSay = (e: Event) => setSaid({ text: String((e as CustomEvent).detail), n: Date.now() });
+    window.addEventListener("da:say", onSay);
+    return () => window.removeEventListener("da:say", onSay);
+  }, []);
+
   useEffect(() => {
     if (!said) return;
     const timer = window.setTimeout(() => setSaid(null), said.save ? 8000 : 6000);

@@ -374,29 +374,3 @@ export function forestScene(width: number, festive = false) {
     for (let x = 140; x < w; x += 9) p.rect(x, g + 3 + ((x / 9) & 1) * 2, 2, 1, C.snow3);
   });
 }
-
-/** A strip of string lights (repeats sideways). `glows` draws just the bright glows of every other
- *  bulb ("a": the 1st and 3rd, "b": the 2nd and 4th), for twinkling. */
-export function lightsTile(glows?: "a" | "b") {
-  const glowOnly = glows != null;
-  const w = 64;
-  return paint(w, 22, (p) => {
-    const wireY = (x: number) => 2 + Math.round(9 * Math.sin((Math.PI * x) / w));
-    if (!glowOnly) for (let x = 0; x < w; x++) p.dot(x, wireY(x), C.coal);
-    [8, 24, 40, 56].forEach((x, i) => {
-      const y = wireY(x) + 1;
-      const c = [C.red, C.yellow, C.green, C.blue][i];
-      if (glowOnly) {
-        if (i % 2 === (glows === "a" ? 0 : 1)) {
-          glow(p, x, y + 4, 5, c, 0.5);
-          p.rect(x - 1, y + 2, 2, 3, "#ffffff", 0.7);
-        }
-        return;
-      }
-      p.rect(x - 1, y, 2, 1, C.coal);
-      p.rect(x - 1, y + 1, 3, 4, c);
-      p.dot(x - 1, y + 2, "#ffffff", 0.6);
-      glow(p, x, y + 3, 3, c, 0.25);
-    });
-  });
-}

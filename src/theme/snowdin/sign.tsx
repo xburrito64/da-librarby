@@ -79,6 +79,11 @@ const signEl = () => document.querySelector<HTMLElement>(".nav__brand");
 // ----- The pendulum
 
 let angle = 0;
+
+/** How far the sign is tilted right now (degrees), for the string of lights tied to it. */
+export function signAngle() {
+  return angle;
+}
 let speed = 0;
 let hovered = false;
 let breezeTime = 0;

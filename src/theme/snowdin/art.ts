@@ -1,6 +1,6 @@
 // Snowdin's little sprites and pixel icons. The sprites reach the stylesheet as CSS variables
 // (--sd-heart, --sd-town, ...); the icons replace the usual line icons while Snowdin is on.
-import { forestScene, lightsTile, paint, townScene } from "./scenes";
+import { forestScene, paint, townScene } from "./scenes";
 
 const PALETTE: Record<string, string> = {
   R: "#ff0000", // the heart (its colour can be changed, see setHeartColors)
@@ -186,9 +186,6 @@ setVar("--sd-dog", sprite(DOG));
 setVar("--sd-dog-asleep", sprite(DOG_ASLEEP));
 setVar("--sd-dog-awake", sprite(DOG_AWAKE));
 setVar("--sd-asterisk", sprite(ASTERISK));
-setVar("--sd-lights", lightsTile());
-setVar("--sd-lights-glow-a", lightsTile("a"));
-setVar("--sd-lights-glow-b", lightsTile("b"));
 setVar("--sd-town-small", townScene(0, festive()));
 setVar("--sd-snow-far", snowTile(3, 40, false));
 setVar("--sd-snow-near", snowTile(9, 14, true));

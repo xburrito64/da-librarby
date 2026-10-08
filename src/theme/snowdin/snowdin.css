@@ -54,7 +54,8 @@
   /* The town and forest scenes (scenes.ts: 94 art pixels tall, ground 31 from the bottom, x3). */
   --sd-scene-h: 282px;
   --sd-ground: 93px;
-  --nav-h: 84px;
+  /* Room at the top for the eaves and the string of lights (lights.tsx). */
+  --nav-h: 92px;
   --gutter: 56px;
   --hero-h: 84vh;
   --rows-overlap: 0px;
@@ -399,19 +400,19 @@
 :root[data-theme="snowdin"] .nav__brand {
   z-index: 1;
   isolation: isolate;
-  /* It hangs from somewhere above the window. */
-  transform-origin: 50% -46px;
+  /* It hangs from the beam along the top (--sd-pivot, set by lights.tsx). */
+  transform-origin: 50% var(--sd-pivot, -46px);
 }
 
-/* Its two ropes, going up out of the window (behind the board). */
+/* Its two ropes, going up to the beam (behind the board). */
 :root[data-theme="snowdin"] .nav__brand::after {
   content: "";
   position: absolute;
   z-index: -1;
   left: 18px;
   right: 18px;
-  top: -60px;
-  height: 64px;
+  top: var(--sd-pivot, -60px);
+  height: calc(4px - var(--sd-pivot, -60px));
   background:
     repeating-linear-gradient(#d9c08a 0 4px, #9a7b48 4px 6px) left / 3px 100% no-repeat,
     repeating-linear-gradient(#d9c08a 0 4px, #9a7b48 4px 6px) right / 3px 100% no-repeat;
@@ -930,42 +931,6 @@
   background:
     linear-gradient(to top, var(--bg) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 30%, transparent 60%),
     linear-gradient(to right, color-mix(in srgb, var(--bg) 92%, transparent) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 40%, transparent 70%);
-}
-
-/* String lights hanging below the navigation, twinkling. */
-:root[data-theme="snowdin"] :is(.hero__decor--top, .tp__decor--top) {
-  display: block;
-  position: absolute;
-  z-index: 2;
-  left: 0;
-  right: 0;
-  top: calc(var(--nav-h) - 14px);
-  height: 66px;
-  background: var(--sd-lights) 0 0 / 192px 66px repeat-x;
-  image-rendering: pixelated;
-  pointer-events: none;
-}
-
-/* Every other bulb glows, taking turns. */
-:root[data-theme="snowdin"] :is(.hero__decor--top, .tp__decor--top)::before,
-:root[data-theme="snowdin"] :is(.hero__decor--top, .tp__decor--top)::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--sd-lights-glow-a) 0 0 / 192px 66px repeat-x;
-  image-rendering: pixelated;
-  animation: sd-twinkle 2.6s steps(1) infinite;
-}
-
-:root[data-theme="snowdin"] :is(.hero__decor--top, .tp__decor--top)::after {
-  background-image: var(--sd-lights-glow-b);
-  animation-delay: -1.3s;
-}
-
-@keyframes sd-twinkle {
-  50% {
-    opacity: 0;
-  }
 }
 
 /* The town along the bottom. */
@@ -2666,4 +2631,68 @@
   border-radius: 0;
   background: rgba(6, 6, 12, 0.94);
   box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- The eaves along the top and the string of lights (lights.tsx) ---------- */
+
+:root[data-theme="snowdin"] .nav {
+  padding-top: 8px;
+}
+
+.sd-lights {
+  position: fixed;
+  z-index: 21;
+  top: 0;
+  left: 0;
+  height: 56px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+:root.sd-on-bulb:not(.sd-heart-pointer),
+:root.sd-on-bulb:not(.sd-heart-pointer) * {
+  cursor: pointer !important;
+}
+
+/* Now and then the dog hangs on to the cord, chewing. */
+.sd-lights__dog {
+  display: none;
+  position: fixed;
+  z-index: 22;
+  top: 0;
+  left: 0;
+  width: 38px;
+  height: 28px;
+  background: var(--sd-dog) center / contain no-repeat;
+  image-rendering: pixelated;
+  cursor: pointer;
+}
+
+.sd-lights__dog.is-showing {
+  display: block;
+  animation: sd-dog-chew 0.5s steps(2) infinite;
+}
+
+@keyframes sd-dog-chew {
+  50% {
+    margin-top: 1px;
+  }
+}
+
+.sd-lights__dog.is-leaving {
+  pointer-events: none;
+  animation: sd-dog-drop 0.7s ease-in both;
+}
+
+@keyframes sd-dog-drop {
+  to {
+    margin-top: 70px;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-lights__dog.is-showing {
+    animation: none;
+  }
 }

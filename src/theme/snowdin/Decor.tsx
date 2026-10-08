@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { drawScenes } from "./art";
 import { SignExtras } from "./sign";
 import { startCoverCaps } from "./covercaps";
+import { Lights } from "./lights";
 
 /** One snowflake per this many square pixels of window. */
 const AREA_PER_FLAKE = 9000;
@@ -134,6 +135,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
     <>
       <canvas ref={canvas} className="sd-snow" aria-hidden="true" />
       <SignExtras />
+      <Lights active={active} sounds={options.sounds !== false} volume={String(options.volume ?? "normal")} />
     </>
   );
 }

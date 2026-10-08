@@ -61,6 +61,8 @@ Themes that leave it out look and behave exactly as before.
   of the app or the project.
 - `brandClick`: answers clicks on the app's name with something to say (or the usual
   `brandLines`); Snowdin swings its sign and wakes the dog sleeping on it.
+- A theme's own pieces can say something in the library's message box with
+  `window.dispatchEvent(new CustomEvent("da:say", { detail: "* Hello." }))` (Snowdin's string of lights does).
 - `Decor`: a component drawn behind the library screens (Snowdin's falling snow), given the theme's option
   values.
 
