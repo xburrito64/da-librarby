@@ -8,6 +8,7 @@ import { currentTheme, useTheme } from "./theme";
 type Values = Record<string, boolean | string>;
 
 const saved = new Map<string, Values>();
+const saveTimers = new Map<string, number>();
 const listeners = new Set<() => void>();
 let version = 0;
 
@@ -44,7 +45,12 @@ export function currentThemeOption(optionId: string) {
 export function setThemeOption(themeId: string, optionId: string, value: boolean | string) {
   const values = { ...saved.get(themeId), [optionId]: value };
   saved.set(themeId, values);
-  setSetting(`ui.theme.${themeId}`, values);
+  // Saved a moment later, so dragging around a colour picker doesn't write on every step.
+  clearTimeout(saveTimers.get(themeId));
+  saveTimers.set(
+    themeId,
+    window.setTimeout(() => setSetting(`ui.theme.${themeId}`, saved.get(themeId)), 400),
+  );
   changed();
 }
 

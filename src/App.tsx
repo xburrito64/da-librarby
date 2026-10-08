@@ -5,6 +5,8 @@ import { mpv } from "./player/mpv";
 import { watch, type PlayItem } from "./library/api";
 import { setSoundsMuted } from "./theme/sound";
 import { useTheme } from "./theme/theme";
+import { findTheme } from "./theme/themes";
+import { useThemeOptions } from "./theme/options";
 import { loadOwnFiles } from "./theme/ownFiles";
 
 const OBSERVED = [
@@ -29,6 +31,13 @@ export default function App() {
   useEffect(() => {
     loadOwnFiles(theme);
   }, [theme]);
+
+  // Lets the theme act on its options (e.g. recolour its artwork).
+  const options = useThemeOptions();
+  const optionsKey = JSON.stringify(options);
+  useEffect(() => {
+    findTheme(theme)?.extras?.apply?.(JSON.parse(optionsKey));
+  }, [theme, optionsKey]);
 
   // A theme's interface sounds stay quiet over a video.
   useEffect(() => setSoundsMuted(playing != null), [playing]);

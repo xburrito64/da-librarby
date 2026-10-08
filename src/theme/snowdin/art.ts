@@ -3,7 +3,7 @@
 import { forestScene, lightsTile, paint, townScene } from "./scenes";
 
 const PALETTE: Record<string, string> = {
-  R: "#ff2b2b", // the heart
+  R: "#ff0000", // the heart (its colour can be changed, see setHeartColor)
   Y: "#fff200",
   y: "#ffd23a",
   W: "#ffffff",
@@ -27,10 +27,12 @@ function outlined(rows: string[]) {
   );
 }
 
-/** Draws a sprite from rows of palette letters ("." is see-through). */
-function sprite(rows: string[]) {
+/** Draws a sprite from rows of palette letters ("." is see-through), `scale` screen pixels per dot. */
+function sprite(rows: string[], palette = PALETTE, scale = 1) {
   const w = Math.max(...rows.map((r) => r.length));
-  return paint(w, rows.length, (p) => rows.forEach((row, y) => [...row].forEach((c, x) => PALETTE[c] && p.dot(x, y, PALETTE[c]))));
+  return paint(w * scale, rows.length * scale, (p) =>
+    rows.forEach((row, y) => [...row].forEach((c, x) => palette[c] && p.rect(x * scale, y * scale, scale, scale, palette[c]))),
+  );
 }
 
 const HEART = [".RR.RR.", "RRRRRRR", "RRRRRRR", ".RRRRR.", "..RRR..", "...R..."];
@@ -114,6 +116,21 @@ function setVar(name: string, dataUrl: string) {
   document.documentElement.style.setProperty(name, `url("${dataUrl}")`);
 }
 
+let heartColor = "";
+
+/** Draws every heart (beside things, on the seek bar, the mouse pointer) in `color` ("#rrggbb"). */
+export function setHeartColor(color: string) {
+  if (!/^#[0-9a-f]{6}$/i.test(color) || color === heartColor) return;
+  heartColor = color;
+  const palette = { ...PALETTE, R: color };
+  setVar("--sd-heart", sprite(HEART, palette));
+  setVar("--sd-heart-outlined", sprite(outlined(HEART), palette));
+  // The pointer: 3 screen pixels per dot (6 on high-resolution screens), pointing from its middle.
+  const pointer = (scale: number) => `url("${sprite(outlined(HEART), palette, scale)}") ${scale / 3}x`;
+  document.documentElement.style.setProperty("--sd-pointer", `image-set(${pointer(3)}, ${pointer(6)}) 13 10`);
+  document.documentElement.style.setProperty("--sd-soul", color);
+}
+
 /** A square of scattered snowflakes (repeats in every direction); `big` flakes are 2x2. */
 function snowTile(seed: number, count: number, big: boolean) {
   const size = 128;
@@ -136,8 +153,7 @@ export function drawScenes(width: number) {
   setVar("--sd-forest", forestScene(width, festive()));
 }
 
-setVar("--sd-heart", sprite(HEART));
-setVar("--sd-heart-outlined", sprite(outlined(HEART)));
+setHeartColor(PALETTE.R);
 setVar("--sd-star", sprite(STAR));
 setVar("--sd-cap", sprite(CAP));
 setVar("--sd-dog", sprite(DOG));

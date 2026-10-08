@@ -4,7 +4,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { getVersion } from "@tauri-apps/api/app";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { library, metadata, guessKind, img, KIND_LABELS, type Library, type LibraryKind, type TitleSummary } from "./api";
-import { THEMES } from "../theme/themes";
+import { THEMES, type ThemeOption } from "../theme/themes";
 import { setTheme, useTheme, useThemeInfo } from "../theme/theme";
 import { setThemeOption, useThemeOptions } from "../theme/options";
 import { loadOwnFiles, openOwnFolder, useOwnFiles } from "../theme/ownFiles";
@@ -132,7 +132,9 @@ function ThemeOptions() {
     <div className="theme-options">
       <h3 className="settings__title">{theme.name} options</h3>
       {options.map((o) =>
-        o.choices ? (
+        o.kind === "color" ? (
+          <ColorOption key={o.id} option={o} value={String(values[o.id] ?? o.default)} onChange={(v) => setThemeOption(theme.id, o.id, v)} />
+        ) : o.choices ? (
           <div key={o.id} className="toggle-row choice-row">
             <span className="toggle-row__text">
               <span className="toggle-row__label">{o.label}</span>
@@ -168,6 +170,40 @@ function ThemeOptions() {
           </button>
         ),
       )}
+    </div>
+  );
+}
+
+/** A colour: the theme's presets as swatches, and one more for any colour at all. */
+function ColorOption({ option, value, onChange }: { option: ThemeOption; value: string; onChange: (value: string) => void }) {
+  const presets = option.choices ?? [];
+  const preset = presets.find((c) => c.value.toLowerCase() === value.toLowerCase());
+  return (
+    <div className="toggle-row choice-row">
+      <span className="toggle-row__text">
+        <span className="toggle-row__label">{option.label}</span>
+        <span className="toggle-row__hint">{preset ? preset.label : `Your own colour (${value.toUpperCase()})`}</span>
+      </span>
+      <span className="swatches" role="radiogroup" aria-label={option.label}>
+        {presets.map((c) => (
+          <button
+            key={c.value}
+            role="radio"
+            aria-checked={c === preset}
+            aria-label={c.label}
+            title={c.label}
+            className={`swatch ${c === preset ? "is-on" : ""}`}
+            style={{ "--swatch": c.value } as React.CSSProperties}
+            onClick={() => onChange(c.value)}
+          >
+            <span className="swatch__color" />
+          </button>
+        ))}
+        <label className={`swatch swatch--custom ${preset ? "" : "is-on"}`} title="Pick any colour" style={{ "--swatch": value } as React.CSSProperties}>
+          <span className="swatch__color" />
+          <input type="color" value={value} onChange={(e) => onChange(e.target.value)} aria-label="Pick any colour" />
+        </label>
+      </span>
     </div>
   );
 }

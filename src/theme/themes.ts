@@ -45,6 +45,9 @@ export interface ThemeExtras {
   /** A folder on this PC where the owner can add their own font ("font.*") and sound files
    *  (named after the sounds below), used instead of the theme's. Shown in Settings → Appearance. */
   ownFiles?: { font?: boolean; sounds?: { name: SoundName; label: string }[] };
+  /** Called with the theme's option values while it's the current theme, and again whenever they
+   *  change (e.g. to recolour its artwork). */
+  apply?: (options: Record<string, boolean | string | undefined>) => void;
   /** Drawn behind the library screens (e.g. falling snow); gets the theme's option values. */
   Decor?: ComponentType<{ active: boolean; options: Record<string, boolean | string | undefined> }>;
 }
@@ -53,6 +56,8 @@ export interface ThemeOption {
   id: string;
   label: string;
   hint?: string;
+  /** "color": a colour, picked from `choices` (values are "#rrggbb") or chosen freely. */
+  kind?: "color";
   /** Pick one of these; a plain on/off switch when left out. */
   choices?: { value: string; label: string }[];
   default: boolean | string;

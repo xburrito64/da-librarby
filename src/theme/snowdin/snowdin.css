@@ -145,6 +145,18 @@
   }
 }
 
+/* ---------- The heart as the mouse pointer (an option) ---------- */
+
+/* Text fields keep their text cursor; the player still hides the pointer when it's idle. */
+:root[data-theme="snowdin"].sd-heart-pointer,
+:root[data-theme="snowdin"].sd-heart-pointer :not(input, textarea) {
+  cursor: var(--sd-pointer), auto !important;
+}
+
+:root[data-theme="snowdin"].sd-heart-pointer :is(.player--hidden, .player--hidden *) {
+  cursor: none !important;
+}
+
 /* ---------- The heart: beside whatever you point at ---------- */
 
 :root[data-theme="snowdin"]
@@ -1745,6 +1757,41 @@
 
 :root[data-theme="snowdin"] .choice:not(.is-on):hover::before {
   opacity: 0;
+}
+
+/* Colour swatches are little hearts; the chosen one gets a white outline. */
+:root[data-theme="snowdin"] .swatches {
+  gap: 10px;
+}
+
+:root[data-theme="snowdin"] .swatch,
+:root[data-theme="snowdin"] .swatch.is-on {
+  width: 30px;
+  height: 27px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:root[data-theme="snowdin"] .swatch__color {
+  width: 21px;
+  height: 18px;
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-mask: var(--sd-heart) center / contain no-repeat;
+  mask: var(--sd-heart) center / contain no-repeat;
+  transition: none;
+}
+
+:root[data-theme="snowdin"] .swatch:hover .swatch__color {
+  transform: none;
+}
+
+:root[data-theme="snowdin"] .swatch:not(.is-on):hover {
+  filter: brightness(1.25);
+}
+
+:root[data-theme="snowdin"] .swatch.is-on {
+  filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff);
 }
 
 /* Library folders, online info */

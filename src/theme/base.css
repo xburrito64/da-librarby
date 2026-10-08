@@ -2513,6 +2513,65 @@ select.input {
   color: var(--on-accent);
 }
 
+/* Colour options: a row of swatches, the last one for any colour. */
+.swatches {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.swatch {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.swatch__color {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s var(--ease);
+}
+
+.swatch:hover .swatch__color {
+  transform: scale(1.12);
+}
+
+.swatch.is-on {
+  box-shadow: 0 0 0 2px var(--text);
+}
+
+.swatch--custom .swatch__color {
+  background: conic-gradient(#ff4d4d, #ffd84d, #4dff88, #4dd2ff, #6b4dff, #ff4dd8, #ff4d4d);
+}
+
+.swatch--custom.is-on .swatch__color {
+  background:
+    radial-gradient(var(--swatch) 0 45%, transparent 47%),
+    conic-gradient(#ff4d4d, #ffd84d, #4dff88, #4dd2ff, #6b4dff, #ff4dd8, #ff4d4d);
+}
+
+/* The real colour picker, invisible, over the swatch. */
+.swatch--custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
 /* A theme's message at the bottom of the window (e.g. after clicking the app's name). */
 .say {
   position: fixed;

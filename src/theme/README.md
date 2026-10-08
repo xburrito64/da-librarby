@@ -35,8 +35,12 @@ A theme can do more than colours, fonts and shapes. Everything below is optional
 Themes that leave it out look and behave exactly as before.
 
 - `options`: settings of its own, listed under the theme cards in Settings → Appearance (on/off
-  switches, or a choice of a few values). Read them with `useThemeOption("id")`. The ids `sounds`,
-  `volume` and `typing` are understood by the app itself.
+  switches, a choice of a few values, or a colour with `kind: "color"`: presets as swatches plus any
+  colour). Read them with `useThemeOption("id")`. The ids `sounds`, `volume` and `typing` are understood
+  by the app itself.
+- `apply`: called with the option values while the theme is on and whenever they change, for options
+  the stylesheet can't handle alone (Snowdin redraws its heart in the chosen colour and turns the heart
+  pointer on or off).
 - `copy`: replaces texts such as the empty-search message, the empty-library page, the scanning line and
   the search placeholder, and adds flavor: lines under the home screen (`homeEnd`, `lateNight`,
   `december`), secret search words (`searchSecrets`) and things said when the app's name is clicked
