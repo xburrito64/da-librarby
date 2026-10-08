@@ -642,6 +642,7 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
   return (
     <button
       className={`card ${title.online ? "" : "card--offline"}`}
+      data-id={title.id}
       style={{ "--c": title.color ?? undefined } as React.CSSProperties}
       onClick={(e) => onOpen(title.id, e.currentTarget.querySelector<HTMLElement>(".card__art"))}
       onContextMenu={(e) =>

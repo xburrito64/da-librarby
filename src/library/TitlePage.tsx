@@ -174,7 +174,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
           <BackIcon />
           Back
         </button>
-        <div className="tp__cover">
+        <div className="tp__cover" data-id={title.id}>
           {meta?.cover ? <img src={img(meta.cover)} alt="" decoding="async" /> : <span className="card__placeholder">{title.name}</span>}
         </div>
         <div className="tp__info">

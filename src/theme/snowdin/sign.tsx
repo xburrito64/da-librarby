@@ -6,6 +6,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import type { SoundName } from "../sound";
+import { BASE, PX, drawCap, makeCap, type Cap } from "./snowcap";
 
 /** The dog is asleep on the sign at about one start in five... */
 const START_CHANCE = 0.2;
@@ -125,86 +126,21 @@ function push(side: number, amount: number) {
 // a small canvas that snowdin.css shows over the board's top edge (--sd-sign-cap). Swings knock
 // lumps out of it, mostly at the end it swings towards, and it builds up again here and there.
 
-/** Screen pixels per snow pixel, and the cap's height in snow pixels (as in snowdin.css). */
-const PX = 2;
-const ROWS = 8;
-/** Snow pixels above the board's top edge; the rows below hang over it. */
-const BASE = 6;
 /** The cap reaches this far past each end of the board (px, as in snowdin.css). */
-const OVERHANG = 7;
-const SNOW = "#eef4ff";
-const SHADE = "#c9d9f0";
+const OVERHANG = 3;
 
-/** Each column's height when all the snow is there, how high it is now, and its icicles. */
-let full: number[] = [];
+/** Its shape with all the snow there (see snowcap.ts), and how high each column is now. */
+let cap: Cap = makeCap(0);
 let heights: number[] = [];
-let drips: number[] = [];
 /** Snow growing back that hasn't made a whole pixel yet. */
 let growing = 0;
 let snowTimer = 0;
 
-/** The same "random" numbers every time, so the sign always has its own shape. */
-function noise(n: number) {
-  const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453;
-  return x - Math.floor(x);
-}
-
-/** Soft mounds 4 to 6 pixels high, rounded off at both ends, and little runs of icicles. */
-function makeCap(columns: number) {
-  // A layer 4 pixels deep with rounded domes of snow on it, here and there a dip.
-  const lift = new Array(columns).fill(0);
-  for (let at = 2 + Math.floor(noise(1) * 6), i = 0; at < columns; i++) {
-    const radius = 3 + noise(i + 10) * 5;
-    const height = noise(i + 20) < 0.2 ? -1 : 1 + Math.round(noise(i + 30));
-    for (let x = Math.floor(at - radius); x <= at + radius; x++) {
-      const d = Math.abs(x - at) / radius;
-      if (x >= 0 && x < columns && d < 1) lift[x] = height < 0 ? Math.min(lift[x], -1) : Math.max(lift[x], Math.round(height * Math.sqrt(1 - d * d) + 0.2));
-    }
-    at += radius * 2 + 2 + Math.floor(noise(i + 40) * 8);
-  }
-  full = lift.map((l, x) => {
-    const end = Math.min(x, columns - 1 - x);
-    const rounded = [2, 3, 4][end] ?? 9;
-    return Math.max(1, Math.min(6, 4 + l, rounded));
-  });
-  drips = new Array(columns).fill(0);
-  for (let x = 3; x < columns - 3; ) {
-    const run = 2 + Math.floor(noise(x + 100) * 3);
-    for (let i = 0; i < run && x + i < columns - 2; i++) drips[x + i] = i === 0 || i === run - 1 ? 1 : 1 + Math.round(noise(x + i + 200));
-    x += run + 4 + Math.floor(noise(x + 300) * 6);
-  }
-}
-
 const total = (list: number[]) => list.reduce((a, b) => a + b, 0);
 
-function drawCap() {
+function drawSnow() {
   const sign = signEl();
-  if (!sign || heights.length === 0) return;
-  const canvas = document.createElement("canvas");
-  canvas.width = heights.length;
-  canvas.height = ROWS;
-  const c = canvas.getContext("2d");
-  if (!c) return;
-  heights.forEach((h, x) => {
-    if (h <= 0) return;
-    c.fillStyle = SNOW;
-    c.fillRect(x, BASE - h, 1, h);
-    // A little shade underneath, and icicles over the edge where the snow lies thick.
-    if (noise(x + 400) < 0.1) {
-      c.fillStyle = SHADE;
-      c.fillRect(x, BASE - 1, 1, 1);
-    }
-    const drip = h >= 3 ? drips[x] : 0;
-    if (drip > 0) {
-      c.fillStyle = drip > 1 ? SNOW : SHADE;
-      c.fillRect(x, BASE, 1, 1);
-      if (drip > 1) {
-        c.fillStyle = SHADE;
-        c.fillRect(x, BASE + 1, 1, 1);
-      }
-    }
-  });
-  sign.style.setProperty("--sd-sign-cap", `url(${canvas.toDataURL()})`);
+  if (sign && heights.length > 0) sign.style.setProperty("--sd-sign-cap", `url(${drawCap(cap, heights)})`);
 }
 
 /** Sets the cap up for the board's width (all snow there at first). */
@@ -212,33 +148,33 @@ function fitCap() {
   const sign = signEl();
   if (!sign) return;
   const columns = Math.round((sign.offsetWidth + 2 * OVERHANG) / PX);
-  if (columns === full.length) return;
-  const share = full.length > 0 ? total(heights) / total(full) : 1;
-  makeCap(columns);
-  heights = full.map((f) => Math.round(f * share));
-  drawCap();
+  if (columns === cap.full.length) return;
+  const share = cap.full.length > 0 ? total(heights) / total(cap.full) : 1;
+  cap = makeCap(columns);
+  heights = cap.full.map((f) => Math.round(f * share));
+  drawSnow();
 }
 
 function regrow() {
   if (snowTimer) return;
   snowTimer = window.setInterval(() => {
-    growing += (total(full) * 0.5) / SNOW_REGROW_S;
+    growing += (total(cap.full) * 0.5) / SNOW_REGROW_S;
     while (growing >= 1) {
       growing -= 1;
-      const short = heights.map((h, x) => (h < full[x] ? x : -1)).filter((x) => x >= 0);
+      const short = heights.map((h, x) => (h < cap.full[x] ? x : -1)).filter((x) => x >= 0);
       if (short.length === 0) break;
       let x = short[Math.floor(Math.random() * short.length)];
       // A flake rolls down into the dip beside it before it settles, so the snow fills in
       // softly instead of growing in spikes.
       for (let step = 0; step < 6; step++) {
-        const lower = [x - 1, x + 1].filter((n) => n >= 0 && n < heights.length && heights[n] < heights[x] && heights[n] < full[n]);
+        const lower = [x - 1, x + 1].filter((n) => n >= 0 && n < heights.length && heights[n] < heights[x] && heights[n] < cap.full[n]);
         if (lower.length === 0) break;
         x = lower.reduce((a, b) => (heights[b] < heights[a] || (heights[b] === heights[a] && Math.random() < 0.5) ? b : a));
       }
       heights[x] += 1;
     }
-    drawCap();
-    if (heights.every((h, x) => h >= full[x])) {
+    drawSnow();
+    if (heights.every((h, x) => h >= cap.full[x])) {
       window.clearInterval(snowTimer);
       snowTimer = 0;
       growing = 0;
@@ -261,7 +197,7 @@ function settle() {
 /** Knocks lumps of snow off, mostly at the end the sign swings towards (`side`: -1 left, 1 right). */
 function shakeSnow(side: number) {
   const sign = signEl();
-  const all = total(full);
+  const all = total(cap.full);
   if (!sign || total(heights) === 0) return;
   let left = Math.round(all * SNOW_PER_SWING);
   const hit: { x: number; top: number }[] = [];
@@ -287,7 +223,7 @@ function shakeSnow(side: number) {
     heights.forEach((h, x) => h > 0 && hit.push({ x, top: BASE - h }));
     heights = heights.map(() => 0);
   }
-  drawCap();
+  drawSnow();
   regrow();
   if (still() || hit.length === 0) return;
   const r = sign.getBoundingClientRect();

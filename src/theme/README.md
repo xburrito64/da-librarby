@@ -67,7 +67,8 @@ Themes that leave it out look and behave exactly as before.
 Empty spots in the markup, hidden unless a theme shows them: `.hero__decor--back` / `--top` /
 `--bottom` (the spotlight; "back" sits right in front of the artwork), `.tp__decor--back` / `--top` /
 `--bottom` (show pages), `.tprev__decor` (the preview card), `.nav__decor` (on the app's name),
-`.empty__art` and `.search__none-art` (empty pages). Descriptions sit in `.hero__desc-box` and
+`.empty__art` and `.search__none-art` (empty pages). Covers (`.card`, `.tp__cover`) carry their title's
+`data-id`, for decorations that differ from title to title (Snowdin's snow piles). Descriptions sit in `.hero__desc-box` and
 `.tp__desc-box`, for themes that frame them.
 
 Movie pages carry `.tp--movie`: their artwork fills the window (or, in Paper and Mochi, a much bigger

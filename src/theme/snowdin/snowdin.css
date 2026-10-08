@@ -386,8 +386,8 @@
 :root[data-theme="snowdin"] .nav__brand::before {
   content: "";
   position: absolute;
-  left: -7px;
-  right: -7px;
+  left: -3px;
+  right: -3px;
   top: -12px;
   height: 16px;
   background: var(--sd-cap) 0 0 / 80px 16px repeat-x;
@@ -1173,11 +1173,12 @@
   content: "";
   position: absolute;
   z-index: 2;
-  left: -4px;
-  right: -4px;
+  left: -2px;
+  right: -2px;
   top: -10px;
   height: 16px;
-  background: var(--sd-cap) 0 0 / 80px 16px repeat-x;
+  /* Each cover's own snow, drawn to fit it (covercaps.ts); the plain pattern until then. */
+  background: var(--sd-cover-cap, var(--sd-cap) 0 0 / 80px 16px repeat-x);
   image-rendering: pixelated;
   pointer-events: none;
   transition: transform 0.22s var(--ease);
@@ -1721,11 +1722,11 @@
 :root[data-theme="snowdin"] .tp__cover::after {
   content: "";
   position: absolute;
-  left: -8px;
-  right: -8px;
+  left: -6px;
+  right: -6px;
   top: -14px;
   height: 16px;
-  background: var(--sd-cap) 0 0 / 80px 16px repeat-x;
+  background: var(--sd-cover-cap, var(--sd-cap) 0 0 / 80px 16px repeat-x);
   image-rendering: pixelated;
 }
 

@@ -5,6 +5,7 @@
 import { useEffect, useRef } from "react";
 import { drawScenes } from "./art";
 import { SignExtras } from "./sign";
+import { startCoverCaps } from "./covercaps";
 
 /** One snowflake per this many square pixels of window. */
 const AREA_PER_FLAKE = 9000;
@@ -32,6 +33,9 @@ export default function Decor({ active, options }: { active: boolean; options: R
     root.classList.toggle("sd-snow-on", options.snow !== false);
     return () => root.classList.remove("sd-snow-on");
   }, [options.snow]);
+
+  // Each cover's own pile of snow.
+  useEffect(startCoverCaps, []);
 
   useEffect(() => {
     if (Math.random() >= DOG_VISIT_CHANCE) return;
