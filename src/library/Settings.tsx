@@ -7,6 +7,7 @@ import { disable as disableAutostart, enable as enableAutostart, isEnabled as au
 import { library, metadata, guessKind, img, updates, KIND_LABELS, type Library, type LibraryKind, type TitleSummary, type Update } from "./api";
 import { getSetting, setSetting } from "../ui/settings";
 import { UPDATES_SETTING } from "../ui/UpdateNote";
+import { scaleSettings, setScale } from "../ui/scale";
 import { THEMES, type ThemeOption } from "../theme/themes";
 import { setTheme, useTheme, useThemeInfo } from "../theme/theme";
 import { setThemeOption, useThemeOptions } from "../theme/options";
@@ -68,6 +69,46 @@ export default function Settings({ section, onSection, libraries, titles, onLibr
   );
 }
 
+/** How big everything is: grows with the window by itself, times the size picked here. */
+function InterfaceSize() {
+  const [{ percent, auto }, setState] = useState(scaleSettings);
+  const change = (next: { percent?: number; auto?: boolean }) => {
+    setScale(next);
+    setState(scaleSettings());
+  };
+  return (
+    <>
+      <h3 className="settings__title">Interface size</h3>
+      <p className="settings__text">Makes everything bigger or smaller: text, covers, buttons and pictures.</p>
+      <div className="size-row">
+        <input
+          className="size-row__slider"
+          type="range"
+          min={70}
+          max={160}
+          step={5}
+          value={percent}
+          onChange={(e) => change({ percent: Number(e.target.value) })}
+          aria-label="Interface size"
+        />
+        <span className="size-row__value">{percent}%</span>
+        {percent !== 100 && (
+          <button className="btn btn--small" onClick={() => change({ percent: 100 })}>
+            Reset
+          </button>
+        )}
+      </div>
+      <button className="toggle-row" role="switch" aria-checked={auto} onClick={() => change({ auto: !auto })}>
+        <span className="toggle-row__text">
+          <span className="toggle-row__label">Grow with the window</span>
+          <span className="toggle-row__hint">In a big window (or full screen on a large monitor), everything gets bigger too.</span>
+        </span>
+        <span className={`toggle ${auto ? "is-on" : ""}`} />
+      </button>
+    </>
+  );
+}
+
 function Appearance({ titles }: { titles: TitleSummary[] }) {
   const current = useTheme();
   // A few real covers for the little previews.
@@ -79,6 +120,7 @@ function Appearance({ titles }: { titles: TitleSummary[] }) {
 
   return (
     <section>
+      <InterfaceSize />
       <h3 className="settings__title">Theme</h3>
       <p className="settings__text">Changes the whole look of the app right away. More themes can be added later.</p>
       <div className="themes">

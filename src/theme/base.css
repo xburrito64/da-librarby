@@ -3333,3 +3333,24 @@ select.input {
   font-size: 13px;
   color: var(--muted);
 }
+
+/* ---------- Settings: interface size ---------- */
+
+.size-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.size-row__slider {
+  flex: 1;
+  max-width: 360px;
+  accent-color: var(--accent);
+}
+
+.size-row__value {
+  min-width: 48px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

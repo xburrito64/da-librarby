@@ -1,5 +1,5 @@
 // The eaves along the top of the window and the string of lights hanging from them, in pixel art
-// on one canvas. The string is tied to the town sign's corner and hangs from nails on the beam in
+// on one canvas. The string is tied to the town sign's rope and hangs from nails on the beam in
 // soft loops that sway in the breeze and get tugged along when the sign swings. Pointing at a bulb
 // makes it glow; clicking it plays a note (higher towards the right, like a xylophone). Running
 // the pointer along a row of bulbs gets a little light show. Sometimes a bulb is burnt out (click
@@ -122,6 +122,7 @@ export function Lights({ active, sounds, volume }: { active: boolean; sounds: bo
     let loops: Loop[] = [];
     let bulbs: { x: number; y: number }[] = [];
     let pivot = { x: 0, y: 0 };
+    let signTop = 0;
     let corner = { x: 0, y: 0 };
     let last = performance.now();
     let frame = 0;
@@ -155,7 +156,9 @@ export function Lights({ active, sounds, volume }: { active: boolean; sounds: bo
       // The sign hangs from the beam: its ropes end there and it swings about it.
       sign.style.setProperty("--sd-pivot", `${BEAM - box.top}px`);
       pivot = { x: box.left + box.width / 2, y: BEAM };
-      corner = { x: box.left + box.width - 19, y: box.top };
+      signTop = box.top;
+      // Tied to the sign's right rope, a third of the way down from the beam.
+      corner = { x: box.left + box.width - 19.5, y: BEAM + (box.top - BEAM) * 0.33 };
       const ends = [corner];
       for (let x = corner.x + FIRST_SPAN; x < width + SPAN; x += SPAN) ends.push({ x, y: BEAM });
       const old = loops;
@@ -273,7 +276,7 @@ export function Lights({ active, sounds, volume }: { active: boolean; sounds: bo
       last = now;
       const t = now / 1000;
 
-      // The sign's corner, where the string is tied, moves as the sign swings.
+      // The spot on the sign's rope where the string is tied moves as the sign swings.
       const angle = (signAngle() * Math.PI) / 180;
       const cx = pivot.x + (corner.x - pivot.x) * Math.cos(angle) - (corner.y - pivot.y) * Math.sin(angle);
       const cy = pivot.y + (corner.x - pivot.x) * Math.sin(angle) + (corner.y - pivot.y) * Math.cos(angle);
@@ -367,8 +370,11 @@ export function Lights({ active, sounds, volume }: { active: boolean; sounds: bo
         }
       }
 
-      // The dog sits on the sign, gnawing at the knot where the string is tied.
-      if (dog && dogEl.current) dogEl.current.style.transform = `translate(${cx - 30}px, ${cy - 27}px) rotate(${signAngle()}deg)`;
+      // The dog sits on the sign, gnawing at the string's knot on the rope above it.
+      if (dog && dogEl.current) {
+        const top = pivot.y + (corner.x - pivot.x) * Math.sin(angle) + (signTop - pivot.y) * Math.cos(angle);
+        dogEl.current.style.transform = `translate(${cx - 30}px, ${top - 27}px) rotate(${signAngle()}deg)`;
+      }
       frame = requestAnimationFrame(draw);
     };
     layout();

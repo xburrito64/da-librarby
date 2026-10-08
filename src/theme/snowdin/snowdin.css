@@ -55,7 +55,7 @@
   --sd-scene-h: 282px;
   --sd-ground: 93px;
   /* Room at the top for the eaves and the string of lights (lights.tsx). */
-  --nav-h: 92px;
+  --nav-h: 100px;
   --gutter: 56px;
   --hero-h: 84vh;
   --rows-overlap: 0px;
@@ -2636,7 +2636,8 @@
 /* ---------- The eaves along the top and the string of lights (lights.tsx) ---------- */
 
 :root[data-theme="snowdin"] .nav {
-  padding-top: 8px;
+  /* The menu sits below the lights, with room between them. */
+  padding-top: 16px;
 }
 
 .sd-lights {
