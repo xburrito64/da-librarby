@@ -51,6 +51,8 @@ interface Props {
   onPlay: (fileId: number) => void;
   onScrolled: (scrolled: boolean) => void;
   onAddFolder: () => void;
+  /** Set when there's no TMDB key yet: opens the settings where it goes. */
+  onSetupKey?: () => void;
 }
 
 type SortKey = "name" | "added" | "watched" | "year";
@@ -103,7 +105,7 @@ function sortTitles(titles: TitleSummary[], sort: SortKey) {
   return list;
 }
 
-export default function Browse({ tab, titles, offline, query, continueList, loaded, hasLibraries, active, onTab, onOpen, onPlay, onScrolled, onAddFolder }: Props) {
+export default function Browse({ tab, titles, offline, query, continueList, loaded, hasLibraries, active, onTab, onOpen, onPlay, onScrolled, onAddFolder, onSetupKey }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState<SortKey>("name");
   /** Each kind's page keeps its own filters while the app is open. */
@@ -165,6 +167,7 @@ export default function Browse({ tab, titles, offline, query, continueList, load
         <Spotlight titles={titles} onOpen={onOpen} onPlay={play} />
         <div className="home__rows">
           <OfflineNote offline={offline} titles={titles} />
+          <KeyNote titles={titles} onSetup={onSetupKey} />
           {continueList.length > 0 && (
             <Row label="Continue watching" count={continueList.length} wide>
               {continueList.map((c) => (
@@ -262,6 +265,7 @@ export default function Browse({ tab, titles, offline, query, continueList, load
           )}
         </div>
         <OfflineNote offline={offline} titles={list} />
+        <KeyNote titles={all} onSetup={onSetupKey} />
         {list.length === 0 ? (
           <p className="filters__none">
             Nothing here matches these filters.{" "}
@@ -289,6 +293,21 @@ export default function Browse({ tab, titles, offline, query, continueList, load
       <div className="page-in" key={query ? "search" : tab}>
         {content}
       </div>
+    </div>
+  );
+}
+
+/** No TMDB key yet: shows and movies have no covers or descriptions until there is one. */
+function KeyNote({ titles, onSetup }: { titles: TitleSummary[]; onSetup?: () => void }) {
+  if (!onSetup || !titles.some((t) => t.kind !== "anime")) return null;
+  return (
+    <div className="offline-note">
+      <p>
+        Shows and movies need a free <strong>TMDB key</strong> for their covers and descriptions (anime works without one).{" "}
+        <button className="link" onClick={onSetup}>
+          Set it up
+        </button>
+      </p>
     </div>
   );
 }

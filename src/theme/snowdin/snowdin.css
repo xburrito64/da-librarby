@@ -2628,18 +2628,18 @@
 }
 
 /* "About" in the game's stat-screen boxes. */
-:root[data-theme="snowdin"] .about__group {
+:root[data-theme="snowdin"] .mabout__group {
   border: 4px solid var(--line);
   border-radius: 0;
   background: rgba(6, 6, 12, 0.88);
 }
 
-:root[data-theme="snowdin"] .about__heading {
+:root[data-theme="snowdin"] .mabout__heading {
   font-size: 15px;
   color: var(--sd-amber);
 }
 
-:root[data-theme="snowdin"] .about__heading::before {
+:root[data-theme="snowdin"] .mabout__heading::before {
   content: "";
   display: inline-block;
   width: 0.6em;
@@ -2651,11 +2651,19 @@
   vertical-align: 0.05em;
 }
 
-:root[data-theme="snowdin"] .about__row {
+:root[data-theme="snowdin"] .mabout__row {
   font-size: 15px;
 }
 
 :root[data-theme="snowdin"] .person__photo {
   border: 3px solid var(--line);
   border-radius: 0;
+}
+
+/* A newer version is out: a text box of its own. */
+:root[data-theme="snowdin"] .update-note {
+  border: 4px solid var(--line);
+  border-radius: 0;
+  background: rgba(6, 6, 12, 0.94);
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.5);
 }

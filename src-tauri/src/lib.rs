@@ -6,6 +6,7 @@ mod player;
 mod fileinfo;
 mod theme_files;
 mod thumbnails;
+mod update;
 
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_window_state::StateFlags;
@@ -109,6 +110,7 @@ pub fn run() {
             thumbnails::thumbs_want,
             thumbnails::thumbs_close,
             fileinfo::file_info,
+            update::update_check,
             theme_files::theme_files,
             theme_files::theme_files_open,
             mini_player::player_mini,

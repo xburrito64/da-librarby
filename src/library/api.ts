@@ -350,6 +350,20 @@ export const watch = {
   file: (fileId: number) => invoke<{ seconds: number; first: number | null; last: number | null }>("watch_file", { fileId }),
 };
 
+/** A newer version on GitHub (src-tauri/src/update.rs). */
+export interface Update {
+  version: string;
+  /** The release's page, with its notes. */
+  page: string;
+  /** The installer itself. */
+  download: string | null;
+}
+
+export const updates = {
+  /** The newer version, or null if this is the newest. Fails when GitHub can't be reached. */
+  check: () => invoke<Update | null>("update_check"),
+};
+
 /** Which page of the library a title is listed on: every movie is with the movies. */
 export function tabOf(t: { kind: LibraryKind; isMovie: boolean }): LibraryKind {
   return t.isMovie ? "movies" : t.kind;

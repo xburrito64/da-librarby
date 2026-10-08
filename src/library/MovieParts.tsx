@@ -178,7 +178,7 @@ export function About({
       "Collection",
       <>
         {extra.collection} · you have {have} of {extra.collectionParts.length}
-        <span className="about__parts">
+        <span className="mabout__parts">
           {extra.collectionParts.map((p) => (
             <span key={p.tmdbId} className={owned.has(p.tmdbId) ? "is-owned" : ""}>
               {owned.has(p.tmdbId) && <CheckIcon />}
@@ -209,7 +209,7 @@ export function About({
     if (info.audio.length > 0)
       copy.push([
         info.audio.length > 1 ? "Audio tracks" : "Audio",
-        <span className="about__list">
+        <span className="mabout__list">
           {info.audio.map((a, i) => (
             <span key={i}>{[language(a.lang) ?? "Unknown", surround(a.channels), codec(a.codec)].filter(Boolean).join(" · ")}</span>
           ))}
@@ -248,15 +248,15 @@ export function About({
   return (
     <section className="tp__section">
       <h2 className="section-title">About</h2>
-      <div className="about">
+      <div className="mabout">
         {groups
           .filter(([, rows]) => rows.length > 0)
           .map(([heading, rows]) => (
-            <div key={heading} className="about__group">
-              <h3 className="about__heading">{heading}</h3>
-              <dl className="about__rows">
+            <div key={heading} className="mabout__group">
+              <h3 className="mabout__heading">{heading}</h3>
+              <dl className="mabout__rows">
                 {rows.map(([label, value]) => (
-                  <div key={label} className="about__row">
+                  <div key={label} className="mabout__row">
                     <dt>{label}</dt>
                     <dd>{value}</dd>
                   </div>

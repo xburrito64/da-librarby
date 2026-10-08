@@ -18,6 +18,7 @@ import {
   type TitleSummary,
 } from "./api";
 import Browse from "./Browse";
+import UpdateNote from "../ui/UpdateNote";
 import { ShuffleContext } from "./shuffle";
 import TitlePage from "./TitlePage";
 import Settings, { type SettingsSection } from "./Settings";
@@ -58,6 +59,11 @@ export default function LibraryView({
   /** The cover it was opened from, to glide back to. */
   const openedFrom = useRef<HTMLElement | null>(null);
   const [settings, setSettings] = useState<SettingsSection | null>(null);
+  /** Whether a TMDB key is saved (checked again whenever Settings closes). */
+  const [hasKey, setHasKey] = useState(true);
+  useEffect(() => {
+    if (!settings) metadata.tmdbKey().then((k) => setHasKey(!!k)).catch(() => {});
+  }, [settings]);
   const [error, setError] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [query, setQuery] = useState("");
@@ -314,6 +320,7 @@ export default function LibraryView({
         onPlay={onPlay}
         onScrolled={setScrolled}
         onAddFolder={() => setSettings("library")}
+        onSetupKey={hasKey ? undefined : () => setSettings("online")}
       />
       {openTitle != null && (
         <TitlePage
@@ -328,6 +335,7 @@ export default function LibraryView({
         />
       )}
 
+      <UpdateNote />
       {settings && (
         <Settings
           section={settings}

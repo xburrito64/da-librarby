@@ -1290,14 +1290,14 @@
 }
 
 /* About a movie: the film, your copy, your watching. */
-.about {
+.mabout {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 22px;
   align-items: start;
 }
 
-.about__group {
+.mabout__group {
   min-width: 0;
   padding: 20px 22px 18px;
   border: 1px solid var(--line);
@@ -1305,7 +1305,7 @@
   background: var(--surface);
 }
 
-.about__heading {
+.mabout__heading {
   margin: 0 0 12px;
   font-family: var(--font-label);
   text-transform: var(--label-transform);
@@ -1315,13 +1315,13 @@
   color: var(--accent);
 }
 
-.about__rows {
+.mabout__rows {
   display: grid;
   gap: 10px;
   margin: 0;
 }
 
-.about__row {
+.mabout__row {
   display: grid;
   grid-template-columns: 112px minmax(0, 1fr);
   gap: 14px;
@@ -1329,32 +1329,32 @@
   line-height: 1.45;
 }
 
-.about__row dt {
+.mabout__row dt {
   color: var(--muted);
 }
 
-.about__row dd {
+.mabout__row dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-.about__list,
-.about__parts {
+.mabout__list,
+.mabout__parts {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.about__parts {
+.mabout__parts {
   margin-top: 6px;
   color: var(--muted);
 }
 
-.about__parts .is-owned {
+.mabout__parts .is-owned {
   color: var(--text);
 }
 
-.about__parts .icon {
+.mabout__parts .icon {
   width: 13px;
   height: 13px;
   margin-right: 5px;
@@ -3254,4 +3254,82 @@ select.input {
 .own-files__state.is-found {
   color: var(--accent);
   font-weight: 700;
+}
+
+/* ---------- Settings: how to get a TMDB key ---------- */
+
+.key-steps {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding-left: 22px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.key-steps li {
+  padding-left: 4px;
+}
+
+.key-steps li > span {
+  display: block;
+}
+
+.key-steps .btn {
+  margin-top: 8px;
+}
+
+/* ---------- A newer version is out (ui/UpdateNote.tsx) ---------- */
+
+.update-note {
+  position: fixed;
+  /* Under dialogs (50), above the pages. */
+  z-index: 45;
+  right: 24px;
+  bottom: 24px;
+  width: min(340px, calc(100vw - 48px));
+  box-sizing: border-box;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: 0 24px 50px -20px rgba(0, 0, 0, 0.55);
+  animation: rise 0.4s var(--ease) both;
+}
+
+.update-note__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.update-note__title {
+  margin: 0 28px 6px 0;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.update-note__text {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.update-note__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.update-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.update-check__result {
+  font-size: 13px;
+  color: var(--muted);
 }

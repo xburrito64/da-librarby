@@ -2,8 +2,11 @@
 import { useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getVersion } from "@tauri-apps/api/app";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
-import { library, metadata, guessKind, img, KIND_LABELS, type Library, type LibraryKind, type TitleSummary } from "./api";
+import { library, metadata, guessKind, img, updates, KIND_LABELS, type Library, type LibraryKind, type TitleSummary, type Update } from "./api";
+import { getSetting, setSetting } from "../ui/settings";
+import { UPDATES_SETTING } from "../ui/UpdateNote";
 import { THEMES, type ThemeOption } from "../theme/themes";
 import { setTheme, useTheme, useThemeInfo } from "../theme/theme";
 import { setThemeOption, useThemeOptions } from "../theme/options";
@@ -362,13 +365,52 @@ function Shortcuts() {
 
 function About() {
   const [version, setVersion] = useState("");
+  const [auto, setAuto] = useState(true);
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<{ text: string; update?: Update } | null>(null);
   useEffect(() => {
     getVersion().then(setVersion).catch(() => {});
+    getSetting<boolean>(UPDATES_SETTING).then((v) => setAuto(v !== false));
   }, []);
+  const check = () => {
+    setChecking(true);
+    updates
+      .check()
+      .then((u) => setResult(u ? { text: `Version ${u.version} is out.`, update: u } : { text: "This is the newest version." }))
+      .catch((e) => setResult({ text: String(e) }))
+      .finally(() => setChecking(false));
+  };
   return (
     <section>
       <h3 className="settings__title">Da Librarby {version && <span className="about__version">{version}</span>}</h3>
       <p className="settings__text">A personal library and player for your anime, shows and movies.</p>
+      <div className="update-check">
+        <button className="btn btn--small" onClick={check} disabled={checking}>
+          <RefreshIcon />
+          {checking ? "Looking…" : "Check for updates"}
+        </button>
+        {result && <span className="update-check__result">{result.text}</span>}
+        {result?.update && (
+          <button className="btn btn--small btn--primary" onClick={() => openUrl(result.update!.download ?? result.update!.page)}>
+            Download
+          </button>
+        )}
+      </div>
+      <button
+        className="toggle-row"
+        role="switch"
+        aria-checked={auto}
+        onClick={() => {
+          setAuto(!auto);
+          setSetting(UPDATES_SETTING, !auto);
+        }}
+      >
+        <span className="toggle-row__text">
+          <span className="toggle-row__label">Look for updates by itself</span>
+          <span className="toggle-row__hint">Asks GitHub now and then whether there's a newer version, and says so in a small note.</span>
+        </span>
+        <span className={`toggle ${auto ? "is-on" : ""}`} />
+      </button>
       <div className="about">
         <p>
           <strong>Show and episode info</strong> comes from AniList (anime) and TMDB (shows, movies and anime episodes). This product
@@ -390,6 +432,9 @@ function About() {
     </section>
   );
 }
+
+const TMDB_SIGNUP = "https://www.themoviedb.org/signup";
+const TMDB_API = "https://www.themoviedb.org/settings/api";
 
 function Online({ onError }: { onError: (message: string) => void }) {
   const [saved, setSaved] = useState<string | null>(null);
@@ -416,6 +461,33 @@ function Online({ onError }: { onError: (message: string) => void }) {
         Covers, descriptions and episode names come from AniList (anime, no key needed) and TMDB (shows and movies). TMDB needs a
         free API key, which is stored only on this computer.
       </p>
+      {!saved && (
+        <ol className="key-steps">
+          <li>
+            <span>
+              Make a free TMDB account (and confirm it from the email TMDB sends).
+            </span>
+            <button className="btn btn--small" onClick={() => openUrl(TMDB_SIGNUP)}>
+              Open TMDB sign-up
+            </button>
+          </li>
+          <li>
+            <span>
+              Signed in, open the API page and create a key: choose <em>Developer</em>, accept the terms, and describe the use as
+              "Personal media library" (any website, like github.com, is fine).
+            </span>
+            <button className="btn btn--small" onClick={() => openUrl(TMDB_API)}>
+              Open the API page
+            </button>
+          </li>
+          <li>
+            <span>
+              Copy the <em>API Read Access Token</em> (the long one) or the <em>API Key</em>, paste it here and press Save. The
+              covers and descriptions start coming in right away.
+            </span>
+          </li>
+        </ol>
+      )}
       <div className="field-row">
         <span className="field-row__label">{saved ? `TMDB key saved (${saved})` : "No TMDB key saved"}</span>
         {saved && (

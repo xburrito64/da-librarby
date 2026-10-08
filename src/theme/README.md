@@ -71,5 +71,5 @@ Empty spots in the markup, hidden unless a theme shows them: `.hero__decor--back
 `.tp__desc-box`, for themes that frame them.
 
 Movie pages carry `.tp--movie`: their artwork fills the window (or, in Paper and Mochi, a much bigger
-picture), followed by `.about` (the film, your copy, your watching), `.cast` and "more like this". Themes that change
+picture), followed by `.mabout` (the film, your copy, your watching), `.cast` and "more like this". Themes that change
 the show page's artwork usually need a `.tp--movie` version of that too.
