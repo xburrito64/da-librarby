@@ -29,7 +29,8 @@ Windows only for now.
   watch later, where you are in each show, a little celebration when you finish a season, and a
   Watch time page (how much, when and what you watch).
 - **Search, filters, sorting, right-click menus,** "Surprise me", arrow-key browsing and keyboard
-  shortcuts for everything.
+  shortcuts for everything. Everything grows with the window on big screens, and an interface size
+  slider makes it bigger or smaller.
 - **Five themes**, switchable any time in Settings → Appearance: **Velvet** (dark and cinematic),
   **Paper** (a film magazine), **Neon** (synthwave arcade), **Mochi** (soft pastel) and **Snowdin**
   (a cozy snowy pixel town, after the game this app's name comes from, with falling snow, a heart
