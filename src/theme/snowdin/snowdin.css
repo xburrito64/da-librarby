@@ -404,18 +404,21 @@
   transform-origin: 50% var(--sd-pivot, -46px);
 }
 
-/* Its two ropes, going up to the beam (behind the board). */
+/* Its two ropes (behind the board): twisted strands in pixel art, going up behind the beam, where
+   lights.tsx draws them wrapped around it. They reach well past the beam so a swing never shows
+   their ends. */
 :root[data-theme="snowdin"] .nav__brand::after {
   content: "";
   position: absolute;
   z-index: -1;
   left: 18px;
   right: 18px;
-  top: var(--sd-pivot, -60px);
-  height: calc(4px - var(--sd-pivot, -60px));
+  top: calc(var(--sd-pivot, -60px) - 40px);
+  height: calc(44px - var(--sd-pivot, -60px));
+  --rope: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='6' viewBox='0 0 2 3' shape-rendering='crispEdges'%3E%3Cpath fill='%237d5f34' d='M0 0h1v1H0zM1 2h1v1H1z'/%3E%3Cpath fill='%23f0d9a4' d='M1 0h1v1H1zM0 1h1v1H0z'/%3E%3Cpath fill='%23c4a067' d='M1 1h1v1H1zM0 2h1v1H0z'/%3E%3C/svg%3E");
   background:
-    repeating-linear-gradient(#d9c08a 0 4px, #9a7b48 4px 6px) left / 3px 100% no-repeat,
-    repeating-linear-gradient(#d9c08a 0 4px, #9a7b48 4px 6px) right / 3px 100% no-repeat;
+    var(--rope) left top / 4px 6px repeat-y,
+    var(--rope) right top / 4px 6px repeat-y;
 }
 
 /* The snow on top, drawn to fit the board by sign.tsx (--sd-sign-cap): lumps get knocked out of

@@ -28,6 +28,11 @@ const WOOD = "#7a5236";
 const WOOD_DARK = "#4a2e1c";
 const SNOW = "#eef4ff";
 const ICE = "#c9d9f0";
+/** The sign's ropes, wrapped around the beam (as their twisted strands in snowdin.css). */
+const ROPE = ["#7d5f34", "#f0d9a4", "#c4a067"];
+/** From the board's edge to a rope's edge: its 3px border and 18px (snowdin.css). */
+const ROPE_IN = 21;
+const ROPE_W = 4;
 
 // Each loop swings like a pendulum (about every 1.6 s), pulled along by its neighbours.
 const STIFF = ((2 * Math.PI) / 1.6) ** 2;
@@ -124,6 +129,8 @@ export function Lights({ active, sounds, volume }: { active: boolean; sounds: bo
     let pivot = { x: 0, y: 0 };
     let signTop = 0;
     let corner = { x: 0, y: 0 };
+    /** Where the sign's ropes go round the beam (art pixels, left edges). */
+    let ropes: number[] = [];
     let last = performance.now();
     let frame = 0;
     let ctx: AudioContext | null = null;
@@ -157,8 +164,11 @@ export function Lights({ active, sounds, volume }: { active: boolean; sounds: bo
       sign.style.setProperty("--sd-pivot", `${BEAM - box.top}px`);
       pivot = { x: box.left + box.width / 2, y: BEAM };
       signTop = box.top;
-      // Tied to the sign's right rope, a third of the way down from the beam.
-      corner = { x: box.left + box.width - 19.5, y: BEAM + (box.top - BEAM) * 0.33 };
+      // Its ropes go up past the beam's underside at (nearly) the same spot however it swings,
+      // so they're wrapped round the beam there.
+      ropes = [box.left + ROPE_IN, box.left + box.width - ROPE_IN - ROPE_W].map((x) => Math.round(x / PX));
+      // The string is tied to the right rope, a third of the way down from the beam.
+      corner = { x: box.left + box.width - ROPE_IN - ROPE_W / 2, y: BEAM + (box.top - BEAM) * 0.33 };
       const ends = [corner];
       for (let x = corner.x + FIRST_SPAN; x < width + SPAN; x += SPAN) ends.push({ x, y: BEAM });
       const old = loops;
@@ -308,13 +318,24 @@ export function Lights({ active, sounds, volume }: { active: boolean; sounds: bo
         if (noise(Math.floor(x / 37) + 50) < 0.5 && x % 37 === 0) g.fillRect(x, 2, 1, beam - 3);
         if (noise(x + 60) < 0.06) g.fillRect(x, 2 + Math.floor(noise(x + 61) * 2), 2, 1);
       }
+      // The sign's ropes, wrapped round it.
+      for (const x of ropes) {
+        g.fillStyle = WOOD_DARK;
+        g.fillRect(x - 1, 1, 1, beam - 1);
+        g.fillRect(x + ROPE_W / PX, 1, 1, beam - 1);
+        for (let y = 1; y < beam; y++)
+          for (let c = 0; c < ROPE_W / PX; c++) {
+            g.fillStyle = ROPE[(y + 3 - c) % 3];
+            g.fillRect(x + c, y, 1, 1);
+          }
+      }
       g.fillStyle = SNOW;
       if (snowOnBeam.length !== el.width) snowOnBeam = makeCap(el.width, 99).full.map((h) => Math.max(1, Math.round(h / 2)));
       snowOnBeam.forEach((h, x) => g.fillRect(x, 0, 1, h));
       g.fillStyle = ICE;
       for (let x = 0; x < el.width; x++) {
         const n = noise(x + 900);
-        if (n < 0.09) g.fillRect(x, beam, 1, 1 + Math.floor(n * 33));
+        if (n < 0.09 && !ropes.some((r) => x >= r - 1 && x <= r + ROPE_W / PX)) g.fillRect(x, beam, 1, 1 + Math.floor(n * 33));
       }
 
       // The string: a soft loop between each pair of ends, with its bulbs.
