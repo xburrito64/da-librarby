@@ -35,6 +35,24 @@ function sprite(rows: string[], palette = PALETTE, scale = 1) {
   );
 }
 
+/** The same as a vector picture (squares with crisp edges), which stays sharp at any size, even
+ *  where the browser would blur a small picture (as a mask, or at an in-between zoom). */
+function crispSprite(rows: string[], palette = PALETTE) {
+  const w = Math.max(...rows.map((r) => r.length));
+  let squares = "";
+  rows.forEach((row, y) => {
+    // One rectangle per run of the same colour.
+    for (let x = 0; x < row.length; ) {
+      let end = x + 1;
+      while (end < row.length && row[end] === row[x]) end++;
+      if (palette[row[x]]) squares += `<rect x='${x}' y='${y}' width='${end - x}' height='1' fill='${palette[row[x]]}'/>`;
+      x = end;
+    }
+  });
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${rows.length}' viewBox='0 0 ${w} ${rows.length}' shape-rendering='crispEdges'>${squares}</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 const HEART = [".RR.RR.", "RRRRRRR", "RRRRRRR", ".RRRRR.", "..RRR..", "...R..."];
 
 const STAR = ["....Y....", "....Y....", "...YYY...", "YYYYYYYYY", ".YYYYYYY.", "..YYyYY..", "..YY.YY..", ".YY...YY.", ".Y.....Y."];
@@ -141,8 +159,8 @@ export function setHeartColors(hearts: string, pointer = hearts) {
   if (!isColor(hearts) || !isColor(pointer)) return;
   if (hearts !== drawn.hearts) {
     const palette = { ...PALETTE, R: hearts };
-    setVar("--sd-heart", sprite(HEART, palette));
-    setVar("--sd-heart-outlined", sprite(outlined(HEART), palette));
+    setVar("--sd-heart", crispSprite(HEART, palette));
+    setVar("--sd-heart-outlined", crispSprite(outlined(HEART), palette));
     document.documentElement.style.setProperty("--sd-soul", hearts);
   }
   if (pointer !== drawn.pointer) {
