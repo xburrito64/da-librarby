@@ -7,6 +7,7 @@ import { drawScenes } from "./art";
 import { SignExtras } from "./sign";
 import { startCoverCaps } from "./covercaps";
 import { Lights } from "./lights";
+import { startWoods } from "./woods";
 
 /** One snowflake per this many square pixels of window. */
 const AREA_PER_FLAKE = 9000;
@@ -37,6 +38,9 @@ export default function Decor({ active, options }: { active: boolean; options: R
 
   // Each cover's own pile of snow.
   useEffect(startCoverCaps, []);
+
+  // The trees in the town and forest, which shake off their snow (and sometimes hide something).
+  useEffect(() => (active ? startWoods() : undefined), [active]);
 
   useEffect(() => {
     if (Math.random() >= DOG_VISIT_CHANCE) return;

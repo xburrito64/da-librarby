@@ -1642,6 +1642,7 @@
 :root.sd-dog-visit[data-theme="snowdin"] .tp__decor--bottom::before {
   content: "";
   position: absolute;
+  z-index: 1;
   bottom: calc(var(--sd-ground) + 3px);
   right: 562px;
   width: 57px;
@@ -1653,6 +1654,19 @@
 :root.sd-dog-visit[data-theme="snowdin"] .tp__decor--bottom::before {
   bottom: calc(var(--sd-ground) + 3px);
   right: 182px;
+}
+
+/* The town and forest drawn live (woods.ts), in place of the flat pictures. */
+:root[data-theme="snowdin"] :is(.hero__decor--bottom, .tp__decor--bottom).sd-live {
+  background: none;
+}
+
+:root[data-theme="snowdin"] .sd-woods {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  image-rendering: pixelated;
 }
 
 /* The forest along the bottom of the artwork. */

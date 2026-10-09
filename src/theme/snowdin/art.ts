@@ -1,6 +1,6 @@
 // Snowdin's little sprites and pixel icons. The sprites reach the stylesheet as CSS variables
 // (--sd-heart, --sd-town, ...); the icons replace the usual line icons while Snowdin is on.
-import { forestScene, paint, townScene } from "./scenes";
+import { forestScene, paint, sceneUrl, townScene, type Scene } from "./scenes";
 
 const PALETTE: Record<string, string> = {
   R: "#ff0000", // the heart (its colour can be changed, see setHeartColors)
@@ -173,10 +173,25 @@ function snowTile(seed: number, count: number, big: boolean) {
 /** December makes the town more festive. */
 const festive = () => new Date().getMonth() === 11;
 
+let scenes: { town: Scene; forest: Scene } | null = null;
+const sceneListeners = new Set<() => void>();
+
+/** The town and forest as they are now, for drawing them live (woods.ts). */
+export function liveScenes() {
+  return scenes;
+}
+
+export function onScenes(listener: () => void) {
+  sceneListeners.add(listener);
+  return () => void sceneListeners.delete(listener);
+}
+
 /** The town and forest are as wide as the window; redrawn when it changes size. */
 export function drawScenes(width: number) {
-  setVar("--sd-town", townScene(width, festive()));
-  setVar("--sd-forest", forestScene(width, festive()));
+  scenes = { town: townScene(width, festive()), forest: forestScene(width, festive()) };
+  setVar("--sd-town", sceneUrl(scenes.town));
+  setVar("--sd-forest", sceneUrl(scenes.forest));
+  sceneListeners.forEach((l) => l());
 }
 
 setHeartColors(PALETTE.R);
@@ -186,7 +201,7 @@ setVar("--sd-dog", sprite(DOG));
 setVar("--sd-dog-asleep", sprite(DOG_ASLEEP));
 setVar("--sd-dog-awake", sprite(DOG_AWAKE));
 setVar("--sd-asterisk", sprite(ASTERISK));
-setVar("--sd-town-small", townScene(0, festive()));
+setVar("--sd-town-small", sceneUrl(townScene(0, festive())));
 setVar("--sd-snow-far", snowTile(3, 40, false));
 setVar("--sd-snow-near", snowTile(9, 14, true));
 drawScenes(window.innerWidth);

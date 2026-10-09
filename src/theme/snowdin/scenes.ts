@@ -5,6 +5,7 @@ const C = {
   far: "#0d1322", farSnow: "#2e3d5c",
   mid: "#132036", midSnow: "#7f96bb",
   near: "#182a45", nearSnow: "#dfe9fa",
+  farHill: "#1a2540", farRim: "#33456b", midHill: "#3b4e78", midRim: "#7f96bb",
   trunk: "#24180f",
   snow: "#f3f7ff", snow2: "#c9d6ec", snow3: "#97abcf", ice: "#bfe2ff",
   wood: "#8b5a36", wood2: "#71462a", wood3: "#4a2c1a", roof: "#33200f",
@@ -23,27 +24,135 @@ interface Painter {
   h: number;
   rect(x: number, y: number, w: number, h: number, c: string, a?: number): void;
   dot(x: number, y: number, c: string, a?: number): void;
+  /** A tree that can lose its snow, inside the box x, y, w, h: `look` draws it with all, some or
+   *  none of its snow (1, 0.5, 0). Live scenes keep each tree apart (see Scene). */
+  tree(x: number, y: number, w: number, h: number, look: (p: Painter, snow: number) => void): void;
 }
 
-export function paint(w: number, h: number, draw: (p: Painter) => void) {
+function newCanvas(w: number, h: number) {
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  const g = canvas.getContext("2d")!;
+  return canvas;
+}
+
+/** A painter on `canvas`, whose top-left corner is at x0, y0 in the scene (`read`: its pixels
+ *  get read back, which is much quicker on a canvas set up for it). */
+function painterOn(canvas: HTMLCanvasElement, x0 = 0, y0 = 0, read = false): Painter {
+  const g = canvas.getContext("2d", { willReadFrequently: read })!;
   const p: Painter = {
-    w,
-    h,
+    w: canvas.width,
+    h: canvas.height,
     rect(x, y, rw, rh, c, a = 1) {
       g.globalAlpha = a;
       g.fillStyle = c;
-      g.fillRect(Math.round(x), Math.round(y), rw, rh);
+      g.fillRect(Math.round(x) - x0, Math.round(y) - y0, rw, rh);
       g.globalAlpha = 1;
     },
     dot(x, y, c, a = 1) {
       p.rect(x, y, 1, 1, c, a);
     },
+    tree(_x, _y, _w, _h, look) {
+      look(p, 1);
+    },
+  };
+  return p;
+}
+
+export function paint(w: number, h: number, draw: (p: Painter) => void) {
+  const canvas = newCanvas(w, h);
+  draw(painterOn(canvas));
+  return canvas.toDataURL();
+}
+
+/** A pixel of snow on a tree (its place in the scene, and colour). */
+export interface SnowBit {
+  x: number;
+  y: number;
+  c: string;
+}
+
+/** A tree in a live scene: its pictures with no snow, some and all of it (SNOW_LOOKS), which of
+ *  its pixels are tree (row by row, `w` wide), and where its snow lies in each picture. */
+export interface LiveTree {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  looks: HTMLCanvasElement[];
+  shape: Uint8Array;
+  snow: SnowBit[][];
+}
+
+/** A scene kept in layers, drawn in order: flat pictures, with the trees in between them. */
+export interface Scene {
+  w: number;
+  h: number;
+  layers: (HTMLCanvasElement | LiveTree)[];
+  trees: LiveTree[];
+}
+
+const SNOW_LOOKS = [0, 0.5, 1];
+
+/** Paints a scene in layers, keeping each tree apart so it can sway and lose its snow. */
+function scene(w: number, h: number, draw: (p: Painter) => void): Scene {
+  const layers: Scene["layers"] = [];
+  const trees: LiveTree[] = [];
+  let flat: Painter | null = null;
+  const p: Painter = {
+    w,
+    h,
+    rect(x, y, rw, rh, c, a) {
+      if (!flat) {
+        const canvas = newCanvas(w, h);
+        layers.push(canvas);
+        flat = painterOn(canvas, 0, 0, true);
+      }
+      flat.rect(x, y, rw, rh, c, a);
+    },
+    dot(x, y, c, a) {
+      p.rect(x, y, 1, 1, c, a);
+    },
+    tree(x, y, tw, th, look) {
+      flat = null;
+      x = Math.round(x);
+      y = Math.round(y);
+      const looks = SNOW_LOOKS.map((snow) => {
+        const canvas = newCanvas(tw, th);
+        look(painterOn(canvas, x, y, true), snow);
+        return canvas;
+      });
+      const pixels = looks.map((c) => c.getContext("2d")!.getImageData(0, 0, tw, th).data);
+      const shape = new Uint8Array(tw * th);
+      for (let i = 0; i < shape.length; i++) shape[i] = pixels[2][i * 4 + 3] > 0 ? 1 : 0;
+      // Its snow: whatever differs from the bare tree.
+      const bare = pixels[0];
+      const snow = pixels.map((px) => {
+        const bits: SnowBit[] = [];
+        for (let i = 0; i < shape.length; i++) {
+          const o = i * 4;
+          if (px[o + 3] === 0 || (px[o] === bare[o] && px[o + 1] === bare[o + 1] && px[o + 2] === bare[o + 2])) continue;
+          bits.push({ x: x + (i % tw), y: y + Math.floor(i / tw), c: `rgb(${px[o]}, ${px[o + 1]}, ${px[o + 2]})` });
+        }
+        return bits;
+      });
+      const tree = { x, y, w: tw, h: th, looks, shape, snow };
+      layers.push(tree);
+      trees.push(tree);
+    },
   };
   draw(p);
+  return { w, h, layers, trees };
+}
+
+/** The scene as one picture, every tree in all its snow. */
+export function sceneUrl(s: Scene) {
+  const canvas = newCanvas(s.w, s.h);
+  const g = canvas.getContext("2d")!;
+  for (const layer of s.layers) {
+    if (layer instanceof HTMLCanvasElement) g.drawImage(layer, 0, 0);
+    else g.drawImage(layer.looks[2], layer.x, layer.y);
+  }
   return canvas.toDataURL();
 }
 
@@ -73,8 +182,9 @@ function text(p: Painter, x: number, y: number, s: string, c: string) {
   }
 }
 
-/** A snowy pine: stacked tiers, a snowy ledge along each tier's bottom, snow on the upper edges. */
-function pine(p: Painter, cx: number, base: number, h: number, body: string, snow: string, { width = h * 0.46, trunk = C.trunk } = {}) {
+/** A snowy pine: stacked tiers, a snowy ledge along each tier's bottom, snow on the upper edges.
+ *  `snowy` 0.5 leaves just the ledges, 0 no snow at all. */
+function pine(p: Painter, cx: number, base: number, h: number, body: string, snow: string, { width = h * 0.46, trunk = C.trunk, snowy = 1 } = {}) {
   const trunkH = Math.max(2, Math.round(h * 0.1));
   const crownH = h - trunkH;
   const tiers = Math.max(3, Math.round(h / 8));
@@ -89,21 +199,90 @@ function pine(p: Painter, cx: number, base: number, h: number, body: string, sno
     const half = Math.max(0, Math.round(tierHalf * (0.3 + 0.7 * pos)));
     const row = top + y;
     p.rect(cx - half, row, half * 2 + 1, 1, body);
-    if (y + 1 >= Math.round((t + 1) * tierH)) p.rect(cx - half, row, half * 2 + 1, 1, snow);
-    else if (pos > 0.35) {
+    if (y + 1 >= Math.round((t + 1) * tierH)) {
+      if (snowy >= 0.5) p.rect(cx - half, row, half * 2 + 1, 1, snow);
+    } else if (pos > 0.35 && snowy >= 1) {
       p.dot(cx - half, row, snow);
       if (pos > 0.6) p.dot(cx - half + 1, row, snow);
     }
   }
-  p.dot(cx, top, snow);
+  p.dot(cx, top, snowy >= 1 ? snow : body);
 }
 
-/** A band of pines; they get smaller towards the left (where the text is). */
-function forest(p: Painter, rand: () => number, o: { from: number; to: number; base: number; minH: number; maxH: number; step: number; body: string; snow: string; lowUntil?: number }) {
+/** A pine that can shake its snow off in a live scene. */
+function livePine(p: Painter, cx: number, base: number, h: number, body: string, snow: string) {
+  const half = Math.ceil((h * 0.46) / 2) + 1;
+  p.tree(cx - half, base - h - 1, half * 2 + 2, h + 1, (q, snowy) => pine(q, cx, base, h, body, snow, { snowy }));
+}
+
+interface Row {
+  from: number;
+  to: number;
+  /** About where the row's hill lies. */
+  base: number;
+  minH: number;
+  maxH: number;
+  step: number;
+  body: string;
+  snow: string;
+  /** The hill's snow, and its brighter edge. */
+  hill: string;
+  rim: string;
+  /** Left of here is a clearing (where the text is): the hill slopes down into the ground, and
+   *  only a few small trees stand near its edge. */
+  clearing: number;
+  /** Shifts the hill's rolls, so the rows don't rise and fall together. */
+  phase: number;
+}
+
+/** How far into the clearing a few small trees still stand. */
+const EDGE = 60;
+
+/** Where the top of a row's hill is at x. */
+function hillTop(o: Row, x: number) {
+  const roll = 2.5 + 2.5 * Math.sin(x / 41 + o.phase) + 1.5 * Math.sin(x / 17 + o.phase * 2.3);
+  const slope = x < o.clearing ? ((o.clearing - x) / 70) ** 1.6 * 4 : 0;
+  return Math.round(o.base - roll + slope);
+}
+
+/** A row of pines on their snowy hill (in front of them, so their trunks stand in the snow). */
+function forest(p: Painter, rand: () => number, o: Row, groundTop: number) {
   for (let x = o.from; x < o.to; x += o.step + Math.round(rand() * o.step * 0.6)) {
     let h = o.minH + rand() * (o.maxH - o.minH);
-    if (o.lowUntil && x < o.lowUntil) h *= 0.4 + (0.6 * x) / o.lowUntil;
-    pine(p, x, o.base, Math.round(h), o.body, o.snow);
+    if (x < o.clearing) {
+      // The clearing's edge: fewer and smaller trees the further in.
+      const into = (o.clearing - x) / EDGE;
+      if (into >= 1 || rand() < into * 0.9) continue;
+      h *= 0.5 + 0.35 * (1 - into);
+    }
+    livePine(p, x, hillTop(o, x) + 2, Math.round(h), o.body, o.snow);
+  }
+  for (let x = 0; x < p.w; x++) {
+    const top = hillTop(o, x);
+    if (top >= groundTop) continue;
+    p.rect(x, top, 1, groundTop + 3 - top, o.hill);
+    p.dot(x, top, o.rim);
+    if (hillTop(o, x - 1) > top || hillTop(o, x + 1) > top) p.dot(x, top + 1, o.rim);
+  }
+  // Soft shadows in its snow.
+  for (let i = 0; i < p.w / 14; i++) {
+    const x = Math.round(rand() * p.w);
+    const y = hillTop(o, x) + 2 + Math.round(rand() * 3);
+    if (y < groundTop) p.rect(x, y, 2 + Math.round(rand() * 5), 1, o.body, 0.35);
+  }
+}
+
+/** Footprints in the snow: from the front of the ground over to where they go into the woods. */
+function footprints(p: Painter, from: number, to: number, g: number) {
+  const rows = LIT_ROWS - 2;
+  const steps = Math.round((to - from) / 6);
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = Math.round(from + (to - from) * t);
+    // Left foot, right foot: a row apart.
+    const y = Math.round(g + rows - rows * t ** 1.3) + (i % 2);
+    p.rect(x, y, 2, 1, C.snow3);
+    p.rect(x, y + 1, 2, 1, C.snow2);
   }
 }
 
@@ -341,11 +520,11 @@ const QUIET_LEFT = 230;
 export function townScene(width: number, festive = false) {
   const w = Math.max(427, Math.ceil(width / SCALE));
   const r = w - 427; // things are placed as on a 427-wide scene, shifted right
-  return paint(w, SCENE_HEIGHT, (p) => {
+  return scene(w, SCENE_HEIGHT, (p) => {
     const rand = random(11);
     const g = GROUND;
-    forest(p, rand, { from: 4, to: w, base: g - 6, minH: 18, maxH: 34, step: 7, body: C.far, snow: C.farSnow, lowUntil: QUIET_LEFT });
-    forest(p, rand, { from: 150, to: w, base: g - 2, minH: 24, maxH: 40, step: 19, body: C.mid, snow: C.midSnow, lowUntil: QUIET_LEFT + 30 });
+    forest(p, rand, { from: 4, to: w, base: g - 6, minH: 18, maxH: 34, step: 7, body: C.far, snow: C.farSnow, hill: C.farHill, rim: C.farRim, clearing: QUIET_LEFT - 70, phase: 1 }, g);
+    forest(p, rand, { from: 120, to: w, base: g - 2, minH: 24, maxH: 40, step: 19, body: C.mid, snow: C.midSnow, hill: C.midHill, rim: C.midRim, clearing: QUIET_LEFT - 20, phase: 4 }, g);
     banner(p, r + 282, r + 377, 9, g, "WELCOME TO DA LIBRARBY");
     cabin(p, rand, r + 226, g, 52, 32, { roofH: 15, windows: [[7, 6], [37, 6], [7, 19]], door: 0.72, chimney: true, lights: festive });
     giftTree(p, r + 330, g, 36, festive);
@@ -354,6 +533,7 @@ export function townScene(width: number, festive = false) {
     snowman(p, r + 214, g + 1);
     lampPost(p, r + 168, g, 22);
     ground(p, rand, g);
+    footprints(p, 70, 178, g);
   });
 }
 
@@ -361,16 +541,16 @@ export function townScene(width: number, festive = false) {
 export function forestScene(width: number, festive = false) {
   const w = Math.max(427, Math.ceil(width / SCALE));
   const r = w - 427;
-  return paint(w, SCENE_HEIGHT, (p) => {
+  return scene(w, SCENE_HEIGHT, (p) => {
     const rand = random(5);
     const g = GROUND;
-    forest(p, rand, { from: 2, to: w, base: g - 7, minH: 20, maxH: 36, step: 6, body: C.far, snow: C.farSnow, lowUntil: QUIET_LEFT + 10 });
-    forest(p, rand, { from: 120, to: w, base: g - 3, minH: 30, maxH: 48, step: 13, body: C.mid, snow: C.midSnow, lowUntil: QUIET_LEFT + 30 });
-    pine(p, r + 352, g + 1, 54, C.near, C.nearSnow);
+    forest(p, rand, { from: 2, to: w, base: g - 7, minH: 20, maxH: 36, step: 6, body: C.far, snow: C.farSnow, hill: C.farHill, rim: C.farRim, clearing: QUIET_LEFT - 60, phase: 2 }, g);
+    forest(p, rand, { from: 120, to: w, base: g - 3, minH: 30, maxH: 48, step: 13, body: C.mid, snow: C.midSnow, hill: C.midHill, rim: C.midRim, clearing: QUIET_LEFT, phase: 5 }, g);
+    livePine(p, r + 352, g + 1, 54, C.near, C.nearSnow);
     lampPost(p, r + 372, g, 27);
     sentry(p, rand, r + 384, g, festive);
-    pine(p, r + 420, g + 1, 60, C.near, C.nearSnow);
+    livePine(p, r + 420, g + 1, 60, C.near, C.nearSnow);
     ground(p, rand, g);
-    for (let x = 140; x < w; x += 9) p.rect(x, g + 3 + ((x / 9) & 1) * 2, 2, 1, C.snow3);
+    footprints(p, 120, 222, g);
   });
 }
