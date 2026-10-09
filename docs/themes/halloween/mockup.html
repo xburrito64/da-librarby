@@ -1,0 +1,1328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Halloween theme plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Griffy&family=Mystery+Quest&family=Henny+Penny&family=Baloo+2:wght@400..800&display=swap" rel="stylesheet" />
+<style>
+/* =====================================================================
+   The Halloween theme: colours, fonts, pieces and sounds it would use.
+   Everything is drawn here in code (no pictures from anywhere else).
+   ===================================================================== */
+:root {
+  --night: #0b0710;
+  --night-2: #140d1b;
+  --night-3: #1d1427;
+  --box: rgba(14, 9, 20, 0.86);
+  --line: rgba(255, 140, 50, 0.28);
+  --text: #f3ead8;
+  --muted: #b9a9c4;
+  --dim: #7a6a88;
+  --pumpkin: #ff7518;
+  --pumpkin-2: #e25d0c;
+  --ember: #ffb03b;
+  --candle: #ffd98a;
+  --purple: #6b3fa0;
+  --purple-2: #3d1f5c;
+  --slime: #9cff3a;
+  --bone: #f3ead8;
+  --blood: #c3172e;
+
+  --font-head: "Creepster", fantasy;
+  --font-body: "Baloo 2", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--night); }
+body {
+  margin: 0;
+  color: var(--text);
+  font: 17px/1.5 var(--font-body);
+  background:
+    radial-gradient(1100px 700px at 85% -10%, rgba(255, 117, 24, 0.10), transparent 60%),
+    radial-gradient(900px 700px at 0% 40%, rgba(107, 63, 160, 0.16), transparent 60%),
+    var(--night);
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+.head { font-family: var(--font-head); font-weight: 400; letter-spacing: 0.02em; }
+
+/* ----- The page around the mockups ----- */
+.page { max-width: 1320px; margin: 0 auto; padding: 48px 28px 120px; }
+.intro h1 { margin: 0 0 6px; font: 400 64px/1 var(--font-head); color: var(--pumpkin); text-shadow: 0 0 24px rgba(255, 117, 24, 0.45); }
+.intro p { max-width: 760px; margin: 8px 0; color: var(--muted); font-size: 18px; }
+.controls { display: flex; flex-wrap: wrap; gap: 26px; margin: 26px 0 8px; }
+.controls .group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.controls .group > span { margin-right: 4px; color: var(--dim); font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; }
+.chip {
+  padding: 4px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 99px;
+  color: var(--muted);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.chip:hover { color: var(--text); border-color: rgba(255, 117, 24, 0.6); }
+.chip.is-on { color: #1a0d05; background: var(--pumpkin); border-color: var(--pumpkin); }
+.chip--font { font-size: 20px; }
+
+h2.section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 70px 0 18px;
+  font: 400 40px/1 var(--font-head);
+  color: var(--bone);
+}
+h2.section svg { width: 34px; height: 34px; flex: none; }
+.note { margin: -6px 0 18px; color: var(--muted); max-width: 820px; }
+.note b { color: var(--ember); font-weight: 600; }
+
+/* A window around each mockup. */
+.frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--night);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+/* =====================================================================
+   The top bar: a pumpkin by the app's name, a branch with bats, a spider.
+   ===================================================================== */
+.nav {
+  position: absolute;
+  z-index: 10;
+  inset: 0 0 auto 0;
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  height: 96px;
+  padding: 26px 40px 0;
+  background: linear-gradient(rgba(11, 7, 16, 0.9), rgba(11, 7, 16, 0));
+}
+.brand { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.brand__name { font: 400 30px/1 var(--font-head); color: var(--pumpkin); text-shadow: 0 0 14px rgba(255, 117, 24, 0.55); }
+.jack { position: relative; width: 44px; height: 42px; }
+.jack svg { width: 100%; height: 100%; overflow: visible; }
+.jack .face { fill: #ffd36b; animation: flicker 2.6s infinite; }
+.jack .light { fill: url(#jackLight); animation: flicker 2.6s infinite; }
+.jack.is-out .face { fill: #3a1606; animation: none; }
+.jack.is-out .light { opacity: 0; animation: none; }
+.jack .smoke { opacity: 0; }
+.jack.is-out .smoke { animation: smoke 1.2s ease-out; }
+@keyframes flicker {
+  0%, 100% { opacity: 1; } 8% { opacity: 0.82; } 10% { opacity: 1; } 47% { opacity: 0.9; } 50% { opacity: 0.7; } 53% { opacity: 1; } 78% { opacity: 0.88; }
+}
+@keyframes smoke {
+  0% { opacity: 0.8; transform: translateY(0) scale(0.6); }
+  100% { opacity: 0; transform: translateY(-26px) scale(1.6); }
+}
+.links { display: flex; gap: 28px; }
+.links a { position: relative; color: var(--muted); font-weight: 600; font-size: 17px; text-decoration: none; cursor: pointer; transition: color 0.15s; }
+.links a:hover { color: var(--text); }
+.links a.is-on { color: var(--pumpkin); }
+/* The chosen page: a little drip of glowing slime under it. */
+.links a.is-on::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 100%;
+  height: 12px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 12' preserveAspectRatio='none'%3E%3Cpath fill='%23ff7518' d='M0 1h60v2c-3 0-4 1-4 3s-1 3-2 3-2-1-2-3-1-3-4-3-6 0-7 2-1 6-3 6-2-4-2-6-2-2-5-2-6 0-7 1-1 3-2 3-2-2-2-3-1-1-3-1H0z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  filter: drop-shadow(0 0 4px rgba(255, 117, 24, 0.7));
+}
+.nav__right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 220px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  background: rgba(20, 13, 27, 0.7);
+  color: var(--dim);
+  font-size: 15px;
+}
+.gear { width: 26px; height: 26px; color: var(--muted); }
+
+/* The branch along the top, bats asleep under it. */
+.branch { position: absolute; z-index: 11; top: 0; right: 0; width: 58%; height: 52px; pointer-events: none; }
+.branch svg { width: 100%; height: 100%; }
+.bat { position: absolute; z-index: 12; width: 24px; height: 34px; cursor: pointer; transform-origin: 50% 0; animation: sway 4s ease-in-out infinite; }
+.bat svg { width: 100%; height: 100%; overflow: visible; }
+.bat .eye { fill: #ffcf5a; }
+@keyframes sway { 50% { transform: rotate(4deg); } }
+.bat.is-flying { animation: none; pointer-events: none; }
+.flyer { position: absolute; z-index: 30; width: 52px; height: 28px; pointer-events: none; }
+.flyer svg { width: 100%; height: 100%; overflow: visible; }
+.flyer .wings { transform-origin: 50% 55%; animation: flap 0.16s ease-in-out infinite alternate; }
+@keyframes flap { from { transform: scaleY(1); } to { transform: scaleY(-0.55); } }
+
+/* The spider on its thread: point at it and it climbs up in a hurry. */
+.spider { position: absolute; z-index: 12; top: 10px; left: 71.5%; width: 30px; cursor: pointer; }
+.spider__thread { width: 1px; height: var(--len, 46px); margin: 0 auto; background: rgba(243, 234, 216, 0.7); transition: height 2.4s cubic-bezier(0.4, 0, 0.6, 1); }
+.spider.is-up .spider__thread { height: 2px; transition-duration: 0.45s; transition-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1); }
+.spider__body { width: 30px; height: 26px; margin-top: -3px; animation: dangle 3.2s ease-in-out infinite; transform-origin: 50% -40px; }
+.spider__body svg { width: 100%; height: 100%; overflow: visible; }
+@keyframes dangle { 50% { transform: rotate(5deg); } }
+.spider .legs path { animation: wiggle 0.5s ease-in-out infinite alternate; transform-origin: 15px 13px; }
+.spider.is-up .legs path { animation-duration: 0.08s; }
+@keyframes wiggle { to { transform: rotate(4deg); } }
+
+/* =====================================================================
+   Home: the spotlight over a pumpkin patch at night.
+   ===================================================================== */
+.hero { position: relative; height: 640px; overflow: hidden; }
+/* Stand-in for a show's artwork. */
+.art {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(500px 360px at 72% 30%, rgba(160, 90, 200, 0.55), transparent 70%),
+    radial-gradient(420px 300px at 88% 60%, rgba(255, 140, 60, 0.35), transparent 70%),
+    radial-gradient(600px 400px at 55% 75%, rgba(60, 40, 110, 0.6), transparent 70%),
+    linear-gradient(160deg, #2a1838, #120a1a);
+  opacity: 0.85;
+}
+.art::after {
+  content: "the show's artwork";
+  position: absolute;
+  top: 160px;
+  right: 60px;
+  color: rgba(255, 255, 255, 0.18);
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, rgba(11, 7, 16, 0.92) 0%, rgba(11, 7, 16, 0.55) 40%, transparent 70%),
+    linear-gradient(to top, var(--night) 0%, transparent 35%);
+}
+.scene { position: absolute; left: 0; right: 0; bottom: 0; height: 330px; }
+.scene svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pumpkin { cursor: pointer; transition: filter 0.25s; }
+.pumpkin:hover { filter: brightness(1.25) drop-shadow(0 0 10px rgba(255, 140, 40, 0.8)); }
+.pumpkin .glow { transition: opacity 0.25s; opacity: 0.55; }
+.pumpkin:hover .glow { opacity: 1; }
+.pumpkin.is-wobbly { animation: wobble 0.5s ease-in-out; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes wobble { 25% { transform: rotate(-7deg); } 60% { transform: rotate(5deg); } }
+.window-flicker { animation: flicker 3.4s infinite; }
+.ghost { transition: transform 0.9s cubic-bezier(0.3, 0.7, 0.3, 1); }
+.ghost.is-peeking { transform: translateY(-22px); }
+.ghost.is-hiding { transition-duration: 0.18s; }
+.cat-tail { transform-box: fill-box; transform-origin: 0% 100%; animation: tail 3s ease-in-out infinite; }
+@keyframes tail { 50% { transform: rotate(-14deg); } }
+.cat-eyes { animation: blink 5s infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+
+/* Fog drifting along the bottom. */
+.fog { position: absolute; left: -50%; right: -50%; bottom: 40px; height: 160px; pointer-events: none; opacity: 0.55;
+  background:
+    radial-gradient(260px 50px at 10% 70%, rgba(210, 190, 235, 0.22), transparent 70%),
+    radial-gradient(320px 60px at 30% 55%, rgba(210, 190, 235, 0.18), transparent 70%),
+    radial-gradient(280px 45px at 52% 75%, rgba(210, 190, 235, 0.22), transparent 70%),
+    radial-gradient(340px 60px at 74% 60%, rgba(210, 190, 235, 0.16), transparent 70%),
+    radial-gradient(260px 50px at 92% 72%, rgba(210, 190, 235, 0.2), transparent 70%);
+  animation: drift 38s linear infinite;
+}
+.fog--2 { bottom: 10px; opacity: 0.4; animation-duration: 56s; animation-direction: reverse; }
+@keyframes drift { to { transform: translateX(33%); } }
+
+/* Embers floating up in place of falling snow. */
+.ember { position: absolute; bottom: -10px; width: 4px; height: 4px; border-radius: 50%; background: var(--ember); box-shadow: 0 0 8px 2px rgba(255, 150, 40, 0.7); animation: rise linear infinite; opacity: 0; }
+@keyframes rise {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 0.9; }
+  100% { transform: translate(var(--dx), -560px); opacity: 0; }
+}
+
+.hero__content { position: absolute; z-index: 3; left: 56px; bottom: 150px; max-width: 600px; }
+.kicker { color: var(--slime); font-size: 14px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; text-shadow: 0 0 10px rgba(156, 255, 58, 0.4); }
+.hero__title { margin: 6px 0 14px; font: 400 76px/0.95 var(--font-head); color: var(--bone); text-shadow: 0 3px 0 rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 117, 24, 0.35); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.tag { padding: 1px 12px; border-radius: 99px; background: rgba(107, 63, 160, 0.35); color: #e2d2f2; font-size: 14px; font-weight: 600; }
+.tag--score { background: rgba(255, 117, 24, 0.2); color: var(--ember); }
+.desc { margin: 0 0 22px; padding: 14px 18px; border-radius: 14px; background: var(--box); box-shadow: inset 0 0 0 1px var(--line); color: #e8dccb; font-size: 17px; }
+.btns { display: flex; gap: 12px; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 24px 0 18px;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 17px;
+  transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+}
+.btn svg { width: 18px; height: 18px; }
+.btn--main { color: #1a0d05; background: linear-gradient(180deg, #ff8a2e, var(--pumpkin-2)); box-shadow: 0 6px 24px rgba(255, 117, 24, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.18); }
+.btn--main:hover { transform: translateY(-2px) rotate(-1deg); box-shadow: 0 8px 34px rgba(255, 117, 24, 0.6), inset 0 -3px 0 rgba(0, 0, 0, 0.18); }
+.btn--ghost { color: var(--bone); background: rgba(20, 13, 27, 0.7); box-shadow: inset 0 0 0 1.5px rgba(243, 234, 216, 0.3); }
+.btn--ghost:hover { box-shadow: inset 0 0 0 1.5px var(--slime), 0 0 18px rgba(156, 255, 58, 0.3); color: #eaffda; }
+.dots { position: absolute; z-index: 3; right: 56px; top: 130px; display: flex; gap: 8px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: rgba(243, 234, 216, 0.25); }
+.dots i.is-on { background: var(--pumpkin); box-shadow: 0 0 10px var(--pumpkin); }
+
+/* Rows of covers. */
+.rows { position: relative; z-index: 4; padding: 0 56px 50px; margin-top: -40px; }
+.row-title { display: flex; align-items: center; gap: 10px; margin: 30px 0 14px; font: 400 28px/1 var(--font-head); color: var(--bone); }
+.row-title small { font: 600 14px var(--font-body); color: var(--dim); letter-spacing: 0.05em; }
+.row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 22px; }
+.row--wide { grid-template-columns: repeat(3, 1fr); }
+.card { position: relative; border-radius: 12px; cursor: pointer; transition: transform 0.2s; }
+.card__img { position: relative; overflow: hidden; aspect-ratio: 2 / 3; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); transition: box-shadow 0.2s; }
+.row--wide .card__img { aspect-ratio: 16 / 9; }
+.card:hover { transform: translateY(-4px); }
+.card:hover .card__img { box-shadow: 0 0 0 2px var(--pumpkin), 0 0 26px rgba(255, 117, 24, 0.45), 0 14px 34px rgba(0, 0, 0, 0.6); }
+.card__name { margin-top: 8px; font-weight: 600; font-size: 15px; color: var(--text); }
+.card__sub { color: var(--dim); font-size: 13px; }
+.cover-label { position: absolute; left: 12px; right: 12px; bottom: 12px; font: 400 22px/1 var(--font-head); color: rgba(255, 255, 255, 0.92); text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
+.topper { position: absolute; z-index: 2; pointer-events: none; }
+.topper svg { display: block; overflow: visible; }
+.card:hover .topper--pumpkin, .card:hover .topper--candy { animation: hop 0.5s ease; }
+@keyframes hop { 40% { transform: translateY(-6px) rotate(-6deg); } }
+.card:hover .topper--ghost { animation: peek 0.6s ease; }
+@keyframes peek { 50% { transform: translateY(-8px); } }
+.topper--spider .spider-thread { transition: height 0.4s; }
+.card:hover .topper--spider .spider-thread { height: 8px !important; }
+/* Watching progress: a glowing ember along the bottom. */
+.progress { position: absolute; left: 10px; right: 10px; bottom: 10px; height: 5px; border-radius: 9px; background: rgba(0, 0, 0, 0.55); }
+.progress > i { position: absolute; inset: 0 auto 0 0; border-radius: 9px; background: linear-gradient(90deg, var(--pumpkin-2), var(--ember)); }
+.progress > i::after { content: ""; position: absolute; right: -4px; top: -3px; width: 11px; height: 11px; border-radius: 50%; background: var(--candle); box-shadow: 0 0 10px 3px rgba(255, 170, 60, 0.85); }
+
+/* =====================================================================
+   A show's page.
+   ===================================================================== */
+.tp { position: relative; padding: 120px 56px 46px; }
+.tp .art { opacity: 0.45; height: 470px; }
+.tp .shade { height: 470px; }
+.tp__head { position: relative; z-index: 2; display: flex; gap: 40px; }
+.tp__cover { position: relative; width: 230px; flex: none; }
+.tp__cover .card__img { box-shadow: 0 0 0 2px rgba(255, 117, 24, 0.5), 0 20px 50px rgba(0, 0, 0, 0.6); }
+.tp__title { margin: 6px 0 12px; font: 400 64px/1 var(--font-head); color: var(--bone); text-shadow: 0 0 26px rgba(255, 117, 24, 0.3); }
+.tabs { position: relative; z-index: 2; display: flex; gap: 30px; margin: 46px 0 22px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.tab { position: relative; padding: 10px 0 14px; color: var(--muted); font: 400 24px var(--font-head); cursor: pointer; }
+.tab:hover { color: var(--text); }
+.tab.is-on { color: var(--pumpkin); }
+.tab.is-on::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  bottom: -11px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 14' preserveAspectRatio='none'%3E%3Cpath fill='%23ff7518' d='M0 0h60v3c-2 0-3 1-3 3s-1 4-2 4-2-2-2-4-1-3-3-3-5 0-6 2-1 7-3 7-2-5-2-7-2-2-4-2-7 0-8 1-1 3-2 3-2-2-2-3-1-1-3-1-2 1-2 2-1 2-2 2-1-1-1-2-1-1-3-1H0z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  filter: drop-shadow(0 0 5px rgba(255, 117, 24, 0.7));
+}
+.ep { display: flex; gap: 20px; align-items: center; padding: 14px; border-radius: 14px; cursor: pointer; transition: background 0.15s; }
+.ep:hover { background: rgba(107, 63, 160, 0.16); }
+.ep__n { width: 34px; font: 400 26px var(--font-head); color: var(--dim); text-align: center; }
+.ep:hover .ep__n { color: var(--pumpkin); }
+.ep__img { position: relative; width: 200px; aspect-ratio: 16 / 9; flex: none; border-radius: 10px; overflow: hidden; }
+.ep__name { font-weight: 700; font-size: 17px; }
+.ep__desc { color: var(--muted); font-size: 15px; line-height: 1.45; }
+.ep__seen { margin-left: auto; width: 34px; height: 34px; flex: none; }
+
+/* =====================================================================
+   Small pieces.
+   ===================================================================== */
+.bits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.bit { padding: 22px; border-radius: 16px; background: var(--night-2); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05); }
+.bit h3 { margin: 0 0 14px; font: 400 24px var(--font-head); color: var(--ember); }
+.bit p { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+
+/* Switches: the knob is a pumpkin, lit when it's on. */
+.switch-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+.switch { position: relative; width: 64px; height: 32px; border-radius: 99px; background: #241a30; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.1); transition: background 0.25s, box-shadow 0.25s; }
+.switch .knob { position: absolute; top: -3px; left: -4px; width: 38px; height: 38px; transition: transform 0.3s cubic-bezier(0.4, 1.6, 0.5, 1); }
+.switch .knob svg { width: 100%; height: 100%; overflow: visible; }
+.switch .knob .face { fill: #3a1606; transition: fill 0.2s; }
+.switch.is-on { background: rgba(255, 117, 24, 0.35); box-shadow: inset 0 0 0 1.5px rgba(255, 117, 24, 0.7), 0 0 16px rgba(255, 117, 24, 0.35); }
+.switch.is-on .knob { transform: translateX(32px) rotate(360deg); }
+.switch.is-on .knob .face { fill: #ffd36b; }
+
+/* The player's seek bar, with a pumpkin for a handle. */
+.seek { position: relative; height: 8px; margin: 30px 6px 10px; border-radius: 9px; background: rgba(255, 255, 255, 0.14); cursor: pointer; }
+.seek > .buf { position: absolute; inset: 0 auto 0 0; width: 70%; border-radius: 9px; background: rgba(255, 255, 255, 0.14); }
+.seek > .played { position: absolute; inset: 0 auto 0 0; width: 42%; border-radius: 9px; background: linear-gradient(90deg, var(--purple), var(--pumpkin)); box-shadow: 0 0 12px rgba(255, 117, 24, 0.5); }
+.seek .handle { position: absolute; left: 42%; top: 50%; width: 30px; height: 30px; margin: -17px 0 0 -15px; transition: transform 0.15s; }
+.seek:hover .handle { transform: scale(1.18); }
+.seek .handle svg { width: 100%; height: 100%; overflow: visible; }
+.times { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px; }
+
+/* Loading: a bubbling cauldron. */
+.cauldron { display: block; width: 130px; height: 120px; margin: 0 auto; overflow: visible; }
+.bubble { animation: bubble 1.6s ease-in infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes bubble { 0% { transform: translateY(0) scale(0.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-40px) scale(1); opacity: 0; } }
+.steam { animation: steam 3s ease-in-out infinite; }
+@keyframes steam { 0% { opacity: 0; transform: translateY(6px); } 40% { opacity: 0.5; } 100% { opacity: 0; transform: translateY(-20px); } }
+
+/* The app's messages: from a little ghost. */
+.say { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 16px; background: var(--box); box-shadow: inset 0 0 0 1px var(--line), 0 10px 30px rgba(0, 0, 0, 0.5); }
+.say svg { width: 42px; height: 46px; flex: none; animation: float 2.4s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-4px); } }
+.toast { position: fixed; z-index: 100; left: 50%; bottom: 28px; max-width: 560px; transform: translate(-50%, 140%); transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1); }
+.toast.is-on { transform: translate(-50%, 0); }
+
+/* A trick: the lights flicker and something whooshes past. */
+.trick-flash { position: fixed; z-index: 90; inset: 0; pointer-events: none; background: #000; opacity: 0; }
+.trick-flash.is-on { animation: lightsout 1.2s steps(1); }
+@keyframes lightsout { 0% { opacity: 0.85; } 12% { opacity: 0; } 22% { opacity: 0.9; } 40% { opacity: 0.2; } 52% { opacity: 0.75; } 70%, 100% { opacity: 0; } }
+.whoosh { position: fixed; z-index: 95; top: 30%; left: -160px; width: 140px; height: 150px; pointer-events: none; opacity: 0.85; }
+.whoosh.is-on { animation: whoosh 1.4s cubic-bezier(0.5, 0, 0.5, 1) forwards; }
+@keyframes whoosh { 0% { transform: translate(0, 0) rotate(8deg); } 50% { transform: translate(55vw, -60px) rotate(-6deg); } 100% { transform: translate(calc(100vw + 200px), 20px) rotate(10deg); } }
+
+/* Palette, fonts and sounds. */
+.palette { display: grid; grid-template-columns: repeat(9, 1fr); gap: 12px; }
+.swatch { border-radius: 14px; overflow: hidden; background: var(--night-2); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
+.swatch i { display: block; height: 70px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.swatch div { padding: 8px 10px 10px; font-size: 13px; }
+.swatch b { display: block; font-size: 14px; }
+.swatch span { color: var(--dim); }
+.fonts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.fontcard { padding: 20px; border-radius: 16px; background: var(--night-2); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05); cursor: pointer; transition: box-shadow 0.2s; }
+.fontcard:hover { box-shadow: inset 0 0 0 1.5px rgba(255, 117, 24, 0.5); }
+.fontcard.is-on { box-shadow: inset 0 0 0 2px var(--pumpkin), 0 0 20px rgba(255, 117, 24, 0.25); }
+.fontcard .sample { font-size: 36px; line-height: 1.05; color: var(--pumpkin); }
+.fontcard .name { margin-top: 10px; color: var(--muted); font-size: 14px; }
+.sounds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.sound { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--night-2); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05); text-align: left; transition: box-shadow 0.2s, transform 0.15s; }
+.sound:hover { box-shadow: inset 0 0 0 1.5px var(--pumpkin); transform: translateY(-2px); }
+.sound .play { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 50%; background: var(--pumpkin); color: #1a0d05; }
+.sound .play svg { width: 14px; height: 14px; margin-left: 2px; }
+.sound b { display: block; font-size: 16px; color: var(--text); }
+.sound span { color: var(--dim); font-size: 13px; line-height: 1.3; display: block; }
+.plan { columns: 2; column-gap: 40px; color: var(--muted); }
+.plan li { margin-bottom: 10px; break-inside: avoid; }
+.plan b { color: var(--text); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position: absolute">
+  <defs>
+    <radialGradient id="jackLight"><stop offset="0" stop-color="#ffb347" stop-opacity="0.75" /><stop offset="1" stop-color="#ff7518" stop-opacity="0" /></radialGradient>
+    <radialGradient id="moonGlow"><stop offset="0" stop-color="#ffe4a3" stop-opacity="0.35" /><stop offset="0.45" stop-color="#ffb35c" stop-opacity="0.12" /><stop offset="1" stop-color="#ff8a2e" stop-opacity="0" /></radialGradient>
+    <radialGradient id="moonFace" cx="0.4" cy="0.38"><stop offset="0" stop-color="#fff2c9" /><stop offset="0.7" stop-color="#f6d98a" /><stop offset="1" stop-color="#e9b862" /></radialGradient>
+    <radialGradient id="groundLight"><stop offset="0" stop-color="#ff9a3c" stop-opacity="0.45" /><stop offset="1" stop-color="#ff7518" stop-opacity="0" /></radialGradient>
+    <radialGradient id="pumpkinShade" cx="0.35" cy="0.3"><stop offset="0" stop-color="#ff9a45" /><stop offset="0.6" stop-color="#f2721c" /><stop offset="1" stop-color="#b8480b" /></radialGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" /></filter>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.5" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="intro">
+    <h1>Halloween theme</h1>
+    <p>A first look at the colours, fonts and pieces, to decide on before building it into the app. Cute on the whole, with a few creepy surprises. Everything you see here is drawn in code and the sounds are made on the spot, so nothing comes from anywhere else.</p>
+    <p>Things to try: <b style="color: var(--ember)">click the pumpkin</b> by the app's name (trick or treat?), point at the <b style="color: var(--ember)">bats</b>, the <b style="color: var(--ember)">spider</b> and the <b style="color: var(--ember)">pumpkins</b> in the patch, and keep an eye on the tombstones.</p>
+    <div class="controls">
+      <div class="group" id="fontChips"><span>Title font</span></div>
+      <div class="group"><span>Sounds</span><button class="chip is-on" id="soundToggle">On</button></div>
+    </div>
+  </header>
+
+  <h2 class="section"><svg viewBox="0 0 40 40"><use href="#pumpkinIcon" /></svg>Home</h2>
+  <p class="note">The spotlight sits over a <b>pumpkin patch at night</b>: a haunted house on the hill under a big moon, tombstones, a crooked fence with a black cat, and fog drifting past. Embers float up instead of snow falling. The left side stays calm, for the text.</p>
+  <div class="frame" id="homeFrame">
+    <nav class="nav">
+      <div class="brand" id="brand" title="Trick or treat?">
+        <div class="jack" id="jack"></div>
+        <span class="brand__name">Da Librarby</span>
+      </div>
+      <div class="links"><a class="is-on">Home</a><a>Anime</a><a>Shows</a><a>Movies</a><a>Stats</a></div>
+      <div class="nav__right">
+        <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5L20 20" /></svg>Search</div>
+        <svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2" /><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3L5.5 5.5" stroke-linecap="round" /></svg>
+      </div>
+    </nav>
+    <div class="branch" id="branch"></div>
+    <div class="spider" id="spider" style="--len: 46px">
+      <div class="spider__thread"></div>
+      <div class="spider__body"></div>
+    </div>
+
+    <section class="hero" id="hero">
+      <div class="art"></div>
+      <div class="shade"></div>
+      <div class="scene" id="scene"></div>
+      <div class="fog"></div>
+      <div class="fog fog--2"></div>
+      <div id="embers"></div>
+      <div class="dots"><i></i><i class="is-on"></i><i></i><i></i><i></i></div>
+      <div class="hero__content">
+        <div class="kicker">Anime · 2024 · Studio Lantern</div>
+        <h1 class="hero__title">The Lantern Keeper</h1>
+        <div class="meta"><span class="tag tag--score">87%</span><span class="tag">Fantasy</span><span class="tag">Mystery</span><span class="tag">Slice of life</span></div>
+        <p class="desc">Every night a quiet girl lights the lanterns of a town where the dead come to visit. One evening, a lantern refuses to go out…</p>
+        <div class="btns">
+          <button class="btn btn--main" data-sound="select"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12.5-7.5z" /></svg>Play S1 E4</button>
+          <button class="btn btn--ghost" data-sound="select"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.5" /></svg>More info</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="rows">
+      <div class="row-title">Continue watching <small>3</small></div>
+      <div class="row row--wide" id="rowWide"></div>
+      <div class="row-title">Haunted picks for tonight</div>
+      <div class="row" id="rowPosters"></div>
+    </div>
+  </div>
+
+  <h2 class="section"><svg viewBox="0 0 40 40"><use href="#pumpkinIcon" /></svg>A show's page</h2>
+  <p class="note">The cover gets its own little friend too, like the snow piles in Snowdin: each title keeps <b>its own</b> pumpkin, candy corn, cobweb, spider or peeking ghost. The season you're on is marked with a <b>glowing drip</b>.</p>
+  <div class="frame">
+    <section class="tp">
+      <div class="art"></div>
+      <div class="shade"></div>
+      <div class="tp__head">
+        <div class="tp__cover card" id="tpCover"></div>
+        <div>
+          <div class="kicker">Anime · 2024 · Studio Lantern</div>
+          <h1 class="tp__title">The Lantern Keeper</h1>
+          <div class="meta"><span class="tag tag--score">87%</span><span class="tag">Fantasy</span><span class="tag">Mystery</span></div>
+          <p class="desc" style="max-width: 640px">Every night a quiet girl lights the lanterns of a town where the dead come to visit. One evening, a lantern refuses to go out, and someone on the other side starts writing back.</p>
+          <div class="btns"><button class="btn btn--main" data-sound="select"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12.5-7.5z" /></svg>Play S1 E4</button><button class="btn btn--ghost" data-sound="select">Shuffle</button><button class="btn btn--ghost" data-sound="select">+ My list</button></div>
+        </div>
+      </div>
+      <div class="tabs" id="tabs"><span class="tab">Specials</span><span class="tab is-on">Season 1</span><span class="tab">Season 2</span></div>
+      <div id="eps"></div>
+    </section>
+  </div>
+
+  <h2 class="section"><svg viewBox="0 0 40 40"><use href="#pumpkinIcon" /></svg>Small pieces</h2>
+  <div class="bits">
+    <div class="bit">
+      <h3>Switches</h3>
+      <div class="switch-row"><span>Sounds</span><button class="switch is-on" data-switch></button></div>
+      <div class="switch-row"><span>Embers and fog</span><button class="switch is-on" data-switch></button></div>
+      <div class="switch-row"><span>Creepy surprises</span><button class="switch" data-switch></button></div>
+      <p>The knob is a pumpkin that rolls over and lights up when it's on.</p>
+    </div>
+    <div class="bit">
+      <h3>The player</h3>
+      <div class="seek" id="seek"><div class="buf"></div><div class="played"></div><div class="handle" id="seekHandle"></div></div>
+      <div class="times"><span>9:41</span><span>23:12</span></div>
+      <p>A pumpkin for the seek bar's handle; the played part glows from purple to orange.</p>
+    </div>
+    <div class="bit">
+      <h3>Loading</h3>
+      <svg class="cauldron" id="cauldron" viewBox="0 0 130 120"></svg>
+      <p style="text-align: center">A cauldron bubbling away, with a little blip now and then.</p>
+    </div>
+    <div class="bit" style="grid-column: span 2">
+      <h3>Messages</h3>
+      <div class="say"><svg viewBox="0 0 42 46"><use href="#ghostIcon" /></svg><span>Boo! Found 3 new episodes of <b style="color: var(--ember)">The Lantern Keeper</b>.</span></div>
+      <p>The app's little messages come from a ghost that floats in from the bottom.</p>
+    </div>
+    <div class="bit">
+      <h3>Buttons</h3>
+      <div class="btns" style="flex-wrap: wrap"><button class="btn btn--main" data-sound="select">Play</button><button class="btn btn--ghost" data-sound="select">More info</button></div>
+      <p>Pumpkin-orange and round; the others light up toxic green when you point at them.</p>
+    </div>
+  </div>
+
+  <h2 class="section"><svg viewBox="0 0 40 40"><use href="#pumpkinIcon" /></svg>Colours</h2>
+  <div class="palette" id="palette"></div>
+
+  <h2 class="section"><svg viewBox="0 0 40 40"><use href="#pumpkinIcon" /></svg>Fonts</h2>
+  <p class="note">Titles get a spooky font (pick one, it changes the whole page), everything else stays easy to read in <b>Baloo 2</b>, round and friendly. All of them are free to use.</p>
+  <div class="fonts" id="fontCards"></div>
+
+  <h2 class="section"><svg viewBox="0 0 40 40"><use href="#pumpkinIcon" /></svg>Sounds</h2>
+  <p class="note">Made on the spot by the app, like Snowdin's.</p>
+  <div class="sounds" id="sounds"></div>
+
+  <h2 class="section"><svg viewBox="0 0 40 40"><use href="#pumpkinIcon" /></svg>The plan</h2>
+  <ul class="plan">
+    <li><b>1. The look:</b> colours, fonts, rounded shapes and glows on every screen.</li>
+    <li><b>2. Sounds:</b> the organ, the door, the cauldron, the ghost.</li>
+    <li><b>3. The top bar:</b> the pumpkin by the name (trick or treat), the branch with bats, the spider.</li>
+    <li><b>4. Covers:</b> each title's own little friend.</li>
+    <li><b>5. The scenes:</b> the pumpkin patch under the spotlight, a graveyard path on show pages, fog and embers.</li>
+    <li><b>6. The surprises:</b> the ghost behind the tombstones, the cat on the fence, pumpkins that glow, the candle snuffed out when you press Play.</li>
+    <li><b>7. Halloween night:</b> extra pumpkins and a few more surprises on 31 October.</li>
+    <li><b>8. Checking</b> every screen: player, settings, the small preview in Appearance.</li>
+  </ul>
+</div>
+
+<div class="trick-flash" id="flash"></div>
+<svg class="whoosh" id="whoosh" viewBox="0 0 42 46"><use href="#ghostIcon" /></svg>
+<div class="toast" id="toast"><div class="say"><svg viewBox="0 0 42 46"><use href="#ghostIcon" /></svg><span id="toastText"></span></div></div>
+
+<svg width="0" height="0" style="position: absolute">
+  <defs>
+    <g id="pumpkinIcon">
+      <path d="M20 9c0-3 1-5 4-6" stroke="#5b7a2a" stroke-width="2.6" fill="none" stroke-linecap="round" />
+      <ellipse cx="11" cy="23" rx="9" ry="12" fill="#d95f12" />
+      <ellipse cx="29" cy="23" rx="9" ry="12" fill="#d95f12" />
+      <ellipse cx="20" cy="23" rx="10" ry="13" fill="url(#pumpkinShade)" />
+      <path d="M13 19l4 3h-5zM27 19l-4 3h5zM13 27c3 3 11 3 14 0l-2 1-2-1-3 1-3-1-2 1z" fill="#ffd36b" />
+    </g>
+    <g id="ghostIcon">
+      <path d="M21 2C10 2 4 10 4 20v22l5-4 4 4 4-4 4 4 4-4 4 4 4-4 5 4V20C38 10 32 2 21 2z" fill="#f1ecff" />
+      <path d="M21 2C10 2 4 10 4 20v22l5-4 4 4 4-4 4 4 4-4 4 4 4-4 5 4V20C38 10 32 2 21 2z" fill="none" stroke="#c9bde6" stroke-width="1.5" />
+      <ellipse cx="15" cy="19" rx="3" ry="4" fill="#1a1024" />
+      <ellipse cx="27" cy="19" rx="3" ry="4" fill="#1a1024" />
+      <ellipse cx="21" cy="29" rx="3.5" ry="4.5" fill="#1a1024" />
+      <ellipse cx="11" cy="25" rx="3" ry="2" fill="#ffb3c7" opacity="0.6" />
+      <ellipse cx="31" cy="25" rx="3" ry="2" fill="#ffb3c7" opacity="0.6" />
+    </g>
+  </defs>
+</svg>
+
+<script>
+// ---------------------------------------------------------------------
+// Little helpers
+// ---------------------------------------------------------------------
+const $ = (s) => document.querySelector(s);
+let seed = 7;
+const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const svgNS = "http://www.w3.org/2000/svg";
+
+/** A pumpkin (bottom-centre at x, y; radius r), optionally a jack-o'-lantern. */
+function pumpkin(x, y, r, jack, cls = "") {
+  const cy = y - r;
+  const ribs = [
+    `<ellipse cx="${x - r * 0.62}" cy="${cy}" rx="${r * 0.55}" ry="${r * 0.9}" fill="#c9530f" />`,
+    `<ellipse cx="${x + r * 0.62}" cy="${cy}" rx="${r * 0.55}" ry="${r * 0.9}" fill="#c9530f" />`,
+    `<ellipse cx="${x - r * 0.3}" cy="${cy}" rx="${r * 0.6}" ry="${r * 0.98}" fill="#e2650f" />`,
+    `<ellipse cx="${x + r * 0.3}" cy="${cy}" rx="${r * 0.6}" ry="${r * 0.98}" fill="#e2650f" />`,
+    `<ellipse cx="${x}" cy="${cy}" rx="${r * 0.5}" ry="${r}" fill="url(#pumpkinShade)" />`,
+  ].join("");
+  const stem = `<path d="M${x} ${cy - r * 0.85} q ${r * 0.08} ${-r * 0.45} ${r * 0.35} ${-r * 0.55}" stroke="#56702a" stroke-width="${Math.max(2, r * 0.18)}" fill="none" stroke-linecap="round" />`;
+  let face = "";
+  if (jack) {
+    const e = r * 0.24;
+    face = `<g class="glowface" filter="url(#glow)" fill="#ffd36b">
+      <path d="M${x - r * 0.45} ${cy - r * 0.1} l ${e} ${-e * 1.2} l ${e} ${e * 1.2} z" />
+      <path d="M${x + r * 0.45} ${cy - r * 0.1} l ${-e} ${-e * 1.2} l ${-e} ${e * 1.2} z" />
+      <path d="M${x - r * 0.55} ${cy + r * 0.22} q ${r * 0.55} ${r * 0.5} ${r * 1.1} 0 l ${-r * 0.16} ${r * 0.12} l ${-r * 0.14} ${-r * 0.1} l ${-r * 0.2} ${r * 0.14} l ${-r * 0.2} ${-r * 0.14} l ${-r * 0.14} ${r * 0.1} z" />
+    </g>`;
+  }
+  const light = jack ? `<ellipse class="glow" cx="${x}" cy="${y}" rx="${r * 2.6}" ry="${r * 0.7}" fill="url(#groundLight)" />` : "";
+  return `<g class="pumpkin ${cls}">${light}${ribs}${stem}${face}</g>`;
+}
+
+function tombstone(x, y, w, h, kind, tilt = 0) {
+  const fill = "#2c2238";
+  const edge = "#4a3d5e";
+  let shape;
+  if (kind === "cross") {
+    shape = `<path d="M${x - 3} ${y} v ${-h} h -9 v -7 h 9 v -9 h 7 v 9 h 9 v 7 h -9 v ${h} z" fill="${fill}" stroke="${edge}" stroke-width="1.2" />`;
+  } else {
+    shape = `<path d="M${x - w / 2} ${y} v ${-h + w / 2} a ${w / 2} ${w / 2} 0 0 1 ${w} 0 v ${h - w / 2} z" fill="${fill}" stroke="${edge}" stroke-width="1.2" />
+      <path d="M${x - w / 4} ${y - h + w / 2 + 6} h ${w / 2} M${x - w / 5} ${y - h + w / 2 + 11} h ${w / 2.5}" stroke="#1c1526" stroke-width="2" stroke-linecap="round" />`;
+  }
+  return `<g transform="rotate(${tilt} ${x} ${y})">${shape}</g>`;
+}
+
+function bareTree(x, y, s) {
+  const p = (d, w) => `<path d="${d}" stroke="#0e0814" stroke-width="${w * s}" fill="none" stroke-linecap="round" />`;
+  return `<g transform="translate(${x} ${y}) scale(${s})">${[
+    p("M0 0 C -2 -26 4 -46 -2 -70", 8),
+    p("M-1 -40 C -14 -50 -22 -58 -30 -74", 4.5),
+    p("M1 -50 C 15 -62 24 -66 32 -80", 4.5),
+    p("M-2 -70 C -6 -82 0 -92 -4 -104", 3.5),
+    p("M-28 -71 l -9 -5 M-26 -66 l -12 2", 2),
+    p("M30 -77 l 7 -9 M27 -72 l 12 -2", 2),
+    p("M-4 -100 l -7 -6 M-3 -96 l 8 -8", 1.6),
+  ].join("")}</g>`;
+}
+
+// ---------------------------------------------------------------------
+// The pumpkin patch under the spotlight
+// ---------------------------------------------------------------------
+function drawScene() {
+  const W = 1440;
+  const H = 330;
+  let s = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMaxYMax slice">`;
+  // Moon.
+  s += `<circle cx="1180" cy="78" r="140" fill="url(#moonGlow)" />`;
+  s += `<circle cx="1180" cy="78" r="50" fill="url(#moonFace)" />`;
+  s += `<circle cx="1166" cy="66" r="8" fill="#e8c27a" opacity="0.5" /><circle cx="1196" cy="92" r="11" fill="#e8c27a" opacity="0.4" /><circle cx="1192" cy="58" r="5" fill="#e8c27a" opacity="0.45" />`;
+  // A few bats crossing the moon.
+  s += `<g fill="#0e0814" opacity="0.9"><path d="M1126 48 q 5 -5 10 0 q 3 -2 4 1 q 1 -3 4 -1 q 5 -5 10 0 q -6 0 -9 4 q -2 -2 -5 0 q -3 -4 -14 -4z" /><path d="M1210 112 q 4 -4 8 0 q 2 -2 3 1 q 1 -3 3 -1 q 4 -4 8 0 q -5 0 -7 3 q -2 -2 -4 0 q -2 -3 -11 -3z" /></g>`;
+  // Far hills, then the hill with the house.
+  s += `<path d="M0 ${H} L0 250 C 200 238 360 246 520 240 C 700 232 820 222 960 214 C 1100 202 1260 206 ${W} 218 L${W} ${H} Z" fill="#1b1026" />`;
+  s += `<path d="M930 ${H} C 990 236 1076 176 1186 172 C 1296 168 1384 204 ${W} 220 L${W} ${H} Z" fill="#140b1d" />`;
+  // The haunted house, a little crooked.
+  s += `<g transform="rotate(-2 1190 176)" fill="#0d0712">
+    <rect x="1150" y="122" width="80" height="56" />
+    <polygon points="1140,124 1190,84 1240,124" />
+    <rect x="1208" y="80" width="26" height="64" />
+    <polygon points="1202,82 1221,38 1240,82" />
+    <rect x="1160" y="94" width="10" height="24" />
+    <polygon points="1215,40 1221,30 1227,40" />
+  </g>`;
+  s += `<g transform="rotate(-2 1190 176)" fill="#ffb347" filter="url(#glow)">
+    <rect x="1162" y="136" width="12" height="14" rx="1" />
+    <rect class="window-flicker" x="1196" y="136" width="12" height="14" rx="1" />
+    <rect x="1215" y="96" width="9" height="12" rx="1" />
+    <rect x="1184" y="156" width="14" height="22" rx="7" fill="#c9611a" opacity="0.8" />
+  </g>`;
+  s += `<g transform="rotate(-2 1190 176)" stroke="#0d0712" stroke-width="1.6"><path d="M1168 136v14M1162 143h12M1202 136v14M1196 143h12" /></g>`;
+  s += bareTree(1088, 196, 1.05) + bareTree(1376, 214, 0.8) + bareTree(890, 236, 0.75);
+  // Tombstones, with a ghost hiding behind one.
+  s += `<g id="ghostG" class="ghost"><g transform="translate(846 228) scale(0.62)"><use href="#ghostIcon" /></g></g>`;
+  s += tombstone(700, 262, 22, 34, "round", -4) + tombstone(742, 258, 18, 28, "round", 6) + tombstone(790, 262, 0, 26, "cross", -3);
+  s += tombstone(858, 258, 30, 40, "round", 0) + tombstone(912, 262, 20, 30, "round", 9);
+  // The crooked fence, a black cat sitting on it.
+  let fence = `<g fill="#1f1529">`;
+  fence += `<rect x="560" y="246" width="${W - 560}" height="3" /><rect x="560" y="258" width="${W - 560}" height="3" />`;
+  seed = 3;
+  for (let x = 566; x < W; x += 17) {
+    if (rand() < 0.08) continue;
+    const t = (rand() - 0.5) * 10;
+    const h = 24 + rand() * 6;
+    fence += `<path transform="rotate(${t.toFixed(1)} ${x} 268)" d="M${x - 3} 268 v ${-h} l 3 -5 l 3 5 v ${h} z" />`;
+  }
+  fence += `</g>`;
+  s += fence;
+  s += `<g transform="translate(626 240)">
+    <path class="cat-tail" d="M12 0 c 10 -2 14 -10 10 -18 c -2 -4 2 -6 4 -2 c 4 10 -2 20 -14 22 z" fill="#07040a" />
+    <path d="M0 0 c -2 -10 0 -18 4 -22 c -3 -4 -4 -10 -2 -14 l 4 4 c 2 -1 5 -1 7 0 l 4 -4 c 2 4 1 10 -2 14 c 4 4 6 12 4 22 z" fill="#07040a" />
+    <g class="cat-eyes" fill="#c6ff4a" filter="url(#glow)"><ellipse cx="5" cy="-27" rx="1.6" ry="1.2" /><ellipse cx="11" cy="-27" rx="1.6" ry="1.2" /></g>
+  </g>`;
+  // The ground in front, with vines and the pumpkin patch.
+  s += `<path d="M0 ${H} L0 272 C 240 266 480 276 720 268 C 960 260 1200 272 ${W} 264 L${W} ${H} Z" fill="#120a17" />`;
+  s += `<g stroke="#2f4a1e" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.9">
+    <path d="M740 300 C 800 290 840 312 900 300 S 1000 290 1060 304 S 1200 296 1260 306 S 1360 300 1440 296" />
+    <path d="M820 300 c 6 -8 14 -6 12 2 c -2 6 -8 4 -6 -1" /><path d="M1010 298 c 6 -8 14 -6 12 2 c -2 6 -8 4 -6 -1" /><path d="M1190 302 c 6 -8 14 -6 12 2 c -2 6 -8 4 -6 -1" />
+  </g>`;
+  s += pumpkin(770, 302, 15, true) + pumpkin(842, 298, 9, false) + pumpkin(982, 310, 22, true) + pumpkin(1060, 300, 11, false);
+  s += pumpkin(1146, 306, 17, true) + pumpkin(1236, 298, 12, false) + pumpkin(1322, 312, 25, true) + pumpkin(1404, 300, 11, false) + pumpkin(612, 296, 8, false);
+  s += `</svg>`;
+  $("#scene").innerHTML = s;
+  document.querySelectorAll(".pumpkin").forEach((p) =>
+    p.addEventListener("pointerenter", () => {
+      if (!p.querySelector(".glowface")) {
+        p.classList.remove("is-wobbly");
+        void p.getBBox();
+        p.classList.add("is-wobbly");
+        sfx.tok();
+      }
+    }),
+  );
+}
+
+// Now and then the ghost peeks out from behind the big tombstone, and hides when you come close.
+function ghostLife() {
+  const g = $("#ghostG");
+  const peek = () => {
+    g.classList.remove("is-hiding");
+    g.classList.add("is-peeking");
+    setTimeout(() => g.classList.remove("is-peeking"), 2600);
+    setTimeout(peek, 5000 + Math.random() * 5000);
+  };
+  setTimeout(peek, 2500);
+  $("#hero").addEventListener("pointermove", (e) => {
+    if (!g.classList.contains("is-peeking")) return;
+    const r = g.getBoundingClientRect();
+    if (Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2)) < 90) {
+      g.classList.add("is-hiding");
+      g.classList.remove("is-peeking");
+      sfx.boo(0.5);
+    }
+  });
+}
+
+function embers() {
+  const box = $("#embers");
+  for (let i = 0; i < 22; i++) {
+    const e = document.createElement("i");
+    e.className = "ember";
+    e.style.left = `${30 + Math.random() * 68}%`;
+    e.style.setProperty("--dx", `${(Math.random() - 0.5) * 160}px`);
+    e.style.animationDuration = `${7 + Math.random() * 9}s`;
+    e.style.animationDelay = `${-Math.random() * 14}s`;
+    e.style.transform = `scale(${0.5 + Math.random()})`;
+    box.appendChild(e);
+  }
+}
+
+// ---------------------------------------------------------------------
+// The top bar: jack-o'-lantern, branch with bats, spider
+// ---------------------------------------------------------------------
+function drawJack() {
+  $("#jack").innerHTML = `<svg viewBox="0 0 44 42">
+    <ellipse class="light" cx="22" cy="24" rx="26" ry="22" />
+    <path d="M22 9c0-3 1-5 4-6" stroke="#5b7a2a" stroke-width="2.8" fill="none" stroke-linecap="round" />
+    <ellipse cx="12" cy="25" rx="10" ry="13" fill="#c9530f" /><ellipse cx="32" cy="25" rx="10" ry="13" fill="#c9530f" />
+    <ellipse cx="22" cy="25" rx="11" ry="14" fill="url(#pumpkinShade)" />
+    <g class="face"><path d="M12 21l5 -6l5 6z" transform="translate(-2 0)" /><path d="M32 21l-5 -6l-5 6z" transform="translate(2 0)" /><path d="M11 28c4 6 18 6 22 0l-3 1.5-2-2-3 2.5-3-2.5-3 2.5-3-2.5-2 2z" /></g>
+    <g class="smoke"><circle cx="22" cy="6" r="4" fill="#8a7c99" opacity="0.6" /><circle cx="26" cy="1" r="3" fill="#8a7c99" opacity="0.4" /></g>
+  </svg>`;
+}
+
+const TREATS = [
+  "Treat! How about <b>Ghost Club</b> tonight? It's been waiting for you.",
+  "Treat! You get a free cookie. (It's imaginary. Still counts.)",
+  "Treat! <b>Pumpkin Street</b> has a new episode you haven't seen.",
+];
+const TRICKS = [
+  "Trick! Something just floated past… did you see that?",
+  "Trick! The lights went out for a second. Totally normal. Probably.",
+];
+let lastTrick = false;
+function trickOrTreat() {
+  const jack = $("#jack");
+  if (jack.classList.contains("is-out")) return;
+  jack.classList.add("is-out");
+  sfx.snuff();
+  const trick = !lastTrick && Math.random() < 0.45;
+  lastTrick = trick;
+  setTimeout(() => {
+    if (trick) {
+      $("#flash").classList.remove("is-on");
+      void $("#flash").offsetWidth;
+      $("#flash").classList.add("is-on");
+      const w = $("#whoosh");
+      w.classList.remove("is-on");
+      void w.getBoundingClientRect();
+      w.classList.add("is-on");
+      sfx.trick();
+      say(TRICKS[Math.floor(Math.random() * TRICKS.length)]);
+    } else {
+      sfx.treat();
+      say(TREATS[Math.floor(Math.random() * TREATS.length)]);
+    }
+  }, 380);
+  setTimeout(() => {
+    jack.classList.remove("is-out");
+    sfx.ignite();
+  }, 1900);
+}
+
+let toastTimer = 0;
+function say(html) {
+  $("#toastText").innerHTML = html;
+  $("#toast").classList.add("is-on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("#toast").classList.remove("is-on"), 4200);
+}
+
+const HANGING_BAT = `<svg viewBox="0 0 18 26"><path d="M7 0v3M11 0v3" stroke="#5a4473" stroke-width="1.4" /><path d="M9 3C2 8 1 17 9 24C17 17 16 8 9 3Z" fill="#160d1d" stroke="#6a5288" stroke-width="1" /><path d="M9 6C6 10 6 15 9 20" stroke="#6a5288" stroke-width="0.7" fill="none" /><path d="M6 21l-1 4 3-2zM12 21l1 4-3-2z" fill="#120a17" /><circle class="eye" cx="7" cy="19" r="1" /><circle class="eye" cx="11" cy="19" r="1" /></svg>`;
+const FLYING_BAT = `<svg viewBox="0 0 40 22"><g class="wings"><path d="M20 11C15 4 8 3 1 7c5 1 6 4 5 7 4-2 7-1 9 1 2-2 3-2 5-1 2-1 3-1 5 1 2-2 5-3 9-1-1-3 0-6 5-7-7-4-14-3-19 4Z" fill="#120a17" stroke="#3a2a48" stroke-width="0.8" /></g><path d="M17 8l1-4 2 3 2-3 1 4" fill="#120a17" /><circle cx="18.5" cy="10" r="0.9" fill="#ffcf5a" /><circle cx="21.5" cy="10" r="0.9" fill="#ffcf5a" /></svg>`;
+
+function drawBranch() {
+  // A gnarled branch reaching in from the top-right corner, lit by the moon along its top.
+  $("#branch").innerHTML = `<svg viewBox="0 0 800 40" preserveAspectRatio="none">
+    <path d="M800 0 L800 26 C 760 24 730 20 690 22 C 640 25 610 17 560 19 C 500 22 470 15 420 17 C 360 20 330 13 280 15 C 220 17 190 12 140 13 C 100 14 60 11 20 12 L 0 11 C 40 8 90 9 140 7 C 200 5 240 8 290 5 C 350 2 390 7 440 4 C 500 1 540 6 600 3 C 680 0 740 4 800 0 Z" fill="#2a1b33" />
+    <path d="M800 1 C 740 5 680 1 600 4 C 540 7 500 2 440 5 C 390 8 350 3 290 6 C 240 9 200 6 140 8 C 90 10 40 9 2 11" stroke="#5a4473" stroke-width="1.6" fill="none" />
+    <path d="M610 18 c -8 6 -12 12 -12 18 M470 15 c 4 8 4 14 2 20 M330 14 c -10 4 -16 10 -18 16 M180 13 c 6 6 8 12 6 18 M90 11 c -8 2 -14 6 -18 10" stroke="#2a1b33" stroke-width="3.2" fill="none" stroke-linecap="round" />
+    <path d="M598 36 c -6 0 -9 -4 -6 -7 c 4 1 6 4 6 7z M472 35 c 6 -1 8 -6 5 -8 c -4 2 -6 5 -5 8z M72 22 c -6 1 -9 -2 -7 -6 c 4 0 7 3 7 6z" fill="#3d2a1a" />
+  </svg>`;
+  const frame = $("#homeFrame");
+  // Between the menu and the search box.
+  const spots = [0.5, 0.555, 0.615, 0.68];
+  spots.forEach((at, i) => {
+    const b = document.createElement("div");
+    b.className = "bat";
+    b.innerHTML = HANGING_BAT;
+    const place = () => {
+      const w = frame.clientWidth;
+      b.style.left = `${w * at}px`;
+      b.style.top = `${9 - (at - 0.5) * 8}px`;
+    };
+    place();
+    window.addEventListener("resize", place);
+    b.style.animationDelay = `${-i * 0.7}s`;
+    frame.appendChild(b);
+    b.addEventListener("pointerenter", () => scareBats(b));
+  });
+}
+
+// Bats near the one you pointed at take off too.
+function scareBats(first) {
+  const frame = $("#homeFrame");
+  const fr = frame.getBoundingClientRect();
+  const all = [...document.querySelectorAll(".bat")];
+  const near = all.filter((b) => !b.classList.contains("is-flying") && Math.abs(b.offsetLeft - first.offsetLeft) < 120);
+  if (near.length) sfx.flutter();
+  near.forEach((b, n) => {
+    b.classList.add("is-flying");
+    b.style.opacity = "0";
+    const f = document.createElement("div");
+    f.className = "flyer";
+    f.innerHTML = FLYING_BAT;
+    frame.appendChild(f);
+    const x0 = b.offsetLeft - 10;
+    const y0 = b.offsetTop;
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const start = performance.now() + n * 90;
+    const step = (now) => {
+      const t = (now - start) / 1600;
+      if (t < 0) return requestAnimationFrame(step);
+      const x = x0 + dir * t * 420 + Math.sin(t * 9) * 18;
+      const y = y0 + 40 * Math.sin(t * 3) - t * 60 + Math.sin(t * 13) * 6;
+      f.style.transform = `translate(${x}px, ${y}px)`;
+      f.style.opacity = String(Math.min(1, 1.6 - t));
+      if (t < 1.6 && x > -60 && x < fr.width + 60) requestAnimationFrame(step);
+      else f.remove();
+    };
+    requestAnimationFrame(step);
+    // They come back to hang a while later.
+    setTimeout(() => {
+      b.style.transition = "opacity 1.2s";
+      b.style.opacity = "1";
+      setTimeout(() => {
+        b.classList.remove("is-flying");
+        b.style.transition = "";
+      }, 1200);
+    }, 7000 + Math.random() * 4000);
+  });
+}
+
+function drawSpider() {
+  $("#spider .spider__body").innerHTML = `<svg viewBox="0 0 30 26">
+    <g class="legs" stroke="#120a17" stroke-width="1.6" fill="none" stroke-linecap="round">
+      <path d="M11 11 L4 6 L1 10" /><path d="M11 13 L3 12 L0 17" /><path d="M11 15 L4 18 L2 23" /><path d="M12 16 L7 21 L6 26" />
+      <path d="M19 11 L26 6 L29 10" /><path d="M19 13 L27 12 L30 17" /><path d="M19 15 L26 18 L28 23" /><path d="M18 16 L23 21 L24 26" />
+    </g>
+    <ellipse cx="15" cy="15" rx="6" ry="7" fill="#120a17" stroke="#3a2a48" stroke-width="1" />
+    <circle cx="15" cy="7.5" r="3.6" fill="#120a17" stroke="#3a2a48" stroke-width="1" />
+    <circle cx="13.6" cy="7.4" r="1" fill="#ff5a3c" /><circle cx="16.4" cy="7.4" r="1" fill="#ff5a3c" />
+  </svg>`;
+  const sp = $("#spider");
+  let back = 0;
+  sp.addEventListener("pointerenter", () => {
+    if (sp.classList.contains("is-up")) return;
+    sp.classList.add("is-up");
+    sfx.skitter();
+    clearTimeout(back);
+    back = setTimeout(() => sp.classList.remove("is-up"), 4200);
+  });
+}
+
+// ---------------------------------------------------------------------
+// Covers, each with its own little friend
+// ---------------------------------------------------------------------
+const COVERS = [
+  ["Ghost Club", ["#3d1f5c", "#0f0a1c"], "#9cff3a"],
+  ["Pumpkin Street", ["#ff8a2e", "#5a1f08"], "#ffd36b"],
+  ["Lanternfall", ["#1f3b5c", "#0b0f1c"], "#ffb03b"],
+  ["The Quiet Manor", ["#2b2b3d", "#0b0b12"], "#c9bde6"],
+  ["Bat Patrol", ["#5c1f3d", "#1a0812"], "#ff7a9a"],
+  ["Moss & Moon", ["#1f5c3d", "#08140d"], "#d6ffb0"],
+];
+
+function coverArt(name, [a, b], accent) {
+  return `<div class="card__img" style="background:
+      radial-gradient(120px 120px at 70% 30%, ${accent}55, transparent 70%),
+      linear-gradient(160deg, ${a}, ${b})">
+      <div class="cover-label">${name}</div></div>`;
+}
+
+/** Each title's own little friend on its cover (always the same one for the same title). */
+function topper(i) {
+  const kinds = ["pumpkin", "cobweb", "candy", "ghost", "spider", "cobweb2"];
+  const kind = kinds[i % kinds.length];
+  if (kind === "pumpkin")
+    return `<div class="topper topper--pumpkin" style="right: 14px; top: -22px"><svg width="34" height="30" viewBox="0 0 40 40"><use href="#pumpkinIcon" /></svg></div>`;
+  if (kind === "candy")
+    return `<div class="topper topper--candy" style="left: 16px; top: -16px"><svg width="44" height="24" viewBox="0 0 44 24">
+      <g transform="rotate(-12 12 14)"><path d="M12 2 L20 22 L4 22 Z" fill="#fff4dc" /><path d="M8 12 L16 12 L18 17 L6 17 Z" fill="#ff8a2e" /><path d="M5.5 18 L18.5 18 L20 22 L4 22 Z" fill="#ffd23a" /></g>
+      <g transform="rotate(16 32 14)"><path d="M32 4 L39 22 L25 22 Z" fill="#fff4dc" /><path d="M28.6 13 L35.4 13 L37 17 L27 17 Z" fill="#ff8a2e" /><path d="M26.6 18 L37.4 18 L39 22 L25 22 Z" fill="#ffd23a" /></g></svg></div>`;
+  if (kind === "ghost")
+    return `<div class="topper topper--ghost" style="right: 20px; top: -24px"><svg width="30" height="33" viewBox="0 0 42 46"><use href="#ghostIcon" /></svg></div>`;
+  if (kind === "spider")
+    return `<div class="topper topper--spider" style="left: 30%; top: 0"><div class="spider-thread" style="width: 1px; height: 46px; margin: 0 auto; background: rgba(243,234,216,0.55)"></div><svg width="18" height="16" viewBox="0 0 30 26" style="margin-top: -2px"><g stroke="#120a17" stroke-width="2" fill="none"><path d="M11 12 L3 7M11 14 L2 15M19 12 L27 7M19 14 L28 15M12 16 L6 22M18 16 L24 22" /></g><ellipse cx="15" cy="14" rx="6" ry="7" fill="#120a17" /><circle cx="13.6" cy="12" r="1" fill="#ff5a3c" /><circle cx="16.4" cy="12" r="1" fill="#ff5a3c" /></svg></div>`;
+  const left = kind === "cobweb";
+  // A cobweb across a top corner.
+  const web = `<svg width="64" height="64" viewBox="0 0 64 64" style="transform: scaleX(${left ? 1 : -1})">
+    <g stroke="rgba(243,234,216,0.55)" stroke-width="0.9" fill="none">
+      <path d="M0 0 L62 4 M0 0 L52 30 M0 0 L30 52 M0 0 L4 62" />
+      <path d="M14 1 Q 11 7 12 12 Q 7 11 1 14" /><path d="M28 2 Q 22 13 24 23 Q 13 22 2 28" /><path d="M42 3 Q 33 19 36 34 Q 19 33 3 42" /><path d="M55 4 Q 44 26 46 44 Q 26 44 4 55" />
+    </g></svg>`;
+  return `<div class="topper" style="${left ? "left" : "right"}: 0; top: 0">${web}</div>`;
+}
+
+function drawCards() {
+  const wide = [["Pumpkin Street", "S2 E7 · 12 min left", 0.62], ["Ghost Club", "S1 E3 · 4 min left", 0.86], ["Lanternfall", "Movie · 48 min left", 0.35]];
+  $("#rowWide").innerHTML = wide
+    .map(([name, sub, p], i) => {
+      const c = COVERS.find((c) => c[0] === name);
+      return `<div class="card">${topper(i + 2)}<div style="position: relative">${coverArt(name, c[1], c[2])}<div class="progress"><i style="width: ${p * 100}%"></i></div></div><div class="card__name">${name}</div><div class="card__sub">${sub}</div></div>`;
+    })
+    .join("");
+  $("#rowPosters").innerHTML = COVERS.map(([name, colors, accent], i) => `<div class="card">${topper(i)}${coverArt(name, colors, accent)}<div class="card__name">${name}</div><div class="card__sub">${["Anime", "Show", "Movie"][i % 3]}</div></div>`).join("");
+  $("#tpCover").innerHTML = topper(0) + coverArt("The Lantern Keeper", ["#5c3d1f", "#140c06"], "#ffd36b");
+  document.querySelectorAll(".card").forEach((c) => c.addEventListener("pointerenter", () => sfx.tok()));
+}
+
+function drawEpisodes() {
+  const eps = [
+    ["The First Lantern", "A new lamplighter arrives in town, and the old one won't stop smiling.", true],
+    ["Letters From Nowhere", "Someone keeps leaving notes on the lanterns. They're signed with names from the graveyard.", true],
+    ["Fog Over the Bridge", "On the foggiest night of the year, the bridge leads somewhere it shouldn't.", false],
+  ];
+  $("#eps").innerHTML = eps
+    .map(
+      ([name, desc, seen], i) => `<div class="ep">
+        <div class="ep__n">${i + 2}</div>
+        <div class="ep__img" style="background: radial-gradient(80px 60px at ${30 + i * 20}% 40%, rgba(255,160,60,0.5), transparent 70%), linear-gradient(150deg, #2b1a3d, #0d0814)">${seen ? "" : `<div class="progress"><i style="width: 30%"></i></div>`}</div>
+        <div><div class="ep__name">${name}</div><div class="ep__desc">${desc}</div></div>
+        ${seen ? `<svg class="ep__seen" viewBox="0 0 40 40"><use href="#pumpkinIcon" /></svg>` : `<span class="ep__seen"></span>`}
+      </div>`,
+    )
+    .join("");
+  document.querySelectorAll(".tab").forEach((t) =>
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((o) => o.classList.toggle("is-on", o === t));
+      sfx.select();
+    }),
+  );
+}
+
+// ---------------------------------------------------------------------
+// Small pieces
+// ---------------------------------------------------------------------
+function drawBits() {
+  const knob = `<svg viewBox="0 0 40 40"><path d="M20 9c0-3 1-5 4-6" stroke="#5b7a2a" stroke-width="2.6" fill="none" stroke-linecap="round" /><ellipse cx="11" cy="23" rx="9" ry="12" fill="#d95f12" /><ellipse cx="29" cy="23" rx="9" ry="12" fill="#d95f12" /><ellipse cx="20" cy="23" rx="10" ry="13" fill="url(#pumpkinShade)" /><path class="face" d="M13 19l4 3h-5zM27 19l-4 3h5zM13 27c3 3 11 3 14 0l-2 1-2-1-3 1-3-1-2 1z" /></svg>`;
+  document.querySelectorAll("[data-switch]").forEach((s) => {
+    s.innerHTML = `<span class="knob">${knob}</span>`;
+    s.addEventListener("click", () => {
+      s.classList.toggle("is-on");
+      s.classList.contains("is-on") ? sfx.ignite() : sfx.snuff();
+    });
+  });
+  $("#seekHandle").innerHTML = `<svg viewBox="0 0 40 40"><use href="#pumpkinIcon" /></svg>`;
+  $("#cauldron").innerHTML = `
+    <g class="steam" fill="none" stroke="rgba(200,255,150,0.4)" stroke-width="3" stroke-linecap="round"><path d="M50 20 c -6 -8 6 -12 0 -20" /><path d="M78 24 c -6 -8 6 -12 0 -20" style="animation-delay: 1.4s" /></g>
+    <ellipse cx="65" cy="48" rx="46" ry="10" fill="#7dff3a" opacity="0.9" />
+    <ellipse cx="65" cy="48" rx="46" ry="10" fill="none" stroke="#c6ff8a" stroke-width="2" opacity="0.6" />
+    <g fill="#b6ff6a"><circle class="bubble" cx="48" cy="48" r="5" /><circle class="bubble" cx="70" cy="46" r="7" style="animation-delay: .5s" /><circle class="bubble" cx="86" cy="49" r="4" style="animation-delay: 1s" /><circle class="bubble" cx="60" cy="50" r="3" style="animation-delay: 1.25s" /></g>
+    <path d="M17 50 C 17 100 113 100 113 50 Z" fill="#1a1024" />
+    <path d="M14 46 h 102 a 4 4 0 0 1 0 8 h -102 a 4 4 0 0 1 0 -8 z" fill="#2a1c38" />
+    <path d="M30 96 l -6 14 M100 96 l 6 14 M65 100 v 12" stroke="#1a1024" stroke-width="6" stroke-linecap="round" />
+    <ellipse cx="65" cy="118" rx="34" ry="4" fill="#ff7518" opacity="0.35" filter="url(#soft)" />
+    <path d="M40 112 q 6 -14 10 -2 q 4 -12 10 0 q 4 -10 10 0 q 4 -12 10 2" fill="#ff8a2e" opacity="0.9" filter="url(#glow)" />`;
+  let blip = 0;
+  setInterval(() => {
+    if (++blip % 3 === 0 && isVisible($("#cauldron"))) sfx.bubble(0.35);
+  }, 1500);
+}
+
+function isVisible(el) {
+  const r = el.getBoundingClientRect();
+  return r.bottom > 0 && r.top < innerHeight;
+}
+
+const PALETTE = [
+  ["Midnight", "#0b0710"], ["Coffin", "#1d1427"], ["Witch", "#3d1f5c"], ["Potion", "#6b3fa0"],
+  ["Pumpkin", "#ff7518"], ["Ember", "#ffb03b"], ["Candle", "#ffd98a"], ["Slime", "#9cff3a"], ["Bone", "#f3ead8"],
+];
+function drawPalette() {
+  $("#palette").innerHTML = PALETTE.map(([n, c]) => `<div class="swatch"><i style="background: ${c}"></i><div><b>${n}</b><span>${c}</span></div></div>`).join("");
+}
+
+const FONTS = [
+  ["Creepster", "Classic Halloween: drippy and loud."],
+  ["Griffy", "Whimsical and witchy, a bit storybook."],
+  ["Mystery Quest", "Spooky-cute, like an old kids' book."],
+  ["Henny Penny", "Quirky and magical, the cutest of them."],
+];
+function drawFonts() {
+  const set = (name) => {
+    document.documentElement.style.setProperty("--font-head", `"${name}", fantasy`);
+    document.querySelectorAll("[data-font]").forEach((el) => el.classList.toggle("is-on", el.dataset.font === name));
+  };
+  $("#fontChips").insertAdjacentHTML("beforeend", FONTS.map(([n]) => `<button class="chip chip--font" data-font="${n}" style="font-family: '${n}'">${n}</button>`).join(""));
+  $("#fontCards").innerHTML = FONTS.map(([n, d]) => `<div class="fontcard" data-font="${n}"><div class="sample" style="font-family: '${n}'">Trick or treat</div><div class="name"><b>${n}</b> · ${d}</div></div>`).join("");
+  document.querySelectorAll("[data-font]").forEach((el) => el.addEventListener("click", () => { set(el.dataset.font); sfx.select(); }));
+  set("Creepster");
+}
+
+// ---------------------------------------------------------------------
+// Sounds, made on the spot
+// ---------------------------------------------------------------------
+let ac = null;
+let soundsOn = true;
+function audio() {
+  if (!soundsOn) return null;
+  ac ??= new AudioContext();
+  if (ac.state === "suspended") ac.resume();
+  return ac;
+}
+function out(ctx, level) {
+  const g = ctx.createGain();
+  g.gain.value = level;
+  g.connect(ctx.destination);
+  return g;
+}
+function env(ctx, node, at, attack, hold, release, peak = 1) {
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, at);
+  g.gain.linearRampToValueAtTime(peak, at + attack);
+  g.gain.setValueAtTime(peak, at + attack + hold);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + attack + hold + release);
+  node.connect(g);
+  return g;
+}
+function noise(ctx, seconds) {
+  const b = ctx.createBuffer(1, ctx.sampleRate * seconds, ctx.sampleRate);
+  const d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const s = ctx.createBufferSource();
+  s.buffer = b;
+  return s;
+}
+/** An organ note: a few sine "drawbars" with a slow wobble. */
+function organ(ctx, dest, hz, at, length, level = 0.2) {
+  const lfo = ctx.createOscillator();
+  const depth = ctx.createGain();
+  lfo.frequency.value = 5.5;
+  depth.gain.value = hz * 0.006;
+  lfo.connect(depth);
+  [1, 2, 3, 4, 6].forEach((h, i) => {
+    const o = ctx.createOscillator();
+    o.frequency.value = hz * h;
+    depth.connect(o.frequency);
+    env(ctx, o, at, 0.03, length * 0.6, length * 0.6, level * [1, 0.6, 0.35, 0.25, 0.12][i]).connect(dest);
+    o.start(at);
+    o.stop(at + length * 1.4);
+  });
+  lfo.start(at);
+  lfo.stop(at + length * 1.4);
+}
+const NOTE = (n) => 220 * 2 ** (n / 12);
+
+const sfx = {
+  tok() {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(520, t);
+    o.frequency.exponentialRampToValueAtTime(260, t + 0.08);
+    env(ctx, o, t, 0.002, 0, 0.09, 0.5).connect(out(ctx, 0.25));
+    o.start(t); o.stop(t + 0.15);
+  },
+  select() {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const o = out(ctx, 0.35);
+    [0, 3, 7].forEach((n, i) => organ(ctx, o, NOTE(n), t + i * 0.035, 0.45, 0.16));
+  },
+  back() {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const o = out(ctx, 0.35);
+    organ(ctx, o, NOTE(7), t, 0.18, 0.18);
+    organ(ctx, o, NOTE(0), t + 0.16, 0.35, 0.18);
+  },
+  creak() {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    // A door's creak: a stick-slip buzz through a resonant filter that wanders.
+    const o = ctx.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(38, t);
+    o.frequency.linearRampToValueAtTime(64, t + 0.5);
+    o.frequency.linearRampToValueAtTime(30, t + 1.1);
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.Q.value = 9;
+    bp.frequency.setValueAtTime(700, t);
+    bp.frequency.linearRampToValueAtTime(1500, t + 0.45);
+    bp.frequency.linearRampToValueAtTime(900, t + 1.1);
+    o.connect(bp);
+    env(ctx, bp, t, 0.08, 0.8, 0.3, 1).connect(out(ctx, 0.5));
+    o.start(t); o.stop(t + 1.3);
+  },
+  boo(level = 1) {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    // A ghostly "woo": a sine sliding down with vibrato, and an echo.
+    const o = ctx.createOscillator();
+    o.frequency.setValueAtTime(520, t);
+    o.frequency.exponentialRampToValueAtTime(760, t + 0.35);
+    o.frequency.exponentialRampToValueAtTime(300, t + 1.2);
+    const lfo = ctx.createOscillator();
+    const d = ctx.createGain();
+    lfo.frequency.value = 6;
+    d.gain.value = 14;
+    lfo.connect(d).connect(o.frequency);
+    const delay = ctx.createDelay();
+    delay.delayTime.value = 0.22;
+    const fb = ctx.createGain();
+    fb.gain.value = 0.35;
+    const dest = out(ctx, 0.18 * level);
+    const e = env(ctx, o, t, 0.25, 0.4, 0.6, 1);
+    e.connect(dest);
+    e.connect(delay).connect(fb).connect(delay);
+    fb.connect(dest);
+    o.start(t); lfo.start(t); o.stop(t + 2.4); lfo.stop(t + 2.4);
+  },
+  bubble(level = 1) {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const dest = out(ctx, 0.25 * level);
+    for (let i = 0; i < 5; i++) {
+      const at = t + i * (0.07 + Math.random() * 0.09);
+      const o = ctx.createOscillator();
+      const f = 180 + Math.random() * 220;
+      o.frequency.setValueAtTime(f, at);
+      o.frequency.exponentialRampToValueAtTime(f * 3, at + 0.06);
+      env(ctx, o, at, 0.004, 0, 0.07, 0.8).connect(dest);
+      o.start(at); o.stop(at + 0.12);
+    }
+  },
+  snuff() {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const n = noise(ctx, 0.5);
+    const lp = ctx.createBiquadFilter();
+    lp.type = "bandpass";
+    lp.frequency.setValueAtTime(2600, t);
+    lp.frequency.exponentialRampToValueAtTime(500, t + 0.3);
+    lp.Q.value = 0.8;
+    n.connect(lp);
+    env(ctx, lp, t, 0.02, 0.05, 0.25, 1).connect(out(ctx, 0.3));
+    n.start(t);
+  },
+  ignite() {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const n = noise(ctx, 0.6);
+    const hp = ctx.createBiquadFilter();
+    hp.type = "bandpass";
+    hp.Q.value = 1.2;
+    hp.frequency.setValueAtTime(400, t);
+    hp.frequency.exponentialRampToValueAtTime(3000, t + 0.25);
+    n.connect(hp);
+    env(ctx, hp, t, 0.12, 0.05, 0.3, 1).connect(out(ctx, 0.22));
+    n.start(t);
+    const o = ctx.createOscillator();
+    o.type = "triangle";
+    o.frequency.value = NOTE(19);
+    env(ctx, o, t + 0.15, 0.01, 0, 0.5, 0.4).connect(out(ctx, 0.12));
+    o.start(t + 0.15); o.stop(t + 0.8);
+  },
+  treat() {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const dest = out(ctx, 0.16);
+    // A twinkly little run up a spooky (harmonic minor) scale.
+    [12, 14, 15, 17, 19, 20, 23, 24].forEach((n, i) => {
+      const at = t + i * 0.07;
+      [1, 4].forEach((h, k) => {
+        const o = ctx.createOscillator();
+        o.frequency.value = NOTE(n) * h;
+        env(ctx, o, at, 0.004, 0, 0.6 - k * 0.3, k ? 0.25 : 1).connect(dest);
+        o.start(at); o.stop(at + 0.8);
+      });
+    });
+  },
+  trick() {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const o = out(ctx, 0.3);
+    [0, 1, 6].forEach((n) => organ(ctx, o, NOTE(n - 12), t, 0.9, 0.2));
+    const w = noise(ctx, 1.4);
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.Q.value = 3;
+    bp.frequency.setValueAtTime(300, t + 0.2);
+    bp.frequency.exponentialRampToValueAtTime(2200, t + 0.8);
+    bp.frequency.exponentialRampToValueAtTime(400, t + 1.4);
+    w.connect(bp);
+    env(ctx, bp, t + 0.2, 0.4, 0.2, 0.6, 1).connect(out(ctx, 0.5));
+    w.start(t + 0.2);
+  },
+  flutter() {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const dest = out(ctx, 0.3);
+    for (let i = 0; i < 9; i++) {
+      const at = t + i * 0.055;
+      const n = noise(ctx, 0.05);
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 900 + Math.random() * 500;
+      n.connect(bp);
+      env(ctx, bp, at, 0.004, 0, 0.04, 1 - i * 0.08).connect(dest);
+      n.start(at);
+    }
+  },
+  skitter() {
+    const ctx = audio(); if (!ctx) return;
+    const t = ctx.currentTime;
+    const dest = out(ctx, 0.18);
+    for (let i = 0; i < 12; i++) {
+      const at = t + i * 0.025 + Math.random() * 0.01;
+      const n = noise(ctx, 0.02);
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 3500;
+      n.connect(hp);
+      env(ctx, hp, at, 0.001, 0, 0.015, 1).connect(dest);
+      n.start(at);
+    }
+  },
+  play() {
+    sfx.snuff();
+    setTimeout(() => sfx.boo(0.6), 250);
+  },
+};
+
+const SOUNDS = [
+  ["select", "Choose", "A soft organ chord"],
+  ["back", "Go back", "Two organ notes, down"],
+  ["tok", "Point at", "A little wooden knock"],
+  ["creak", "Open a page", "A creaky door"],
+  ["bubble", "Loading", "The cauldron bubbling"],
+  ["boo", "Ghost", "A ghostly woo, with an echo"],
+  ["snuff", "Candle out", "When you press Play"],
+  ["ignite", "Candle lit", "Lighting back up"],
+  ["treat", "Treat", "A twinkly run up a spooky scale"],
+  ["trick", "Trick", "A wrong chord and a whoosh"],
+  ["flutter", "Bats", "Taking off"],
+  ["skitter", "Spider", "Scurrying up its thread"],
+];
+function drawSounds() {
+  $("#sounds").innerHTML = SOUNDS.map(([k, n, d]) => `<button class="sound" data-play="${k}"><span class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4v16l14-8z" /></svg></span><span><b>${n}</b><span>${d}</span></span></button>`).join("");
+  document.querySelectorAll("[data-play]").forEach((b) => b.addEventListener("click", () => sfx[b.dataset.play]()));
+}
+
+// ---------------------------------------------------------------------
+drawJack();
+drawBranch();
+drawSpider();
+drawScene();
+embers();
+ghostLife();
+drawCards();
+drawEpisodes();
+drawBits();
+drawPalette();
+drawFonts();
+drawSounds();
+$("#brand").addEventListener("click", trickOrTreat);
+document.querySelectorAll("[data-sound]").forEach((b) => b.addEventListener("click", () => sfx[b.dataset.sound]()));
+document.querySelectorAll(".links a").forEach((a) =>
+  a.addEventListener("click", () => {
+    document.querySelectorAll(".links a").forEach((o) => o.classList.toggle("is-on", o === a));
+    sfx.creak();
+  }),
+);
+$("#soundToggle").addEventListener("click", (e) => {
+  soundsOn = !soundsOn;
+  e.target.classList.toggle("is-on", soundsOn);
+  e.target.textContent = soundsOn ? "On" : "Off";
+});
+</script>
+</body>
+</html>
