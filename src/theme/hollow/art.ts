@@ -1,6 +1,7 @@
 // Hollow's Eve's little pictures, drawn in code as vector shapes (smooth, at any size). They reach
 // the stylesheet as CSS variables (--he-jack, --he-ghost, ...); the bats and the spider in the top
 // bar and the scenes use the same shapes directly.
+import { logoSvg } from "./logo";
 import { pumpkinPicture } from "./pumpkins";
 
 /** A picture for CSS: an SVG as a data URL. */
@@ -31,9 +32,10 @@ export const C = {
   bone: "#f3ead8",
 };
 
-/** The jack-o'-lantern by the app's name: lit, or with its candle blown out. */
+/** The jack-o'-lantern by the app's name (until the living one in logo.ts takes his place): lit, or
+ *  with his candle blown out. */
 function jack(lit: boolean) {
-  return pumpkinPicture(48, 46, { size: 38, face: "classic", stem: "curly", squat: 0.82, unlit: !lit }, 2);
+  return lit ? logoSvg() : pumpkinPicture(48, 46, { size: 40, face: "classic", stem: "curly", extras: ["leaf"], squat: 0.8, unlit: true }, 1);
 }
 
 const GHOST_BODY = "M21 2C10 2 4 10 4 20v22l5-4 4 4 4-4 4 4 4-4 4 4 4-4 5 4V20C38 10 32 2 21 2z";
@@ -108,8 +110,39 @@ const TOPPER_BAT = svg(26, 34, `<g transform="scale(1.3)">${HANGING_BAT.replace(
 const KNOB_ON = pumpkinPicture(40, 40, { size: 32, face: "classic", stem: "short", squat: 0.86 }, 4);
 const KNOB_OFF = pumpkinPicture(40, 40, { size: 32, face: "classic", stem: "short", squat: 0.86, unlit: true }, 4);
 
-/** A drip of glowing orange under the chosen tab. */
-const DRIP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" preserveAspectRatio="none"><path fill="${C.pumpkin}" d="M0 0h60v3c-2 0-3 1-3 3s-1 4-2 4-2-2-2-4-1-3-3-3-5 0-6 2-1 7-3 7-2-5-2-7-2-2-4-2-7 0-8 1-1 3-2 3-2-2-2-3-1-1-3-1-2 1-2 2-1 2-2 2-1-1-1-2-1-1-3-1H0z"/></svg>`;
+/** The glowing slime under the chosen tab, in pieces so each tab can have its own (hollow.css): a
+ *  band that stretches to the tab's width, thinning out to nothing at both ends, with a wavy lower
+ *  edge (three different ones)... */
+function slimeBand(seed: number) {
+  const f = (n: number) => n.toFixed(2);
+  const sag = (x: number) => 4.6 + Math.sin(x * 0.13 + seed) * 1.1 + Math.sin(x * 0.41 + seed * 2) * 0.6;
+  let bottom = "";
+  for (let x = 84; x >= 16; x -= 4) {
+    const m = x - 2;
+    bottom += `Q${f(m)} ${f(sag(m) + 0.5)} ${f(x - 4)} ${f(sag(x - 4))}`;
+  }
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 10" preserveAspectRatio="none">` +
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffa64f"/><stop offset="0.6" stop-color="#ff7f24"/><stop offset="1" stop-color="#e2580b"/></linearGradient></defs>` +
+    `<path fill="url(#g)" d="M0 0.8C5 0.5 8 0.4 16 0.4H84C92 0.4 95 0.5 100 0.8C97 2.4 92 ${f(sag(84))} 84 ${f(sag(84))}${bottom}C8 ${f(sag(12))} 3 2.4 0 0.8Z"/>` +
+    `<path d="M12 1.6Q50 1 88 1.6" stroke="#ffd8a6" stroke-width="0.8" fill="none" opacity="0.5"/></svg>`
+  );
+}
+
+/** ...and drips hanging from it, short, middling or long, each ending in a round drop. */
+function slimeDrop(h: number) {
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 ${h}">` +
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="0"><stop offset="0.2" stop-color="#e65d0d"/><stop offset="0.48" stop-color="#ff9238"/><stop offset="0.8" stop-color="#d9540a"/></linearGradient></defs>` +
+    (h < 9
+      ? // Just a blob, gathering.
+        `<path fill="url(#g)" d="M0 0H12C9 0 8.6 2 8.4 3.2C8.6 ${h - 1.4} 7.6 ${h} 6 ${h}C4.4 ${h} 3.4 ${h - 1.4} 3.6 3.2C3.4 2 3 0 0 0Z"/>`
+      : // A drip, its neck a little wavy.
+        `<path fill="url(#g)" d="M0 0H12C8.6 0 7.8 2.6 7.8 6C8.2 ${h * 0.45} 7.1 ${h * 0.7} 7.5 ${h - 6.5}C10 ${h - 5.5} 9.6 ${h} 6 ${h}C2.4 ${h} 2 ${h - 5.5} 4.5 ${h - 6.5}C4.9 ${h * 0.7} 3.8 ${h * 0.45} 4.2 6C4.2 2.6 3.4 0 0 0Z"/>` +
+        `<path d="M5.3 3.5C5.6 ${h * 0.45} 4.9 ${h * 0.65} 5.2 ${h - 7}" stroke="#ffd8a6" stroke-width="0.6" stroke-linecap="round" fill="none" opacity="0.45"/>`) +
+    `<ellipse cx="5" cy="${h - 3.4}" rx="0.9" ry="1.3" fill="#fff4dc" opacity="0.75"/></svg>`
+  );
+}
 
 /** A candle for "Continue watching" and the player's loading, flame separate (it flickers). */
 const CAULDRON = svg(
@@ -140,6 +173,10 @@ export function drawArt() {
   set("--he-img-bat", svgUrl(TOPPER_BAT));
   set("--he-img-knob-on", svgUrl(KNOB_ON));
   set("--he-img-knob-off", svgUrl(KNOB_OFF));
-  set("--he-img-drip", svgUrl(DRIP));
+  [1, 2, 3].forEach((n) => set(`--he-img-slime-band-${n}`, svgUrl(slimeBand(n * 2.3))));
+  set("--he-img-slime-blob", svgUrl(slimeDrop(7)));
+  set("--he-img-slime-drop-s", svgUrl(slimeDrop(10)));
+  set("--he-img-slime-drop-m", svgUrl(slimeDrop(16)));
+  set("--he-img-slime-drop-l", svgUrl(slimeDrop(22)));
   set("--he-img-cauldron", svgUrl(CAULDRON));
 }

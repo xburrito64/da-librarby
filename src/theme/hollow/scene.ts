@@ -30,7 +30,20 @@ function defs(id: string) {
 type Placed = [x: number, y: number, spec: PumpkinSpec];
 
 function pumpkins(id: string, r: number, list: Placed[]) {
-  return list.map(([x, y, spec]) => drawPumpkin(id, r + x, y, spec)).join("");
+  const lanterns = list.filter(([, , p]) => p.face && !p.unlit);
+  return list
+    .map(([x, y, spec]) => {
+      // Lit neighbours warm the side facing them: more the bigger and closer they are.
+      const warm: [number, number] = [0, 0];
+      for (const [lx, ly, l] of lanterns) {
+        const gap = Math.abs(lx - x) - (l.size + spec.size) / 2;
+        if (lx === x && ly === y) continue;
+        const near = Math.max(0, 1 - Math.max(0, gap) / (l.size * 1.2)) * Math.min(1, l.size / 40);
+        warm[lx < x ? 0 : 1] += near;
+      }
+      return drawPumpkin(id, r + x, y, spec, { warm: [Math.min(0.7, warm[0]), Math.min(0.7, warm[1])] });
+    })
+    .join("");
 }
 
 /** The patch's pumpkins, each one its own character. */
@@ -92,11 +105,23 @@ function ghost(x: number, y: number, s: number) {
   return `<g class="he-ghost"><g transform="translate(${x} ${y}) scale(${s})">${ghostShape()}</g></g>`;
 }
 
-/** The ground's top edge, gently rolling. */
+/** The ground's top edge, gently rolling: its height at one point... */
+function groundY(x: number, y: number, amp: number, phase: number) {
+  return y + Math.sin(x / 180 + phase) * amp + Math.sin(x / 67 + phase * 2) * amp * 0.4;
+}
+
+/** ...the outline (a point every 60px, joined by straight lines)... */
 function groundPath(w: number, y: number, amp: number, phase: number) {
   let d = `M0 ${SCENE_H}L0 ${y}`;
-  for (let x = 0; x <= w; x += 60) d += `L${x} ${(y + Math.sin(x / 180 + phase) * amp + Math.sin(x / 67 + phase * 2) * amp * 0.4).toFixed(1)}`;
+  for (let x = 0; x <= w; x += 60) d += `L${x} ${groundY(x, y, amp, phase).toFixed(1)}`;
   return `${d}L${w} ${SCENE_H}Z`;
+}
+
+/** ...and where something standing on it at x has its feet (a little way in, so it's planted). */
+function groundAt(x: number, y: number, amp: number, phase: number, sink = 4) {
+  const a = Math.floor(x / 60) * 60;
+  const t = (x - a) / 60;
+  return groundY(a, y, amp, phase) * (1 - t) + groundY(a + 60, y, amp, phase) * t + sink;
 }
 
 /** A few small pumpkins and vines scattered over the wide middle of a wide window. */
@@ -118,7 +143,8 @@ export function patchScene(width: number) {
   let s = `<svg class="he-scene__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${SCENE_H}" width="${w}" height="${SCENE_H}">${defs(id)}`;
   s += moon(id, r + 1180, 78, 50) + moonBats(r + 1180, 78);
   // Far hills, then the hill with the house.
-  s += `<path d="${groundPath(w, 236, 10, 1)}" fill="#1b1026"/>`;
+  const hill = [236, 10, 1] as const;
+  s += `<path d="${groundPath(w, ...hill)}" fill="#1b1026"/>`;
   s += `<path d="M${r + 930} ${SCENE_H}C${r + 990} 236 ${r + 1076} 176 ${r + 1186} 172C${r + 1296} 168 ${r + 1384} 204 ${w} 220L${w} ${SCENE_H}Z" fill="#140b1d"/>`;
   // The haunted house, a little crooked, one window flickering.
   const tilt = `transform="rotate(-2 ${r + 1190} 176)"`;
@@ -127,7 +153,7 @@ export function patchScene(width: number) {
   s += `<g ${tilt} stroke="#0d0712" stroke-width="1.6"><path d="M${r + 1168} 136v14M${r + 1162} 143h12M${r + 1202} 136v14M${r + 1196} 143h12"/></g>`;
   // Three trees with a personality of their own, and distant ones along the hills on a wide window.
   s += owlTree(r + 1084, 198, 128) + spiralTree(r + 1380, 216, 100) + swingTree(r + 884, 238, 90);
-  for (let x = 760, n = 1; x < r + 760; x += 260 + rand() * 200, n++) s += farTree(x, 240 + rand() * 8, 46 + rand() * 30, n * 5);
+  for (let x = 760, n = 1; x < r + 760; x += 260 + rand() * 200, n++) s += farTree(x, groundAt(x, ...hill, 3 + rand() * 6), 46 + rand() * 30, n * 5);
   // Tombstones, the ghost hiding behind the big one.
   s += ghost(r + 846, 228, 0.62);
   s += tombstone(r + 700, 262, 22, 34, "round", -4) + tombstone(r + 742, 258, 18, 28, "round", 6) + tombstone(r + 790, 262, 0, 26, "cross", -3);
@@ -169,8 +195,9 @@ export function graveyardScene(width: number) {
   const rand = random(13);
   let s = `<svg class="he-scene__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${SCENE_H}" width="${w}" height="${SCENE_H}">${defs(id)}`;
   s += moon(id, r + 1330, 70, 34);
-  s += `<path d="${groundPath(w, 238, 9, 2)}" fill="#1b1026"/>`;
-  for (let x = 700, n = 1; x < r + 1300; x += 220 + rand() * 220, n++) s += farTree(x, 244 + rand() * 6, 50 + rand() * 32, n * 7 + 3);
+  const hill = [238, 9, 2] as const;
+  s += `<path d="${groundPath(w, ...hill)}" fill="#1b1026"/>`;
+  for (let x = 700, n = 1; x < r + 1300; x += 220 + rand() * 220, n++) s += farTree(x, groundAt(x, ...hill, 3 + rand() * 6), 50 + rand() * 32, n * 7 + 3);
   s += faceTree(r + 1392, 270, 132);
   // The crypt: stone, a pointed roof, a door that glows (and sometimes has eyes in it).
   s += `<g transform="translate(${r + 1250} 264)">

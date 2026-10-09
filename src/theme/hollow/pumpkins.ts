@@ -47,6 +47,16 @@ export function pumpkinDefs(pre: string) {
   s += `<radialGradient id="${pre}plight"><stop offset="0" stop-color="#ff9a3c" stop-opacity="0.5"/><stop offset="1" stop-color="#ff7518" stop-opacity="0"/></radialGradient>`;
   s += `<radialGradient id="${pre}flame" cx="0.5" cy="0.7" r="0.6"><stop offset="0" stop-color="#fffbe0"/><stop offset="0.45" stop-color="#ffd36b"/><stop offset="1" stop-color="#ff8a2e" stop-opacity="0"/></radialGradient>`;
   s += `<filter id="${pre}fglow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="0.14"/></filter>`;
+  // Light and shade laid over a pumpkin's body (see drawPumpkin): darker underneath where it sits
+  // in the dark, the moon catching its top on the right, warmth from a lantern nearby on either
+  // side, and a carved one's skin glowing from the candle inside.
+  s += `<linearGradient id="${pre}shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0.35" stop-color="#2a0c1c" stop-opacity="0"/><stop offset="0.78" stop-color="#2a0c1c" stop-opacity="0.3"/><stop offset="1" stop-color="#16061a" stop-opacity="0.7"/></linearGradient>`;
+  s += `<radialGradient id="${pre}moonlit" cx="0.8" cy="0" r="0.45"><stop offset="0" stop-color="#e2d8ff" stop-opacity="0.3"/><stop offset="1" stop-color="#d6c8ff" stop-opacity="0"/></radialGradient>`;
+  s += `<linearGradient id="${pre}warmL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffb54f" stop-opacity="0.75"/><stop offset="0.45" stop-color="#ff9a3c" stop-opacity="0"/></linearGradient>`;
+  s += `<linearGradient id="${pre}warmR" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#ffb54f" stop-opacity="0.75"/><stop offset="0.45" stop-color="#ff9a3c" stop-opacity="0"/></linearGradient>`;
+  s += `<radialGradient id="${pre}inner" cx="0.5" cy="0.6" r="0.42"><stop offset="0" stop-color="#ffc05a" stop-opacity="0.38"/><stop offset="0.6" stop-color="#ff8a24" stop-opacity="0.1"/><stop offset="1" stop-color="#ff8a2e" stop-opacity="0"/></radialGradient>`;
+  // The pool of candlelight on the ground in front of a lit one.
+  s += `<radialGradient id="${pre}pool"><stop offset="0" stop-color="#ff9a34" stop-opacity="0.5"/><stop offset="0.35" stop-color="#ff7a1c" stop-opacity="0.22"/><stop offset="1" stop-color="#e2560a" stop-opacity="0"/></radialGradient>`;
   return s;
 }
 
@@ -125,15 +135,29 @@ const FACES: Record<Face, FaceParts> = {
   },
 };
 
+let clipIds = 0;
+
+export interface Lighting {
+  /** Standing on the ground in a scene: a shadow under it, and its candlelight on the ground. */
+  ground?: boolean;
+  /** Out in the night: dimmer, darker underneath, the moon catching its top. */
+  night?: boolean;
+  /** Warmth from lit pumpkins nearby, on its left and right (0 to 1). */
+  warm?: [number, number];
+}
+
 /** One pumpkin standing at x, y (the middle of its bottom). `pre`: the ids of pumpkinDefs. */
-export function drawPumpkin(pre: string, x: number, y: number, spec: PumpkinSpec, { ground = true } = {}) {
+export function drawPumpkin(pre: string, x: number, y: number, spec: PumpkinSpec, { ground = true, night = ground, warm = [0, 0] }: Lighting = {}) {
   const { size: W, face, palette = "orange", ribs = 5, squat = 0.82, stem = "short", extras = [], tilt = 0, unlit = false } = spec;
   const H = W * squat;
   const [, mid, dark, groove] = PALETTES[palette];
   const top = y - H;
   const k = (ribs - 1) / 2;
   const f = (n: number) => n.toFixed(2);
-  let s = ground ? `<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(W * 0.5)}" ry="${f(H * 0.08)}" fill="#000" opacity="0.35"/>` : "";
+  // Its shadow: soft and wide, and dark right where it touches the ground.
+  let s = ground
+    ? `<ellipse cx="${f(x + W * 0.04)}" cy="${f(y)}" rx="${f(W * 0.62)}" ry="${f(H * 0.13)}" fill="#05020a" opacity="0.3"/><ellipse cx="${f(x)}" cy="${f(y - H * 0.01)}" rx="${f(W * 0.4)}" ry="${f(H * 0.055)}" fill="#05020a" opacity="0.55"/>`
+    : "";
 
   // The lobes, outermost first, so the middle one is in front.
   const lobes: { t: number; cx: number; rx: number; ry: number }[] = [];
@@ -143,9 +167,12 @@ export function drawPumpkin(pre: string, x: number, y: number, spec: PumpkinSpec
     lobes.push({ t, cx: x + t * W * (ribs === 7 ? 0.35 : 0.31), rx: W * (ribs === 7 ? 0.25 - 0.06 * a : 0.3 - 0.07 * a), ry: (H / 2) * (0.88 + 0.12 * (1 - a)) });
   }
   lobes.sort((a, b) => Math.abs(b.t) - Math.abs(a.t));
+  let outline = "";
   for (const l of lobes) {
     const outer = Math.abs(l.t) > 0.7;
-    s += `<ellipse cx="${f(l.cx)}" cy="${f(y - l.ry)}" rx="${f(l.rx)}" ry="${f(l.ry)}" fill="url(#${pre}${outer ? "pd" : "pb"}-${palette})"/>`;
+    const shape = `cx="${f(l.cx)}" cy="${f(y - l.ry)}" rx="${f(l.rx)}" ry="${f(l.ry)}"`;
+    s += `<ellipse ${shape} fill="url(#${pre}${outer ? "pd" : "pb"}-${palette})"/>`;
+    outline += `<ellipse ${shape}/>`;
   }
   // Grooves between the lobes, curving with the pumpkin.
   for (let i = -k; i < k; i++) {
@@ -159,10 +186,36 @@ export function drawPumpkin(pre: string, x: number, y: number, spec: PumpkinSpec
   s += `<ellipse cx="${f(x - W * 0.13)}" cy="${f(top + H * 0.26)}" rx="${f(W * 0.05)}" ry="${f(H * 0.13)}" fill="#fff" opacity="${palette === "ghost" ? 0.5 : 0.2}" transform="rotate(-18 ${f(x - W * 0.13)} ${f(top + H * 0.26)})"/>`;
   s += `<ellipse cx="${f(x)}" cy="${f(top + H * 0.05)}" rx="${f(W * 0.1)}" ry="${f(H * 0.035)}" fill="${groove}" opacity="0.7"/>`;
 
+  // Light and shade over the body (gradients from pumpkinDefs).
+  const lit = !!face && !unlit;
+  const [warmL, warmR] = warm;
+  if (night || lit || warmL || warmR) {
+    const clip = `${pre}k${clipIds++}`;
+    // (Each layer is kept to the outline by itself: as one group they'd have nothing beneath them
+    // to blend with.)
+    const box = `x="${f(x - W * 0.62)}" y="${f(top - H * 0.04)}" width="${f(W * 1.24)}" height="${f(H * 1.06)}" clip-path="url(#${clip})"`;
+    let over = "";
+    if (night) {
+      // Lanterns are brighter than plain pumpkins sitting in the dark.
+      // (Gentler on a white one, or it turns lilac.)
+      if (!lit) over += `<rect ${box} fill="${palette === "ghost" ? "#b4adc4" : "#7d6aa6"}" style="mix-blend-mode:multiply"/>`;
+      over += `<rect ${box} fill="url(#${pre}shade)"/><rect ${box} fill="url(#${pre}moonlit)"/>`;
+    }
+    if (warmL > 0.02) over += `<rect ${box} fill="url(#${pre}warmL)" opacity="${f(warmL)}" style="mix-blend-mode:screen"/>`;
+    if (warmR > 0.02) over += `<rect ${box} fill="url(#${pre}warmR)" opacity="${f(warmR)}" style="mix-blend-mode:screen"/>`;
+    if (lit) over += `<rect class="he-face" ${box} fill="url(#${pre}inner)" style="mix-blend-mode:screen"/>`;
+    s += `<clipPath id="${clip}">${outline}</clipPath>${over}`;
+  }
+
   if (extras.includes("warts"))
     for (const [u, v, r] of [[-0.22, 0.42, 0.045], [0.18, 0.3, 0.035], [0.3, 0.62, 0.05], [-0.34, 0.7, 0.035], [0.02, 0.78, 0.04]])
       s += `<circle cx="${f(x + u * W)}" cy="${f(top + v * H)}" r="${f(r * W)}" fill="${dark}"/><circle cx="${f(x + u * W - r * W * 0.3)}" cy="${f(top + v * H - r * W * 0.3)}" r="${f(r * W * 0.4)}" fill="${mid}"/>`;
 
+  // A lit one's lid was cut round the stem: candlelight leaks out along the cut.
+  if (lit && !extras.includes("hat")) {
+    const lid = `M${f(x - W * 0.19)} ${f(top + H * 0.07)}L${f(x - W * 0.12)} ${f(top + H * 0.12)}L${f(x - W * 0.06)} ${f(top + H * 0.1)}L${f(x)} ${f(top + H * 0.15)}L${f(x + W * 0.06)} ${f(top + H * 0.1)}L${f(x + W * 0.12)} ${f(top + H * 0.12)}L${f(x + W * 0.19)} ${f(top + H * 0.07)}`;
+    s += `<g class="he-face" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="${lid}" stroke="#ff9a30" stroke-width="${f(W * 0.05)}" opacity="0.3"/><path d="${lid}" stroke="#ffd47a" stroke-width="${f(Math.max(0.5, W * 0.016))}"/></g>`;
+  }
   if (!extras.includes("hat")) s += stemShape(pre, x, top + H * 0.05, W, stem);
   if (extras.includes("leaf")) s += leaf(x + W * 0.08, top + H * 0.02, W);
   if (extras.includes("bow")) s += bow(x, top + H * 0.02, W);
@@ -172,8 +225,8 @@ export function drawPumpkin(pre: string, x: number, y: number, spec: PumpkinSpec
   if (extras.includes("candle")) s += candle(pre, x - W * 0.04, top + H * 0.05, W);
   if (extras.includes("crow")) s += crow(x + W * 0.12, top + H * 0.04, W);
 
-  const lit = face && !unlit;
-  const light = lit && ground ? `<ellipse class="he-light" cx="${f(x)}" cy="${f(y)}" rx="${f(W * 1.3)}" ry="${f(H * 0.35)}" fill="url(#${pre}plight)"/>` : "";
+  // Its candlelight, falling on the ground around and in front of it.
+  const light = lit && ground ? `<ellipse class="he-light" cx="${f(x)}" cy="${f(y + H * 0.08)}" rx="${f(W * 1.5)}" ry="${f(H * 0.36)}" fill="url(#${pre}pool)"/>` : "";
   const sleepy = face === "sleepy" ? zzz(x + W * 0.32, top - W * 0.02, W) : "";
   return `<g class="he-pumpkin he-pk--${face ?? "plain"} ${lit ? "is-jack" : ""}">${light}<g transform="rotate(${tilt} ${f(x)} ${f(y)})">${s}</g>${sleepy}</g>`;
 }
@@ -186,8 +239,8 @@ function carvedFace(pre: string, cx: number, cy: number, sx: number, sy: number,
       // The light spilling onto the skin around the holes...
       `<g class="${cls} he-face" filter="url(#${pre}fglow)" fill="#ffb347" opacity="0.9">${shapes}</g>` +
       // ...a dark cut edge, then the glowing inside with a rim of pale flesh.
-      `<g class="${cls}" fill="none" stroke="#4a1503" stroke-width="0.14">${shapes}</g>` +
-      `<g class="${cls}" fill="url(#${pre}carve)" stroke="#ffd98a" stroke-width="0.04">${shapes}</g>`
+      `<g class="${cls}" fill="none" stroke="#5a1c04" stroke-width="0.13">${shapes}</g>` +
+      `<g class="${cls}" fill="url(#${pre}carve)" stroke="#ffd98a" stroke-width="0.06">${shapes}</g>`
     );
   };
   let s = holes(parts.carve, parts.awake ? "he-asleep-eyes" : "");

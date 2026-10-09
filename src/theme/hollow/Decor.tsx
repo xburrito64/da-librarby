@@ -1,7 +1,8 @@
 // Behind and around the library: embers floating up, autumn leaves drifting down, the top bar's
-// bats and spider, the scenes, and a trick's lights going out.
+// Jack, bats and spider, the scenes, and a trick's lights going out.
 import { useEffect, useRef } from "react";
 import { GHOST } from "./art";
+import { startLogo } from "./logo";
 import { startTopBar } from "./topbar";
 import { startScenes } from "./scenes";
 import { followScroll, startLeaves } from "./leaves";
@@ -41,6 +42,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
   const surprises = options.surprises !== false;
 
   useEffect(() => (active ? startTopBar() : undefined), [active]);
+  useEffect(() => (active ? startLogo() : undefined), [active]);
   useEffect(() => (leaves && leavesCanvas.current ? startLeaves(leavesCanvas.current) : undefined), [leaves]);
   useEffect(() => (active ? startScenes({ surprises }) : undefined), [active, surprises]);
 

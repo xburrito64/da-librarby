@@ -1,13 +1,13 @@
 // The top bar's little residents: a gnarled branch reaching in from the top-right corner with bats
 // asleep under it (point at one and they take off, coming back to hang a while later), and a spider
-// on its thread (point at it and it scurries up, then lowers itself again). They sit in the gap
-// between the menu and the search box. See hollow.css ("The top bar").
+// swinging on its thread (see spider.ts). They sit in the gap between the menu and the search box.
+// See hollow.css ("The top bar").
 import { playSound } from "../sound";
-import { FLYING_BAT, HANGING_BAT, SPIDER } from "./art";
+import { FLYING_BAT, HANGING_BAT } from "./art";
+import { startSpider } from "./spider";
 
 /** Bats come back to hang this long after flying off (ms). */
 const BATS_BACK_MS = [8000, 12000];
-const SPIDER_BACK_MS = 4200;
 /** At most this many bats, one per this much room (px). */
 const MAX_BATS = 4;
 const ROOM_PER_BAT = 60;
@@ -26,10 +26,7 @@ export function startTopBar() {
     <path d="M598 36c-6 0-9-4-6-7c4 1 6 4 6 7zM472 35c6-1 8-6 5-8c-4 2-6 5-5 8zM72 22c-6 1-9-2-7-6c4 0 7 3 7 6z" fill="#3d2a1a"/>
   </svg>`;
   layer.appendChild(branch);
-  const spider = document.createElement("div");
-  spider.className = "he-spider";
-  spider.innerHTML = `<span class="he-spider__thread"></span><span class="he-spider__body">${SPIDER}</span>`;
-  layer.appendChild(spider);
+  const spider = startSpider(layer, still);
   (document.querySelector(".app") ?? document.body).appendChild(layer);
 
   let bats: HTMLElement[] = [];
@@ -68,8 +65,7 @@ export function startTopBar() {
       bat.style.left = `${x}px`;
       bat.style.top = `${7 + ((i * 5) % 4)}px`;
     });
-    spider.style.left = `${from + room * 0.86}px`;
-    spider.hidden = room < 80;
+    spider.place(from + room * 0.86, room >= 80);
   };
 
   // Bats near the one pointed at take off too, and fly off across the top.
@@ -103,13 +99,6 @@ export function startTopBar() {
     });
   };
 
-  spider.addEventListener("pointerenter", () => {
-    if (spider.classList.contains("is-up") || still) return;
-    spider.classList.add("is-up");
-    playSound("skitter");
-    later(() => spider.classList.remove("is-up"), SPIDER_BACK_MS);
-  });
-
   layout();
   const resized = new ResizeObserver(layout);
   const nav = document.querySelector(".nav");
@@ -120,6 +109,7 @@ export function startTopBar() {
     resized.disconnect();
     window.removeEventListener("resize", layout);
     timers.forEach((t) => window.clearTimeout(t));
+    spider.stop();
     layer.remove();
     bats = [];
   };
