@@ -9,8 +9,10 @@ import { SOUNDS } from "./sounds";
 import Decor from "./Decor";
 import Candle from "./Candle";
 import { drawArt } from "./art";
+import { drawSeam } from "./seam";
 
 drawArt();
+drawSeam();
 
 const TRICKS = [
   "Trick! Something just floated past… did you see that?",
@@ -82,6 +84,7 @@ export const HOLLOW: Theme = {
   dark: true,
   extras: {
     options: [
+      { id: "leaves", label: "Falling leaves", default: true },
       { id: "embers", label: "Embers and fog", default: true },
       {
         id: "surprises",

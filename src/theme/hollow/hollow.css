@@ -49,7 +49,6 @@
   /* Room at the top for the branch with its bats. */
   --nav-h: 92px;
   --hero-h: 78vh;
-  --rows-overlap: -36px;
   --he-scene-h: 330px;
   font-synthesis: none;
 }
@@ -86,6 +85,16 @@
 
 .he-embers {
   position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Autumn leaves drifting down (leaves.ts): over the pages, under the top bar and dialogs. */
+.he-leaves {
+  position: absolute;
+  z-index: 15;
   inset: 0;
   width: 100%;
   height: 100%;
@@ -436,7 +445,10 @@
 }
 
 :root[data-theme="hollow"] .hero__title {
-  margin: 8px 0 14px;
+  /* At most three lines. The box reaches well past the letters (and the margins take that back),
+     so their glow isn't cut off at its edges. */
+  margin: -26px -40px -12px;
+  padding: 34px 40px 26px;
   font-size: clamp(40px, 4.4vw, 72px);
   line-height: 0.95;
   display: -webkit-box;
@@ -1606,4 +1618,73 @@
   transform-box: fill-box;
   transform-origin: 30% 0;
   transition: transform 0.25s var(--spring);
+}
+
+/* ---------- Below the patch: the ground goes on down into the page (seam.ts) ----------
+   A slice through the earth under the patch (roots, stones, old bones, fallen leaves), with mist
+   lying over where they meet, all fading slowly into the night. The rows start a little lower to
+   give it room. */
+
+:root[data-theme="hollow"] {
+  --rows-overlap: 64px;
+}
+
+:root[data-theme="hollow"] .hero .he-scene::after {
+  display: none;
+}
+
+/* The earth's colour carrying on from the patch, and the mist drifting over the top of it. */
+:root[data-theme="hollow"] .home__rows::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--rows-overlap) - 130px);
+  height: 760px;
+  background:
+    radial-gradient(240px 52px at 120px 50%, rgba(200, 180, 230, 0.15), transparent 70%) 0 0 / 1200px 260px repeat-x,
+    radial-gradient(300px 64px at 420px 58%, rgba(200, 180, 230, 0.13), transparent 70%) 0 0 / 1200px 260px repeat-x,
+    radial-gradient(260px 56px at 700px 44%, rgba(200, 180, 230, 0.15), transparent 70%) 0 0 / 1200px 260px repeat-x,
+    radial-gradient(320px 70px at 980px 56%, rgba(200, 180, 230, 0.12), transparent 70%) 0 0 / 1200px 260px repeat-x,
+    linear-gradient(transparent, rgba(150, 125, 190, 0.07) 50%, transparent) 0 0 / 100% 260px no-repeat,
+    linear-gradient(#120a17, #140b1b 25%, rgba(20, 11, 27, 0.6) 60%, transparent) 0 130px / 100% 630px no-repeat;
+  animation: he-mist 90s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes he-mist {
+  to {
+    background-position:
+      1200px 0,
+      -1200px 0,
+      1200px 0,
+      -1200px 0,
+      0 0,
+      0 130px;
+  }
+}
+
+/* The slice through the ground, with fallen leaves on top. */
+:root[data-theme="hollow"] .home__rows::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--rows-overlap));
+  height: 320px;
+  background:
+    var(--he-img-leaves) 0 0 / 640px 280px repeat-x,
+    var(--he-img-soil) 0 0 / 760px 300px repeat-x;
+  -webkit-mask-image: linear-gradient(#000 35%, transparent);
+  mask-image: linear-gradient(#000 35%, transparent);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="hollow"] .home__rows::before {
+    animation: none;
+  }
 }

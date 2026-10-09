@@ -1,9 +1,10 @@
-// Behind and around the library: embers floating up (in place of Snowdin's snow), the top bar's
+// Behind and around the library: embers floating up, autumn leaves drifting down, the top bar's
 // bats and spider, the scenes, and a trick's lights going out.
 import { useEffect, useRef } from "react";
 import { GHOST } from "./art";
 import { startTopBar } from "./topbar";
 import { startScenes } from "./scenes";
+import { startLeaves } from "./leaves";
 
 /** One ember per this many square pixels of window. */
 const AREA_PER_EMBER = 26000;
@@ -34,10 +35,13 @@ function trick() {
 
 export default function Decor({ active, options }: { active: boolean; options: Record<string, boolean | string | undefined> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const leavesCanvas = useRef<HTMLCanvasElement>(null);
   const embers = active && options.embers !== false;
+  const leaves = active && options.leaves !== false;
   const surprises = options.surprises !== false;
 
   useEffect(() => (active ? startTopBar() : undefined), [active]);
+  useEffect(() => (leaves && leavesCanvas.current ? startLeaves(leavesCanvas.current) : undefined), [leaves]);
   useEffect(() => (active ? startScenes({ surprises }) : undefined), [active, surprises]);
 
   useEffect(() => {
@@ -111,5 +115,10 @@ export default function Decor({ active, options }: { active: boolean; options: R
     };
   }, [embers]);
 
-  return <canvas ref={canvas} className="he-embers" aria-hidden="true" />;
+  return (
+    <>
+      <canvas ref={canvas} className="he-embers" aria-hidden="true" />
+      <canvas ref={leavesCanvas} className="he-leaves" aria-hidden="true" />
+    </>
+  );
 }
