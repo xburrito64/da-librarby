@@ -37,8 +37,15 @@ re!(SEASON_SUFFIX, r"(?i)\s+(S\d{1,3}(\s*-\s*S?\d{1,3})?|seasons?\s*\d{1,3}(\s*-
 re!(COMPLETE_SUFFIX, r"(?i)\s+(complete|the complete series)$");
 re!(SEASON_TOKEN, r"(?i)(?:^|[\s._\-])S(\d{1,3})(?:$|[\s._\-+])");
 re!(SEASON_WORD, r"(?i)\bseason[\s._\-]*(\d{1,3})\b");
-re!(SPECIALS, r"(?i)\b(specials?|sp)\b");
-re!(EXTRAS, r"(?i)\b(extras?|featurettes?|bonus|behind the scenes|nc|ncop|nced|creditless|artworks?|screens|screenshots|soundtracks?|ost|samples?|trailers?|interviews?|deleted scenes|making of|menus?)\b");
+re!(SPECIALS, r"(?i)\b(specials?|sp|ovas?|oads?|onas?)\b");
+re!(EXTRAS, r"(?i)\b(extras?|featurettes?|bonus|behind the scenes|nc|ncop|nced|creditless|artworks?|screens|screenshots|soundtracks?|ost|samples?|trailers?|interviews?|deleted scenes|making of|menus?|op\s*(and|&|\+)\s*ed|openings?|endings?)\b");
+// An opening or ending video: "OP 001 Snow fairy", "NCED 3", "[Group] Show - Opening 2".
+re!(OP_ED, r"(?i)(?:^|[\s\-_.(])(?:nc\s*)?(?:op|ed|opening|ending)\s*\d{0,3}(?:v\d)?(?:$|[\s\-_.)])");
+// "OVA 1", "OAD 2", "SP 3", "Special 4": a special's own number.
+re!(SPECIAL_NUMBER, r"(?i)(?:^|[\s\-_.])(?:OVA|OAD|ONA|SP|Special)\s*(\d{1,3}(?:\.\d+)?)(?:$|[\s\-_.])");
+// "Movie 01" in a movie's name says nothing about which movie it is.
+re!(MOVIE_NUMBER, r"(?i)(^|[\s\-–:])movie\s*0*\d{1,2}($|[\s\-–:])");
+re!(DOUBLE_DASH, r"\s*[-–]\s*[-–:]\s*");
 re!(LEADING_SEASON, r"(?i)^(season\s*\d{1,3}|s\d{1,3}(e\d{1,4})?)(\s*[-–:.]\s+|\s+)");
 re!(MOVIES_FOLDER,r"(?i)^(movies|films)$");
 re!(THE_MOVIE, r"(?i)\bthe movie\b");
@@ -208,6 +215,19 @@ fn season_number(s: &str) -> Option<i32> {
     SPECIALS.is_match(s).then_some(0)
 }
 
+/// An opening or ending (or one without credits), which is an extra, never a movie.
+pub fn is_op_ed(stem: &str) -> bool {
+    OP_ED.is_match(&strip_tags(stem))
+}
+
+/// A movie's name without "Movie 01" in it: "Fairy Tail - Movie 01 - The Phoenix Priestess" ->
+/// "Fairy Tail - The Phoenix Priestess" (what the movie is called everywhere else).
+pub fn movie_name(name: &str) -> String {
+    let without = MOVIE_NUMBER.replace(name, "$1$2");
+    let tidy = clean_text(&DOUBLE_DASH.replace_all(&without, " - "));
+    if tidy.chars().any(char::is_alphabetic) { tidy } else { name.to_string() }
+}
+
 /// A movie kept among a show's specials: "Sword Art Online The Movie Ordinal Scale"
 /// (but not the short "Sword Art Online Movie Ordinal Scale - Sword Art Offline").
 pub fn is_movie_title(title: &str) -> bool {
@@ -236,6 +256,8 @@ pub struct EpisodeName {
     pub episode_end: Option<f64>,
     /// True when the episode number counts from the start of the show (Naruto "- 001 -").
     pub absolute: bool,
+    /// An OVA, OAD or special by its own number ("OVA 3"): it belongs with the specials.
+    pub special: bool,
     pub title: Option<String>,
 }
 
@@ -259,7 +281,19 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
             episode: c[2].parse().ok(),
             episode_end: c.get(3).and_then(|e| e.as_str().parse().ok()),
             absolute: false,
+            special: false,
             title,
+        };
+    }
+
+    if let Some(c) = SPECIAL_NUMBER.captures(s) {
+        let m = c.get(0).unwrap();
+        let after = episode_title(&s[m.end()..]);
+        return EpisodeName {
+            episode: c[1].parse().ok(),
+            special: true,
+            title: (!after.is_empty()).then_some(after),
+            ..Default::default()
         };
     }
 
@@ -384,6 +418,11 @@ mod tests {
         assert_eq!(classify_folder("NC"), Extras);
         assert_eq!(classify_folder("Sword Art Online Extra Artwork"), Extras);
         assert_eq!(classify_folder("Movies"), Movies);
+        assert_eq!(classify_folder("Fairy Tail OVA"), Season(0));
+        assert_eq!(classify_folder("OADs"), Season(0));
+        assert_eq!(classify_folder("[Anime Time] Fairy Tail OP And ED (Plus Full OP And ED MP3)"), Extras);
+        assert_eq!(classify_folder("Openings"), Extras);
+        assert_eq!(classify_folder("Fairy Tail OST"), Extras);
 
         assert_eq!(extras_season("Season 01"), Some(1));
         assert_eq!(extras_season("Jujutsu Kaisen S01 Extras"), Some(1));
@@ -483,6 +522,27 @@ mod tests {
 
         let e = ep("Chainsaw Man -  The Movie Reze Arc");
         assert_eq!((e.episode, e.title.as_deref()), (None, Some("Chainsaw Man - The Movie Reze Arc")));
+    }
+
+    #[test]
+    fn specials_openings_and_movie_names() {
+        let e = ep("[Anime Time] Fairy Tail - OVA 3 - Memory Days");
+        assert_eq!((e.season, e.episode, e.special, e.title.as_deref()), (None, Some(3.0), true, Some("Memory Days")));
+        let e = ep("Some Show - OAD 2");
+        assert_eq!((e.episode, e.special), (Some(2.0), true));
+        // A real episode code still wins.
+        assert!(!ep("Show - S00E03 - Special Delivery").special);
+
+        assert!(is_op_ed("[Anime Time] Fairy Tail OP 001 Snow fairy"));
+        assert!(is_op_ed("[Anime Time] Fairy Tail ED 006 -Be As One-"));
+        assert!(is_op_ed("Jujutsu Kaisen NCOP2"));
+        assert!(!is_op_ed("Fairy Tail - The Phoenix Priestess"));
+        assert!(!is_op_ed("The SpongeBob Movie - Sponge Out of Water"));
+
+        assert_eq!(movie_name("Fairy Tail - Movie 01 - The Phoenix Priestess"), "Fairy Tail - The Phoenix Priestess");
+        assert_eq!(movie_name("Hunter X Hunter - Movie 2 - The Last Mission"), "Hunter X Hunter - The Last Mission");
+        assert_eq!(movie_name("Naruto The Movie - Legend Of The Stone Of Gelel"), "Naruto The Movie - Legend Of The Stone Of Gelel");
+        assert_eq!(movie_name("Movie 2"), "Movie 2");
     }
 
     #[test]

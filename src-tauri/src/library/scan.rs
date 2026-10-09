@@ -113,6 +113,8 @@ pub struct ExtraGroup {
 
 /// Where named extras folders ("TV Shorts") and loose extras go among the seasons' headings.
 const NAMED_EXTRAS_SORT: f64 = 2000.0;
+/** A video this small in a show's folder isn't a movie (even a short film is bigger). */
+const MOVIE_MIN_BYTES: u64 = 200 * 1024 * 1024;
 const LOOSE_EXTRAS_SORT: f64 = 1e9;
 /// Extras of the specials come after those of the regular seasons, like the tabs.
 const SPECIALS_EXTRAS_SORT: f64 = 999.0;
@@ -218,7 +220,7 @@ fn scan_show(dir: &Path, key: &str, parent_key: Option<&str>, out: &mut Vec<Scan
             FolderKind::Movies => {
                 for video in videos_recursive(&entry.path) {
                     let (name, year) = parse::title_and_year(parse::file_stem(&video.name));
-                    title.push_file(&video, Role::Movie, None, None, None, Some(name), year);
+                    add_movie(&mut title, &video, name, year);
                 }
             }
             FolderKind::Other => {
@@ -309,6 +311,13 @@ fn classify_other_folder(
     let has_season_dirs = children
         .iter()
         .any(|c| c.is_dir && matches!(parse::classify_folder(&c.name), FolderKind::Season(_)));
+    let specials = parsed.iter().filter(|p| p.special).count();
+    if !has_season_dirs && specials * 2 > videos.len() {
+        // OVAs and specials by their own numbers ("OVA 3 - Memory Days"), in a folder of any name.
+        let season = title.season_by_number(0);
+        add_season_dir(title, &entry.path, season, Some(0));
+        return;
+    }
 
     let (group_number, group_label) = parse::numbered_group(&entry.name);
     // A numbered folder of episodes is a story arc, even when its files carry a season number
@@ -338,7 +347,7 @@ fn classify_other_folder(
             } else {
                 parse::title_and_year(parse::file_stem(&video.name))
             };
-            title.push_file(video, Role::Movie, None, None, None, Some(name), year);
+            add_movie(title, video, name, year);
         }
         let group = ExtraGroup::movie(Some(folder_name));
         for child in children.iter().filter(|c| c.is_dir) {
@@ -353,11 +362,22 @@ fn classify_other_folder(
 fn add_loose_file(title: &mut ScannedTitle, entry: &Entry) {
     let p = parse::parse_episode(parse::file_stem(&entry.name));
     if p.season.is_some() || p.episode.is_some() {
-        let season = title.season_by_number(p.season.unwrap_or(1));
+        let season = title.season_by_number(if p.special { 0 } else { p.season.unwrap_or(1) });
         title.push_file(entry, Role::Episode, Some(season), p.episode, p.episode_end, p.title, None);
     } else {
         let (name, year) = parse::title_and_year(parse::file_stem(&entry.name));
-        title.push_file(entry, Role::Movie, None, None, None, Some(name), year);
+        add_movie(title, entry, name, year);
+    }
+}
+
+/// A video in a show's folder that isn't an episode: a movie, unless it's an opening or ending
+/// or too small to be a movie (then it's an extra).
+fn add_movie(title: &mut ScannedTitle, entry: &Entry, name: String, year: Option<i32>) {
+    let small = entry.size > 0 && entry.size < MOVIE_MIN_BYTES;
+    if small || parse::is_op_ed(parse::file_stem(&entry.name)) {
+        title.push_extra(entry, ExtraGroup::general());
+    } else {
+        title.push_file(entry, Role::Movie, None, None, None, Some(parse::movie_name(&name)), year);
     }
 }
 
