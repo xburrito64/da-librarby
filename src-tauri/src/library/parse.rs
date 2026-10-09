@@ -58,6 +58,11 @@ re!(SPACES, r"\s+");
 // "Fear.Of.A.Krabby.Patty" (dots for spaces) and "A+B" (segments joined without spaces).
 re!(WORD_DOT, r"([\p{L}\d])\.([\p{L}])");
 re!(TIGHT_PLUS, r"\s*\+\s*");
+// Words of a release's name that say which languages it has, not what the episode is called:
+// "Attack.on.Titan.S03E01.GERMAN.Dubbed.DL.1080p.WEB.x264-GROUP".
+re!(RELEASE_WORD, r"(?i)^(german|ger|deu|deutsch|english|eng|french|fre|vf|vostfr|spanish|spa|esp|castellano|latino|italian|ita|japanese|jap|jpn|korean|kor|chinese|chi|russian|rus|polish|pol|multi|dual|dubbed|dub|subbed|sub|subs|dl|ml|ac3|dd51|uncut|repack|proper|internal|hdtv|sdtv|dvdrip|dvd|hdrip|cr|nf|dsnp)$");
+// One of these alone is enough to tell it's a release tag (a lone "German" could be a title).
+re!(SURE_RELEASE_WORD, r"(?i)^(dubbed|subbed|dl|multi|uncut|repack|proper|vostfr)$");
 
 /// Normalises display text: turns the look-alike characters used in place of
 /// characters Windows forbids in file names back into the real ones, and tidies spacing.
@@ -90,7 +95,26 @@ fn episode_title(s: &str) -> String {
     let s = WORD_DOT.replace_all(&s, "$1 $2");
     // Twice: "A.B.C" overlaps.
     let s = WORD_DOT.replace_all(&s, "$1 $2");
-    clean_text(&TIGHT_PLUS.replace_all(&s, " + "))
+    without_release_words(&clean_text(&TIGHT_PLUS.replace_all(&s, " + ")))
+}
+
+/// A release tag's word, also with its group on the end ("x264-GROUP").
+fn is_release_word(word: &str) -> bool {
+    let word = word.split('-').next().unwrap_or(word);
+    RELEASE_WORD.is_match(word) || QUALITY.is_match(word)
+}
+
+/// Drops the language and dub tags a release puts after the episode code ("GERMAN Dubbed DL"),
+/// which can be all there is after it.
+fn without_release_words(title: &str) -> String {
+    let words: Vec<&str> = title.split(' ').collect();
+    let keep = words.iter().rposition(|w| !is_release_word(w)).map_or(0, |i| i + 1);
+    let tail = &words[keep..];
+    if tail.len() >= 2 || tail.iter().any(|w| SURE_RELEASE_WORD.is_match(w)) {
+        clean_text(&words[..keep].join(" "))
+    } else {
+        title.to_string()
+    }
 }
 
 /// Removes release tags: `[Group]`, `(1080p BluRay x265)`, `.1080p.BluRay.x264-GROUP` tails, stray brackets.
@@ -522,6 +546,22 @@ mod tests {
 
         let e = ep("Chainsaw Man -  The Movie Reze Arc");
         assert_eq!((e.episode, e.title.as_deref()), (None, Some("Chainsaw Man - The Movie Reze Arc")));
+    }
+
+    #[test]
+    fn release_words_are_not_titles() {
+        let e = ep("Attack.on.Titan.2013.S03E01.GERMAN.Dubbed.DL.1080p.WEB.x264-TVS");
+        assert_eq!((e.season, e.episode, e.title), (Some(3), Some(1.0), None));
+        let e = ep("Attack.on.Titan.2013.S03E02.GERMAN.DL.AAC.x264-Group");
+        assert_eq!(e.title, None);
+        let e = ep("Show.S01E04.Pain.GERMAN.Dubbed.DL.1080p.WEB.x264");
+        assert_eq!(e.title.as_deref(), Some("Pain"));
+        let e = ep("Show.S01E05.Episode.Name.MULTi.1080p");
+        assert_eq!(e.title.as_deref(), Some("Episode Name"));
+        // Real titles stay as they are.
+        assert_eq!(ep("Show - S01E06 - The German").title.as_deref(), Some("The German"));
+        assert_eq!(ep("Show - S01E07 - Dub Step").title.as_deref(), Some("Dub Step"));
+        assert_eq!(ep("Show - S02E01 - Krusty.Koncessionaires+Dream.Hoppers").title.as_deref(), Some("Krusty Koncessionaires + Dream Hoppers"));
     }
 
     #[test]
