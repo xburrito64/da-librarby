@@ -1643,10 +1643,11 @@
   top: calc(-1 * var(--rows-overlap) - 130px);
   height: 760px;
   background:
-    radial-gradient(240px 52px at 120px 50%, rgba(200, 180, 230, 0.15), transparent 70%) 0 0 / 1200px 260px repeat-x,
-    radial-gradient(300px 64px at 420px 58%, rgba(200, 180, 230, 0.13), transparent 70%) 0 0 / 1200px 260px repeat-x,
-    radial-gradient(260px 56px at 700px 44%, rgba(200, 180, 230, 0.15), transparent 70%) 0 0 / 1200px 260px repeat-x,
-    radial-gradient(320px 70px at 980px 56%, rgba(200, 180, 230, 0.12), transparent 70%) 0 0 / 1200px 260px repeat-x,
+    /* Each puff stays inside its 1600px strip (centre ± width), so none is cut off where they repeat. */
+    radial-gradient(240px 52px at 280px 50%, rgba(200, 180, 230, 0.15), transparent 70%) 0 0 / 1600px 260px repeat-x,
+    radial-gradient(280px 64px at 640px 58%, rgba(200, 180, 230, 0.13), transparent 70%) 0 0 / 1600px 260px repeat-x,
+    radial-gradient(240px 56px at 1000px 44%, rgba(200, 180, 230, 0.15), transparent 70%) 0 0 / 1600px 260px repeat-x,
+    radial-gradient(250px 70px at 1340px 56%, rgba(200, 180, 230, 0.12), transparent 70%) 0 0 / 1600px 260px repeat-x,
     linear-gradient(transparent, rgba(150, 125, 190, 0.07) 50%, transparent) 0 0 / 100% 260px no-repeat,
     linear-gradient(#120a17, #140b1b 25%, rgba(20, 11, 27, 0.6) 60%, transparent) 0 130px / 100% 630px no-repeat;
   animation: he-mist 90s linear infinite;
@@ -1656,10 +1657,10 @@
 @keyframes he-mist {
   to {
     background-position:
-      1200px 0,
-      -1200px 0,
-      1200px 0,
-      -1200px 0,
+      1600px 0,
+      -1600px 0,
+      1600px 0,
+      -1600px 0,
       0 0,
       0 130px;
   }

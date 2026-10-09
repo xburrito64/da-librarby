@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { GHOST } from "./art";
 import { startTopBar } from "./topbar";
 import { startScenes } from "./scenes";
-import { startLeaves } from "./leaves";
+import { followScroll, startLeaves } from "./leaves";
 
 /** One ember per this many square pixels of window. */
 const AREA_PER_EMBER = 26000;
@@ -61,6 +61,8 @@ export default function Decor({ active, options }: { active: boolean; options: R
     let list: Ember[] = [];
     let frame = 0;
     let last = performance.now();
+    // Embers belong to the page too: scrolling moves them along.
+    const scroll = followScroll();
 
     const spawn = (w: number, h: number, anywhere: boolean): Ember => ({
       x: Math.random() * w,
@@ -91,8 +93,10 @@ export default function Decor({ active, options }: { active: boolean; options: R
       const h = el.clientHeight;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, w, h);
+      const shift = scroll.take();
       list = list.map((e) => {
-        e.y -= e.speed * dt;
+        e.y -= e.speed * dt + shift;
+        if (e.y > h + 20) e.y -= h + 30;
         e.phase += dt * 1.3;
         e.x += (Math.sin(e.phase) * 8 + e.drift) * dt;
         if (e.y < -10) return spawn(w, h, false);
@@ -111,6 +115,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
     frame = requestAnimationFrame(step);
     return () => {
       cancelAnimationFrame(frame);
+      scroll.stop();
       g.clearRect(0, 0, el.width, el.height);
     };
   }, [embers]);

@@ -1,5 +1,6 @@
 // Autumn leaves drifting down over the library, tumbling and swaying as they go: a few at a time,
-// in front of the pages (under the top bar and dialogs). See hollow.css (".he-leaves").
+// in front of the pages (under the top bar and dialogs). They belong to the page: scrolling moves
+// them along with everything else. See hollow.css (".he-leaves").
 
 /** One leaf per this many square pixels of window. */
 const AREA_PER_LEAF = 90000;
@@ -79,6 +80,29 @@ function draw(g: CanvasRenderingContext2D, l: Leaf) {
   g.restore();
 }
 
+/** How far the library's pages have scrolled since the last call (px; down is positive), so things
+ *  drawn over them can move along. `stop` ends the watching. */
+export function followScroll() {
+  let scrolled = 0;
+  const tops = new WeakMap<Element, number>();
+  const onScroll = (e: Event) => {
+    const page = e.target;
+    if (!(page instanceof HTMLElement) || !page.classList.contains("view")) return;
+    scrolled += page.scrollTop - (tops.get(page) ?? page.scrollTop);
+    tops.set(page, page.scrollTop);
+  };
+  document.addEventListener("scroll", onScroll, true);
+  document.querySelectorAll(".view").forEach((page) => tops.set(page, page.scrollTop));
+  return {
+    take() {
+      const s = scrolled;
+      scrolled = 0;
+      return s;
+    },
+    stop: () => document.removeEventListener("scroll", onScroll, true),
+  };
+}
+
 /** Starts the leaves falling on `el`; returns the way to stop them. */
 export function startLeaves(el: HTMLCanvasElement) {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return () => {};
@@ -86,6 +110,7 @@ export function startLeaves(el: HTMLCanvasElement) {
   let list: Leaf[] = [];
   let frame = 0;
   let last = performance.now();
+  const scroll = followScroll();
   const fit = () => {
     const dpr = window.devicePixelRatio || 1;
     const w = el.clientWidth;
@@ -104,9 +129,12 @@ export function startLeaves(el: HTMLCanvasElement) {
     const h = el.clientHeight;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
+    const shift = scroll.take();
     list = list.map((l) => {
       l.phase += dt * 0.9;
-      l.y += l.fall * dt * (0.75 + 0.25 * Math.cos(l.phase * 2));
+      l.y += l.fall * dt * (0.75 + 0.25 * Math.cos(l.phase * 2)) - shift;
+      // Scrolled off the top: it comes back in at the bottom (and off the bottom, at the top).
+      if (l.y < -40) l.y += h + 70;
       l.x += Math.sin(l.phase) * l.sway * dt;
       l.angle += l.spin * dt;
       l.flip += l.flipSpeed * dt;
@@ -119,6 +147,7 @@ export function startLeaves(el: HTMLCanvasElement) {
   frame = requestAnimationFrame(step);
   return () => {
     cancelAnimationFrame(frame);
+    scroll.stop();
     g.clearRect(0, 0, el.width, el.height);
   };
 }
