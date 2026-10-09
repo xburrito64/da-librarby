@@ -497,7 +497,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 48px;
+  height: 18px;
   background: linear-gradient(transparent, var(--bg));
 }
 
@@ -567,6 +567,124 @@
   }
   60% {
     transform: rotate(6deg);
+  }
+}
+
+:root[data-theme="hollow"] .he-pk--scary .he-face {
+  animation-duration: 1.3s;
+}
+
+/* Each pumpkin's own little way (pumpkins.ts). The sleepy one dozes, "z"s drifting up, and wakes
+   when you point at it. */
+:root[data-theme="hollow"] .he-zzz text {
+  opacity: 0;
+  animation: he-zzz 2.4s ease-out infinite;
+}
+
+@keyframes he-zzz {
+  0% {
+    opacity: 0;
+    transform: translate(0, 4px);
+  }
+  30% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(6px, -10px);
+  }
+}
+
+:root[data-theme="hollow"] .he-awake-eyes {
+  opacity: 0;
+}
+
+:root[data-theme="hollow"] .he-pk--sleepy:hover .he-awake-eyes {
+  opacity: 1;
+}
+
+:root[data-theme="hollow"] .he-pk--sleepy:hover :is(.he-asleep-eyes, .he-zzz) {
+  opacity: 0;
+}
+
+/* The surprised one jumps. */
+:root[data-theme="hollow"] .he-pk--surprised:hover {
+  transform-box: fill-box;
+  animation: he-jump 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes he-jump {
+  40% {
+    transform: translateY(-9px) scale(0.95, 1.06);
+  }
+}
+
+/* The cute one bounces gently, all the time. */
+:root[data-theme="hollow"] .he-pk--cute {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: he-squish 2.2s ease-in-out infinite;
+}
+
+@keyframes he-squish {
+  50% {
+    transform: scale(1.04, 0.95);
+  }
+}
+
+/* The one-eyed one looks around. */
+:root[data-theme="hollow"] .he-pupil {
+  animation: he-look 5s ease-in-out infinite;
+}
+
+@keyframes he-look {
+  0%,
+  20%,
+  100% {
+    transform: translateX(0);
+  }
+  30%,
+  48% {
+    transform: translateX(-0.22px);
+  }
+  58%,
+  78% {
+    transform: translateX(0.22px);
+  }
+}
+
+/* The winking one sticks its tongue out further, the goofy one wobbles a lot. */
+:root[data-theme="hollow"] .he-pk--wink:hover .he-tongue {
+  transform: translateY(0.08px) scale(1.15);
+}
+
+:root[data-theme="hollow"] .he-pk--goofy:hover {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: he-wobble 0.7s ease-in-out 2;
+}
+
+:root[data-theme="hollow"] .he-flame {
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+  animation: he-candle-dance 0.22s ease-in-out infinite alternate;
+}
+
+:root[data-theme="hollow"] .he-crow {
+  animation: he-crow 6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+@keyframes he-crow {
+  0%,
+  70%,
+  100% {
+    transform: none;
+  }
+  75%,
+  85% {
+    transform: scaleX(-1);
   }
 }
 
@@ -1482,4 +1600,10 @@
   box-shadow:
     inset 0 0 0 1px var(--line),
     0 12px 36px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="hollow"] .he-tongue {
+  transform-box: fill-box;
+  transform-origin: 30% 0;
+  transition: transform 0.25s var(--spring);
 }

@@ -1,6 +1,7 @@
 // Hollow's Eve's little pictures, drawn in code as vector shapes (smooth, at any size). They reach
 // the stylesheet as CSS variables (--he-jack, --he-ghost, ...); the bats and the spider in the top
 // bar and the scenes use the same shapes directly.
+import { pumpkinPicture } from "./pumpkins";
 
 /** A picture for CSS: an SVG as a data URL. */
 export function svgUrl(svg: string) {
@@ -30,41 +31,9 @@ export const C = {
   bone: "#f3ead8",
 };
 
-const PUMPKIN_SHADE = `<radialGradient id="ps" cx="0.35" cy="0.3"><stop offset="0" stop-color="${C.pumpkinLight}"/><stop offset="0.6" stop-color="#f2721c"/><stop offset="1" stop-color="#b8480b"/></radialGradient>`;
-
-/** A pumpkin, bottom-centre at x, y with radius r; a jack-o'-lantern when `face` is given
- *  (its colour: lit or not). Uses the "ps" gradient. */
-export function pumpkinShape(x: number, y: number, r: number, face?: string) {
-  const cy = y - r;
-  let s =
-    `<ellipse cx="${x - r * 0.62}" cy="${cy}" rx="${r * 0.55}" ry="${r * 0.9}" fill="${C.pumpkinDark}"/>` +
-    `<ellipse cx="${x + r * 0.62}" cy="${cy}" rx="${r * 0.55}" ry="${r * 0.9}" fill="${C.pumpkinDark}"/>` +
-    `<ellipse cx="${x - r * 0.3}" cy="${cy}" rx="${r * 0.6}" ry="${r * 0.98}" fill="${C.pumpkinMid}"/>` +
-    `<ellipse cx="${x + r * 0.3}" cy="${cy}" rx="${r * 0.6}" ry="${r * 0.98}" fill="${C.pumpkinMid}"/>` +
-    `<ellipse cx="${x}" cy="${cy}" rx="${r * 0.5}" ry="${r}" fill="url(#ps)"/>` +
-    `<path d="M${x} ${cy - r * 0.85}q${r * 0.08} ${-r * 0.45} ${r * 0.35} ${-r * 0.55}" stroke="${C.stem}" stroke-width="${Math.max(2, r * 0.18)}" fill="none" stroke-linecap="round"/>`;
-  if (face) {
-    const e = r * 0.24;
-    s +=
-      `<g fill="${face}">` +
-      `<path d="M${x - r * 0.45} ${cy - r * 0.1}l${e} ${-e * 1.2}l${e} ${e * 1.2}z"/>` +
-      `<path d="M${x + r * 0.45} ${cy - r * 0.1}l${-e} ${-e * 1.2}l${-e} ${e * 1.2}z"/>` +
-      `<path d="M${x - r * 0.55} ${cy + r * 0.22}q${r * 0.55} ${r * 0.5} ${r * 1.1} 0l${-r * 0.16} ${r * 0.12}l${-r * 0.14} ${-r * 0.1}l${-r * 0.2} ${r * 0.14}l${-r * 0.2} ${-r * 0.14}l${-r * 0.14} ${r * 0.1}z"/>` +
-      `</g>`;
-  }
-  return s;
-}
-
-const GLOW = `<radialGradient id="gl"><stop offset="0" stop-color="#ffb347" stop-opacity="0.7"/><stop offset="1" stop-color="#ff7518" stop-opacity="0"/></radialGradient>`;
-
 /** The jack-o'-lantern by the app's name: lit, or with its candle blown out. */
 function jack(lit: boolean) {
-  return svg(
-    48,
-    46,
-    (lit ? `<ellipse cx="24" cy="27" rx="24" ry="19" fill="url(#gl)"/>` : "") + pumpkinShape(24, 42, 15, lit ? C.candle : "#3a1606"),
-    PUMPKIN_SHADE + GLOW,
-  );
+  return pumpkinPicture(48, 46, { size: 38, face: "classic", stem: "curly", squat: 0.82, unlit: !lit }, 2);
 }
 
 const GHOST_BODY = "M21 2C10 2 4 10 4 20v22l5-4 4 4 4-4 4 4 4-4 4 4 4-4 5 4V20C38 10 32 2 21 2z";
@@ -111,7 +80,7 @@ export const GHOST = svg(42, 46, ghostShape());
 
 // ----- Each cover's little friend (see hollow.css, "Covers")
 
-const TOPPER_PUMPKIN = svg(40, 34, pumpkinShape(20, 33, 12, "#ffd36b"), PUMPKIN_SHADE);
+const TOPPER_PUMPKIN = pumpkinPicture(40, 36, { size: 30, face: "cute", stem: "curly", extras: ["leaf"], squat: 0.82 });
 const CANDY = (x: number, y: number, tilt: number, s: number) =>
   `<g transform="translate(${x} ${y}) rotate(${tilt}) scale(${s})">` +
   `<path d="M0 -10L8 10H-8Z" fill="#fff4dc"/><path d="M-4 0H4L6 5H-6Z" fill="#ff8a2e"/><path d="M-6.5 6H6.5L8 10H-8Z" fill="#ffd23a"/></g>`;
@@ -136,8 +105,8 @@ const WEB_RIGHT = WEB.replace("<defs></defs>", `<defs></defs><g transform="trans
 const TOPPER_BAT = svg(26, 34, `<g transform="scale(1.3)">${HANGING_BAT.replace(/^<svg[^>]*><defs><\/defs>/, "").replace("</svg>", "")}</g>`);
 
 /** Switch knobs: a pumpkin, lit when on. */
-const KNOB_ON = svg(40, 40, pumpkinShape(20, 36, 13, C.candle), PUMPKIN_SHADE);
-const KNOB_OFF = svg(40, 40, pumpkinShape(20, 36, 13, "#3a1606"), PUMPKIN_SHADE);
+const KNOB_ON = pumpkinPicture(40, 40, { size: 32, face: "classic", stem: "short", squat: 0.86 }, 4);
+const KNOB_OFF = pumpkinPicture(40, 40, { size: 32, face: "classic", stem: "short", squat: 0.86, unlit: true }, 4);
 
 /** A drip of glowing orange under the chosen tab. */
 const DRIP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" preserveAspectRatio="none"><path fill="${C.pumpkin}" d="M0 0h60v3c-2 0-3 1-3 3s-1 4-2 4-2-2-2-4-1-3-3-3-5 0-6 2-1 7-3 7-2-5-2-7-2-2-4-2-7 0-8 1-1 3-2 3-2-2-2-3-1-1-3-1-2 1-2 2-1 2-2 2-1-1-1-2-1-1-3-1H0z"/></svg>`;

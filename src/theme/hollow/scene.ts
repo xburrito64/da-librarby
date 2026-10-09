@@ -2,7 +2,8 @@
 // pointed at and the ghost can peek out): a pumpkin patch at night under the spotlight, with a
 // haunted house on the hill, and a graveyard on show pages. Both are as wide as the window, with
 // everything placed from the right; the left stays calm, for the text.
-import { C, ghostShape, pumpkinShape } from "./art";
+import { C, ghostShape } from "./art";
+import { anyPumpkin, drawPumpkin, pumpkinDefs, type PumpkinSpec } from "./pumpkins";
 import { faceTree, farTree, owlTree, spiralTree, swingTree } from "./trees";
 
 /** The scenes' height (px, as in hollow.css), and where the ground is. */
@@ -20,19 +21,45 @@ function defs(id: string) {
     <radialGradient id="${id}moon-glow"><stop offset="0" stop-color="#ffe4a3" stop-opacity="0.35"/><stop offset="0.45" stop-color="#ffb35c" stop-opacity="0.12"/><stop offset="1" stop-color="#ff8a2e" stop-opacity="0"/></radialGradient>
     <radialGradient id="${id}moon" cx="0.4" cy="0.38"><stop offset="0" stop-color="#fff2c9"/><stop offset="0.7" stop-color="#f6d98a"/><stop offset="1" stop-color="#e9b862"/></radialGradient>
     <radialGradient id="${id}light"><stop offset="0" stop-color="#ff9a3c" stop-opacity="0.45"/><stop offset="1" stop-color="#ff7518" stop-opacity="0"/></radialGradient>
-    <radialGradient id="ps" cx="0.35" cy="0.3"><stop offset="0" stop-color="${C.pumpkinLight}"/><stop offset="0.6" stop-color="#f2721c"/><stop offset="1" stop-color="#b8480b"/></radialGradient>
+    ${pumpkinDefs(id)}
     <filter id="${id}glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>`;
 }
 
-/** A pumpkin in the scene: plain ones wobble when pointed at, jack-o'-lanterns glow brighter. */
-function pumpkin(id: string, x: number, y: number, r: number, jack: boolean) {
-  const light = jack ? `<ellipse class="he-light" cx="${x}" cy="${y}" rx="${r * 2.6}" ry="${r * 0.7}" fill="url(#${id}light)"/>` : "";
-  const body = pumpkinShape(x, y, r, jack ? C.candle : undefined);
-  // The face glows: drawn again on top, blurred.
-  const face = jack ? `<g filter="url(#${id}glow)" class="he-face">${pumpkinShape(x, y, r, C.candle).replace(/^.*?(<g fill=)/s, "$1")}</g>` : "";
-  return `<g class="he-pumpkin ${jack ? "is-jack" : ""}">${light}${body}${face}</g>`;
+/** Pumpkins placed by hand: where (from the right), and who they are. */
+type Placed = [x: number, y: number, spec: PumpkinSpec];
+
+function pumpkins(id: string, r: number, list: Placed[]) {
+  return list.map(([x, y, spec]) => drawPumpkin(id, r + x, y, spec)).join("");
 }
+
+/** The patch's pumpkins, each one its own character. */
+const PATCH: Placed[] = [
+  [606, 296, { size: 13, palette: "pale", stem: "curly", squat: 0.78 }],
+  [640, 300, { size: 9, palette: "orange", stem: "short", squat: 0.7, tilt: 8 }],
+  [702, 300, { size: 24, face: "cute", palette: "ghost", stem: "short", squat: 0.8, tilt: -4 }],
+  [772, 306, { size: 42, face: "classic", stem: "curly", extras: ["leaf"], squat: 0.8 }],
+  [838, 300, { size: 27, palette: "deep", stem: "bent", squat: 0.66, extras: ["hat"], tilt: -3 }],
+  [904, 302, { size: 30, face: "sleepy", palette: "pale", stem: "short", squat: 0.86, tilt: 6 }],
+  [992, 314, { size: 62, face: "scary", palette: "deep", ribs: 7, stem: "tall", squat: 0.78 }],
+  [1060, 302, { size: 30, face: "goofy", stem: "curly", squat: 1, tilt: -7 }],
+  [1098, 300, { size: 11, palette: "pale", stem: "bent", squat: 0.8 }],
+  [1112, 302, { size: 8, palette: "orange", stem: "short", squat: 0.72, tilt: -10 }],
+  [1162, 310, { size: 46, face: "cyclops", palette: "orange", ribs: 7, stem: "short", squat: 0.92 }],
+  [1236, 302, { size: 30, palette: "goblin", extras: ["warts", "crow"], stem: "tall", squat: 0.95, tilt: 4 }],
+  [1290, 306, { size: 38, palette: "pale", stem: "short", squat: 0.62 }],
+  [1290, 284, { size: 22, face: "surprised", stem: "curly", squat: 0.86, tilt: 3 }],
+  [1356, 314, { size: 52, face: "wink", extras: ["candle"], stem: "short", squat: 0.8, tilt: -2 }],
+  [1416, 304, { size: 30, face: "cat", palette: "deep", stem: "bent", squat: 0.84 }],
+];
+
+/** The graveyard's pumpkins. */
+const GRAVEYARD: Placed[] = [
+  [1178, 304, { size: 22, face: "sleepy", palette: "pale", stem: "curly", squat: 0.82 }],
+  [1300, 308, { size: 46, face: "vampire", palette: "deep", ribs: 7, stem: "tall", squat: 0.82 }],
+  [1342, 302, { size: 20, palette: "ghost", stem: "bent", squat: 0.74, extras: ["bow"] }],
+  [1428, 308, { size: 30, face: "classic", stem: "short", squat: 0.8, tilt: -5 }],
+];
 
 function tombstone(x: number, y: number, w: number, h: number, kind: "round" | "cross", tilt = 0) {
   const fill = "#2c2238";
@@ -76,7 +103,7 @@ function groundPath(w: number, y: number, amp: number, phase: number) {
 function scattered(id: string, rand: () => number, from: number, to: number, y: number) {
   let s = "";
   for (let x = from + rand() * 80; x < to; x += 150 + rand() * 180) {
-    s += pumpkin(id, x, y + rand() * 6, 6 + rand() * 6, rand() < 0.3);
+    s += drawPumpkin(id, x, y + rand() * 6, anyPumpkin(rand, 12 + rand() * 18));
     s += `<path d="M${x - 30} ${y + 4}c10-6 20 4 30 0s20-6 30 0" stroke="${C.vine}" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.8"/>`;
   }
   return s;
@@ -123,9 +150,7 @@ export function patchScene(width: number) {
   s += `<path d="${groundPath(w, 270, 4, 3)}" fill="#120a17"/>`;
   s += `<g stroke="${C.vine}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.9"><path d="M${r + 740} 300C${r + 800} 290 ${r + 840} 312 ${r + 900} 300S${r + 1000} 290 ${r + 1060} 304S${r + 1200} 296 ${r + 1260} 306S${r + 1360} 300 ${w} 296"/><path d="M${r + 820} 300c6-8 14-6 12 2c-2 6-8 4-6-1"/><path d="M${r + 1010} 298c6-8 14-6 12 2c-2 6-8 4-6-1"/><path d="M${r + 1190} 302c6-8 14-6 12 2c-2 6-8 4-6-1"/></g>`;
   s += scattered(id, rand, 760, r + 560, 292);
-  s += pumpkin(id, r + 612, 296, 8, false) + pumpkin(id, r + 770, 302, 15, true) + pumpkin(id, r + 842, 298, 9, false) + pumpkin(id, r + 982, 310, 22, true);
-  s += pumpkin(id, r + 1060, 300, 11, false) + pumpkin(id, r + 1146, 306, 17, true) + pumpkin(id, r + 1236, 298, 12, false);
-  s += pumpkin(id, r + 1322, 312, 25, true) + pumpkin(id, r + 1404, 300, 11, false);
+  s += pumpkins(id, r, PATCH);
   return `${s}</svg>`;
 }
 
@@ -172,6 +197,6 @@ export function graveyardScene(width: number) {
   s += `<path d="${groundPath(w, 274, 3, 4)}" fill="#120a17"/>`;
   s += `<path d="M${r + 760} ${SCENE_H}C${r + 900} 300 ${r + 1100} 296 ${r + 1250} 266L${r + 1266} 266C${r + 1180} 300 ${r + 1000} 316 ${r + 880} ${SCENE_H}Z" fill="#221830" opacity="0.8"/>`;
   s += scattered(id, rand, 720, r + 560, 296);
-  s += pumpkin(id, r + 1312, 306, 18, true) + pumpkin(id, r + 1348, 300, 9, false) + pumpkin(id, r + 1180, 304, 9, false) + pumpkin(id, r + 1430, 308, 11, true);
+  s += pumpkins(id, r, GRAVEYARD);
   return `${s}</svg>`;
 }
