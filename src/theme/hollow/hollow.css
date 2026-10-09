@@ -639,6 +639,31 @@
   }
 }
 
+:root[data-theme="hollow"] .he-owl__eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: he-blink 4.2s infinite;
+}
+
+/* The grumpy tree's face glows faintly, like embers inside. */
+:root[data-theme="hollow"] .he-treeface {
+  opacity: 0.6;
+  animation: he-face-flicker 4.6s infinite;
+}
+
+:root[data-theme="hollow"] .he-swing {
+  animation: he-swing 3.6s ease-in-out infinite alternate;
+}
+
+@keyframes he-swing {
+  from {
+    transform: rotate(7deg);
+  }
+  to {
+    transform: rotate(-7deg);
+  }
+}
+
 :root[data-theme="hollow"] .he-moonbats {
   animation: he-moonbats 9s ease-in-out infinite alternate;
 }
@@ -716,7 +741,12 @@
 }
 
 :root[data-theme="hollow"] .row__track {
-  padding-top: 30px;
+  /* Room above the covers for their little friends, and their glow when pointed at. */
+  padding-top: 44px;
+}
+
+:root[data-theme="hollow"] .row__head {
+  margin-bottom: -10px;
 }
 
 :root[data-theme="hollow"] .row__arrow {
@@ -737,8 +767,8 @@
   transform: translateY(-5px);
   box-shadow:
     0 0 0 2px var(--he-pumpkin),
-    0 0 26px rgba(255, 117, 24, 0.45),
-    0 14px 34px rgba(0, 0, 0, 0.6);
+    0 0 20px rgba(255, 117, 24, 0.45),
+    0 14px 30px rgba(0, 0, 0, 0.6);
 }
 
 :root[data-theme="hollow"] .card:is(:hover, :focus-visible) .card__name {
@@ -797,6 +827,12 @@
   top: 0;
   width: 18px;
   height: 64px;
+  /* The spider sits at the bottom of its box; a shorter box pulls it up its thread. */
+  background-size: 18px 64px;
+  background-position: center bottom;
+  transition:
+    transform 0.35s var(--spring),
+    height 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
 :root[data-theme="hollow"] :is(.card, .tp__cover):is([data-id$="1"], [data-id$="6"])::after {
@@ -838,7 +874,7 @@
 }
 
 :root[data-theme="hollow"] .card[data-id$="5"]:is(:hover, :focus-visible)::after {
-  transform: translateY(-40px);
+  height: 26px;
 }
 
 :root[data-theme="hollow"] .card[data-id$="7"]:is(:hover, :focus-visible)::after {
@@ -953,6 +989,11 @@
 
 :root[data-theme="hollow"] .tp--movie {
   --tp-art-h: 100vh;
+}
+
+/* On movie pages the graveyard ends a little above the bottom of the first screen, clear of "About". */
+:root[data-theme="hollow"] .tp--movie .tp__decor--bottom.he-scene {
+  top: calc(100vh - var(--he-scene-h) - 40px);
 }
 
 :root[data-theme="hollow"] .tp--movie .tp__backdrop {

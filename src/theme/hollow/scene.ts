@@ -3,6 +3,7 @@
 // haunted house on the hill, and a graveyard on show pages. Both are as wide as the window, with
 // everything placed from the right; the left stays calm, for the text.
 import { C, ghostShape, pumpkinShape } from "./art";
+import { faceTree, farTree, owlTree, spiralTree, swingTree } from "./trees";
 
 /** The scenes' height (px, as in hollow.css), and where the ground is. */
 export const SCENE_H = 330;
@@ -42,19 +43,6 @@ function tombstone(x: number, y: number, w: number, h: number, kind: "round" | "
       : `<path d="M${x - w / 2} ${y}v${-h + w / 2}a${w / 2} ${w / 2} 0 0 1 ${w} 0v${h - w / 2}z" fill="${fill}" stroke="${edge}" stroke-width="1.2"/>` +
         `<path d="M${x - w / 4} ${y - h + w / 2 + 6}h${w / 2}M${x - w / 5} ${y - h + w / 2 + 11}h${w / 2.5}" stroke="#1c1526" stroke-width="2" stroke-linecap="round"/>`;
   return `<g transform="rotate(${tilt} ${x} ${y})">${shape}</g>`;
-}
-
-function bareTree(x: number, y: number, s: number) {
-  const p = (d: string, w: number) => `<path d="${d}" stroke="#0e0814" stroke-width="${w}" fill="none" stroke-linecap="round"/>`;
-  return `<g transform="translate(${x} ${y}) scale(${s})">${[
-    p("M0 0C-2-26 4-46-2-70", 8),
-    p("M-1-40C-14-50-22-58-30-74", 4.5),
-    p("M1-50C15-62 24-66 32-80", 4.5),
-    p("M-2-70C-6-82 0-92-4-104", 3.5),
-    p("M-28-71l-9-5M-26-66l-12 2", 2),
-    p("M30-77l7-9M27-72l12-2", 2),
-    p("M-4-100l-7-6M-3-96l8-8", 1.6),
-  ].join("")}</g>`;
 }
 
 function moon(id: string, x: number, y: number, r: number) {
@@ -110,9 +98,9 @@ export function patchScene(width: number) {
   s += `<g ${tilt} fill="#0d0712"><rect x="${r + 1150}" y="122" width="80" height="56"/><polygon points="${r + 1140},124 ${r + 1190},84 ${r + 1240},124"/><rect x="${r + 1208}" y="80" width="26" height="64"/><polygon points="${r + 1202},82 ${r + 1221},38 ${r + 1240},82"/><rect x="${r + 1160}" y="94" width="10" height="24"/></g>`;
   s += `<g ${tilt} fill="#ffb347" filter="url(#${id}glow)"><rect x="${r + 1162}" y="136" width="12" height="14" rx="1"/><rect class="he-flicker" x="${r + 1196}" y="136" width="12" height="14" rx="1"/><rect class="he-flicker he-flicker--slow" x="${r + 1215}" y="96" width="9" height="12" rx="1"/><rect x="${r + 1184}" y="156" width="14" height="22" rx="7" fill="#c9611a" opacity="0.8"/></g>`;
   s += `<g ${tilt} stroke="#0d0712" stroke-width="1.6"><path d="M${r + 1168} 136v14M${r + 1162} 143h12M${r + 1202} 136v14M${r + 1196} 143h12"/></g>`;
-  s += bareTree(r + 1088, 196, 1.05) + bareTree(r + 1376, 214, 0.8) + bareTree(r + 890, 236, 0.75);
-  // Distant trees along the hills on a wide window.
-  for (let x = 760; x < r + 760; x += 260 + rand() * 200) s += bareTree(x, 240 + rand() * 8, 0.45 + rand() * 0.25);
+  // Three trees with a personality of their own, and distant ones along the hills on a wide window.
+  s += owlTree(r + 1084, 198, 128) + spiralTree(r + 1380, 216, 100) + swingTree(r + 884, 238, 90);
+  for (let x = 760, n = 1; x < r + 760; x += 260 + rand() * 200, n++) s += farTree(x, 240 + rand() * 8, 46 + rand() * 30, n * 5);
   // Tombstones, the ghost hiding behind the big one.
   s += ghost(r + 846, 228, 0.62);
   s += tombstone(r + 700, 262, 22, 34, "round", -4) + tombstone(r + 742, 258, 18, 28, "round", 6) + tombstone(r + 790, 262, 0, 26, "cross", -3);
@@ -157,8 +145,8 @@ export function graveyardScene(width: number) {
   let s = `<svg class="he-scene__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${SCENE_H}" width="${w}" height="${SCENE_H}">${defs(id)}`;
   s += moon(id, r + 1330, 70, 34);
   s += `<path d="${groundPath(w, 238, 9, 2)}" fill="#1b1026"/>`;
-  for (let x = 700; x < w; x += 220 + rand() * 220) s += bareTree(x, 244 + rand() * 6, 0.5 + rand() * 0.3);
-  s += bareTree(r + 1150, 262, 1.1);
+  for (let x = 700, n = 1; x < r + 1300; x += 220 + rand() * 220, n++) s += farTree(x, 244 + rand() * 6, 50 + rand() * 32, n * 7 + 3);
+  s += faceTree(r + 1392, 270, 132);
   // The crypt: stone, a pointed roof, a door that glows (and sometimes has eyes in it).
   s += `<g transform="translate(${r + 1250} 264)">
     <path d="M-52 0V-70H52V0Z" fill="#231a2e" stroke="#3d3050" stroke-width="1.5"/>
@@ -184,6 +172,6 @@ export function graveyardScene(width: number) {
   s += `<path d="${groundPath(w, 274, 3, 4)}" fill="#120a17"/>`;
   s += `<path d="M${r + 760} ${SCENE_H}C${r + 900} 300 ${r + 1100} 296 ${r + 1250} 266L${r + 1266} 266C${r + 1180} 300 ${r + 1000} 316 ${r + 880} ${SCENE_H}Z" fill="#221830" opacity="0.8"/>`;
   s += scattered(id, rand, 720, r + 560, 296);
-  s += pumpkin(id, r + 1330, 306, 18, true) + pumpkin(id, r + 1384, 300, 10, false) + pumpkin(id, r + 1180, 304, 9, false) + pumpkin(id, r + 1420, 308, 14, true);
+  s += pumpkin(id, r + 1312, 306, 18, true) + pumpkin(id, r + 1348, 300, 9, false) + pumpkin(id, r + 1180, 304, 9, false) + pumpkin(id, r + 1430, 308, 11, true);
   return `${s}</svg>`;
 }
