@@ -5,7 +5,10 @@ applies instantly, and is remembered in the library database.
 
 - `base.css`: the shared layout. Everything visual in it reads a CSS variable (colours, fonts, corner
   shapes, card frames, navigation size and position, spotlight size).
-- `velvet.css`, `paper.css`, `neon.css`, `mochi.css`: the themes. `snowdin/` is a theme with extras (see below).
+- `velvet.css`, `paper.css`, `neon.css`, `mochi.css`: the themes. `snowdin/` and `hollow/` (Hollow's Eve) are
+  themes with extras (see below).
+- `theme.ts`: also switches to Hollow's Eve by itself in October (Settings → Appearance can turn that off); the
+  theme you chose stays saved and is back in November, or as soon as you pick a theme yourself.
 - `themes.ts`: the list shown in Settings (name, description, light or dark), plus the font imports.
 - `theme.ts`: applies and saves the current theme.
 

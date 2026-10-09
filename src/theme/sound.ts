@@ -14,7 +14,16 @@ export type SoundName =
   | "text"
   /** The battle start: the heart flashing (once per flash), then flying off. */
   | "encounter-flicker"
-  | "encounter-fly";
+  | "encounter-fly"
+  /** Hollow's Eve: trick or treat, candles, bats, the spider, the ghost, pumpkins. */
+  | "treat"
+  | "trick"
+  | "snuff"
+  | "ignite"
+  | "boo"
+  | "flutter"
+  | "skitter"
+  | "bonk";
 
 /** Plays a sound into `out`, which carries the chosen volume. */
 export type SoundPlayer = (ctx: AudioContext, out: AudioNode) => void;

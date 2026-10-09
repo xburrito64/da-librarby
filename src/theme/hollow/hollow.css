@@ -1,0 +1,1444 @@
+/* Hollow's Eve: a pumpkin patch on Halloween night. Near-black and pumpkin orange, a deep witchy
+   purple, a little toxic green; Creepster for titles, Baloo 2 for everything else. Rounded shapes
+   and soft glows. The drawings arrive as CSS variables from art.ts (--he-jack, --he-ghost, ...). */
+
+[data-theme="hollow"] {
+  --he-night: #0b0710;
+  --he-coffin: #1d1427;
+  --he-witch: #3d1f5c;
+  --he-potion: #6b3fa0;
+  --he-pumpkin: #ff7518;
+  --he-pumpkin-dark: #e25d0c;
+  --he-ember: #ffb03b;
+  --he-candle: #ffd98a;
+  --he-slime: #9cff3a;
+  --he-bone: #f3ead8;
+  --he-glow: rgba(255, 117, 24, 0.45);
+
+  --bg: #0b0710;
+  --bg-elev: #17101f;
+  --surface: rgba(184, 140, 230, 0.1);
+  --surface-hover: rgba(184, 140, 230, 0.18);
+  --line: rgba(255, 140, 50, 0.24);
+  --text: #f3ead8;
+  --muted: #b3a2c2;
+  --accent: #ff7518;
+  --on-accent: #1a0d05;
+  --btn-primary-bg: linear-gradient(180deg, #ff8a2e, #e25d0c);
+  --btn-primary-text: #1a0d05;
+  --danger: #c3172e;
+  --scrim: rgba(6, 3, 10, 0.7);
+
+  --font-body: "Baloo 2 Variable", system-ui, sans-serif;
+  --font-display: "Creepster", "Baloo 2 Variable", fantasy;
+  --font-label: "Baloo 2 Variable", system-ui, sans-serif;
+  --display-weight: 400;
+  --display-tracking: 0.03em;
+  --label-tracking: 0.14em;
+
+  --radius: 14px;
+  --radius-card: 12px;
+  --radius-panel: 24px;
+  --btn-radius: 999px;
+  --app-decor:
+    radial-gradient(1100px 700px at 88% -10%, rgba(255, 117, 24, 0.1), transparent 60%),
+    radial-gradient(900px 700px at 0% 45%, rgba(107, 63, 160, 0.16), transparent 60%);
+}
+
+:root[data-theme="hollow"] {
+  /* Room at the top for the branch with its bats. */
+  --nav-h: 92px;
+  --hero-h: 78vh;
+  --rows-overlap: -36px;
+  --he-scene-h: 330px;
+  font-synthesis: none;
+}
+
+:root[data-theme="hollow"] .app {
+  font-size: 15.5px;
+}
+
+:root[data-theme="hollow"] .view::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 117, 24, 0.35);
+}
+
+/* The display font is all one weight; titles get a soft orange glow. */
+:root[data-theme="hollow"] :is(.hero__title, .tp__title, .grid-page__title) {
+  color: var(--he-bone);
+  text-shadow:
+    0 3px 0 rgba(0, 0, 0, 0.45),
+    0 0 28px rgba(255, 117, 24, 0.32);
+}
+
+:root[data-theme="hollow"] :is(.row__title, .section-title) {
+  font-size: 27px;
+  color: var(--he-bone);
+}
+
+/* Small labels: toxic green, glowing a little. */
+:root[data-theme="hollow"] :is(.hero__eyebrow, .tp__eyebrow) {
+  color: var(--he-slime);
+  font-size: 12.5px;
+  text-shadow: 0 0 10px rgba(156, 255, 58, 0.35);
+}
+
+/* ---------- Embers floating up, behind the pages (Decor.tsx) ---------- */
+
+.he-embers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ---------- The top bar ---------- */
+
+:root[data-theme="hollow"] .nav {
+  padding-top: 14px;
+}
+
+:root[data-theme="hollow"] .nav::before {
+  background: linear-gradient(rgba(11, 7, 16, 0.92), rgba(11, 7, 16, 0));
+}
+
+:root[data-theme="hollow"] .app--scrolled .nav {
+  background: rgba(11, 7, 16, 0.86);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgba(255, 117, 24, 0.16);
+}
+
+:root[data-theme="hollow"] .nav__brand {
+  gap: 10px;
+  color: var(--he-pumpkin);
+  font-size: 30px;
+  text-shadow: 0 0 14px rgba(255, 117, 24, 0.55);
+}
+
+/* The jack-o'-lantern: its candle flickers; click it for trick or treat (index.ts). */
+:root[data-theme="hollow"] .nav__logo {
+  position: relative;
+  width: 44px;
+  height: 42px;
+  margin: -6px 0 -4px;
+  border-radius: 0;
+  background: var(--he-img-jack) center / contain no-repeat;
+  animation: he-flicker 2.6s infinite;
+  transition: transform 0.3s var(--spring);
+}
+
+:root[data-theme="hollow"] .nav__brand:hover .nav__logo {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+:root.he-jack-out[data-theme="hollow"] .nav__logo {
+  background-image: var(--he-img-jack-out);
+  animation: none;
+}
+
+/* A curl of smoke when it's blown out. */
+:root[data-theme="hollow"] .nav__logo::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: rgba(150, 135, 170, 0.6);
+  box-shadow:
+    5px -9px 0 -1px rgba(150, 135, 170, 0.45),
+    -2px -17px 0 -2px rgba(150, 135, 170, 0.3);
+  opacity: 0;
+  pointer-events: none;
+}
+
+:root.he-jack-out[data-theme="hollow"] .nav__logo::after {
+  animation: he-smoke 1.3s ease-out;
+}
+
+@keyframes he-flicker {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  8% {
+    filter: brightness(0.82);
+  }
+  10% {
+    filter: brightness(1.05);
+  }
+  47% {
+    filter: brightness(0.9);
+  }
+  50% {
+    filter: brightness(0.74);
+  }
+  53% {
+    filter: brightness(1);
+  }
+  78% {
+    filter: brightness(0.88);
+  }
+}
+
+@keyframes he-smoke {
+  0% {
+    opacity: 0.85;
+    transform: translateY(0) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) scale(1.7);
+  }
+}
+
+:root[data-theme="hollow"] .nav__tab {
+  font-size: 15.5px;
+  font-weight: 650;
+}
+
+:root[data-theme="hollow"] .nav__tab:hover {
+  color: var(--he-bone);
+}
+
+:root[data-theme="hollow"] .nav__tab.is-active {
+  color: var(--he-pumpkin);
+}
+
+/* The chosen page: a little drip of glowing orange under it. */
+:root[data-theme="hollow"] :is(.nav__tab, .seasons__tab).is-active::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(100% - 6px);
+  height: 11px;
+  background: var(--he-img-drip) 0 0 / 100% 100% no-repeat;
+  filter: drop-shadow(0 0 4px rgba(255, 117, 24, 0.7));
+  pointer-events: none;
+}
+
+:root[data-theme="hollow"] .nav__search {
+  border: 1.5px solid rgba(243, 234, 216, 0.12);
+  background: rgba(20, 13, 27, 0.7);
+}
+
+:root[data-theme="hollow"] .nav__search:focus-within,
+:root[data-theme="hollow"] .nav__search.has-text {
+  border-color: rgba(255, 117, 24, 0.55);
+  box-shadow: 0 0 14px rgba(255, 117, 24, 0.25);
+}
+
+:root[data-theme="hollow"] .icon-btn:hover {
+  background: rgba(255, 117, 24, 0.14);
+  color: var(--he-pumpkin);
+}
+
+/* The branch, the bats asleep under it and the spider (topbar.ts). */
+/* Inside the app, just over the top bar and under dialogs. */
+.he-top {
+  position: fixed;
+  z-index: 21;
+  inset: 0 0 auto 0;
+  height: 0;
+}
+
+:root:not([data-theme="hollow"]) .he-top {
+  display: none;
+}
+
+.he-branch {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 46px;
+  pointer-events: none;
+}
+
+.he-branch svg {
+  width: 100%;
+  height: 100%;
+}
+
+.he-bat {
+  position: absolute;
+  width: 22px;
+  height: 32px;
+  cursor: pointer;
+  transform-origin: 50% 0;
+  animation: he-sway 4s ease-in-out infinite;
+  transition: opacity 1.2s;
+}
+
+.he-bat svg,
+.he-flyer svg,
+.he-spider__body svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.he-bat.is-away {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: 0s;
+}
+
+@keyframes he-sway {
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+.he-flyer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 48px;
+  height: 26px;
+  pointer-events: none;
+}
+
+.he-flyer .he-wings {
+  transform-origin: 50% 55%;
+  animation: he-flap 0.16s ease-in-out infinite alternate;
+}
+
+@keyframes he-flap {
+  to {
+    transform: scaleY(-0.55);
+  }
+}
+
+.he-spider {
+  position: absolute;
+  top: 6px;
+  width: 30px;
+  cursor: pointer;
+}
+
+.he-spider[hidden] {
+  display: none;
+}
+
+.he-spider__thread {
+  display: block;
+  width: 1px;
+  height: 40px;
+  margin: 0 auto;
+  background: rgba(243, 234, 216, 0.6);
+  transition: height 2.6s cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.he-spider.is-up .he-spider__thread {
+  height: 1px;
+  transition-duration: 0.45s;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.he-spider__body {
+  display: block;
+  width: 30px;
+  height: 26px;
+  margin-top: -3px;
+  transform-origin: 50% -40px;
+  animation: he-dangle 3.2s ease-in-out infinite;
+}
+
+@keyframes he-dangle {
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+.he-spider .he-legs path {
+  transform-origin: 15px 13px;
+  animation: he-wiggle 0.5s ease-in-out infinite alternate;
+}
+
+.he-spider.is-up .he-legs path {
+  animation-duration: 0.08s;
+}
+
+@keyframes he-wiggle {
+  to {
+    transform: rotate(4deg);
+  }
+}
+
+/* ---------- Buttons, chips ---------- */
+
+:root[data-theme="hollow"] .btn {
+  background: rgba(20, 13, 27, 0.72);
+  box-shadow: inset 0 0 0 1.5px rgba(243, 234, 216, 0.24);
+  font-weight: 700;
+}
+
+:root[data-theme="hollow"] .btn:hover {
+  background: rgba(20, 13, 27, 0.85);
+  box-shadow:
+    inset 0 0 0 1.5px var(--he-slime),
+    0 0 18px rgba(156, 255, 58, 0.25);
+  color: #eaffda;
+}
+
+:root[data-theme="hollow"] .btn--primary,
+:root[data-theme="hollow"] .btn--primary:hover {
+  background: linear-gradient(180deg, #ff8a2e, var(--he-pumpkin-dark));
+  color: var(--on-accent);
+  box-shadow:
+    0 6px 24px rgba(255, 117, 24, 0.35),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="hollow"] .btn--primary:hover {
+  filter: none;
+  transform: translateY(-2px) rotate(-1deg);
+  box-shadow:
+    0 8px 34px rgba(255, 117, 24, 0.6),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="hollow"] .btn--ghost {
+  background: transparent;
+}
+
+:root[data-theme="hollow"] .chip {
+  background: rgba(107, 63, 160, 0.35);
+  color: #e2d2f2;
+  font-weight: 650;
+}
+
+:root[data-theme="hollow"] .chip--score {
+  background: rgba(255, 117, 24, 0.2);
+  color: var(--he-ember);
+}
+
+:root[data-theme="hollow"] .link {
+  color: var(--he-ember);
+}
+
+/* ---------- Spotlight: over the pumpkin patch ---------- */
+
+:root[data-theme="hollow"] .hero__shade {
+  background:
+    linear-gradient(to top, var(--bg) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 26%, transparent 55%),
+    linear-gradient(to right, rgba(11, 7, 16, 0.92) 0%, rgba(11, 7, 16, 0.5) 40%, transparent 70%),
+    linear-gradient(rgba(61, 31, 92, 0.25), transparent 40%);
+}
+
+:root[data-theme="hollow"] .hero__content {
+  bottom: 132px;
+  max-width: 620px;
+}
+
+:root[data-theme="hollow"] .hero__title {
+  margin: 8px 0 14px;
+  font-size: clamp(40px, 4.4vw, 72px);
+  line-height: 0.95;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+:root[data-theme="hollow"] .hero__desc-box {
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(14, 9, 20, 0.84);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+:root[data-theme="hollow"] .hero__desc-box:has(.hero__desc:empty) {
+  display: none;
+}
+
+:root[data-theme="hollow"] .hero__desc {
+  min-height: 0;
+  color: #e8dccb;
+  font-size: 16.5px;
+}
+
+:root[data-theme="hollow"] .hero__dots {
+  top: calc(var(--nav-h) + 40px);
+  bottom: auto;
+}
+
+:root[data-theme="hollow"] .hero__dots button,
+:root[data-theme="hollow"] .hero__dots button.is-active {
+  width: 10px;
+  height: 10px;
+}
+
+:root[data-theme="hollow"] .hero__dots button.is-active {
+  box-shadow: 0 0 10px var(--he-pumpkin);
+}
+
+/* ---------- The scenes (scene.ts, scenes.ts) ---------- */
+
+:root[data-theme="hollow"] .he-scene {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--he-scene-h);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+:root[data-theme="hollow"] .he-scene::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  background: linear-gradient(transparent, var(--bg));
+}
+
+:root[data-theme="hollow"] .he-scene__svg {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+/* Pumpkins answer the pointer: plain ones wobble, jack-o'-lanterns glow up. */
+:root[data-theme="hollow"] .he-pumpkin {
+  pointer-events: visiblePainted;
+  cursor: pointer;
+  transition: filter 0.25s;
+}
+
+:root[data-theme="hollow"] .he-pumpkin .he-light {
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 0.25s;
+}
+
+:root[data-theme="hollow"] .he-pumpkin.is-jack:hover {
+  filter: brightness(1.25) drop-shadow(0 0 10px rgba(255, 140, 40, 0.8));
+}
+
+:root[data-theme="hollow"] .he-pumpkin.is-jack:hover .he-light {
+  opacity: 1;
+}
+
+:root[data-theme="hollow"] .he-pumpkin .he-face {
+  animation: he-face-flicker 2.8s infinite;
+}
+
+:root[data-theme="hollow"] .he-pumpkin:nth-of-type(3n) .he-face {
+  animation-duration: 3.7s;
+}
+
+@keyframes he-face-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  9% {
+    opacity: 0.7;
+  }
+  12% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.8;
+  }
+  58% {
+    opacity: 1;
+  }
+}
+
+:root[data-theme="hollow"] .he-pumpkin.is-wobbly {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: he-wobble 0.55s ease-in-out;
+}
+
+@keyframes he-wobble {
+  25% {
+    transform: rotate(-8deg);
+  }
+  60% {
+    transform: rotate(6deg);
+  }
+}
+
+:root[data-theme="hollow"] .he-flicker {
+  animation: he-window 3.4s infinite;
+}
+
+:root[data-theme="hollow"] .he-flicker--slow {
+  animation-duration: 5.2s;
+}
+
+@keyframes he-window {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  20% {
+    opacity: 0.6;
+  }
+  23% {
+    opacity: 1;
+  }
+  61% {
+    opacity: 0.35;
+  }
+  64% {
+    opacity: 0.9;
+  }
+}
+
+/* The ghost behind its tombstone: peeks out, and ducks back down fast when you look. */
+:root[data-theme="hollow"] .he-ghost {
+  transition: transform 0.9s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+:root[data-theme="hollow"] .he-ghost.is-peeking {
+  transform: translateY(-22px);
+}
+
+:root[data-theme="hollow"] .he-ghost.is-hiding {
+  transition-duration: 0.16s;
+}
+
+:root[data-theme="hollow"] .he-cat__tail {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: he-tail 3s ease-in-out infinite;
+}
+
+@keyframes he-tail {
+  50% {
+    transform: rotate(-14deg);
+  }
+}
+
+:root[data-theme="hollow"] .he-cat__eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: he-blink 5s infinite;
+}
+
+@keyframes he-blink {
+  0%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+
+:root[data-theme="hollow"] .he-moonbats {
+  animation: he-moonbats 9s ease-in-out infinite alternate;
+}
+
+@keyframes he-moonbats {
+  to {
+    transform: translate(-18px, 6px);
+  }
+}
+
+/* Eyes in the crypt's door, now and then. */
+:root[data-theme="hollow"] .he-eyes {
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+:root[data-theme="hollow"] .he-eyes.is-open {
+  opacity: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: he-blink 1.6s 0.8s;
+}
+
+/* Fog drifting along the bottom. */
+:root[data-theme="hollow"] .he-fog {
+  display: none;
+}
+
+:root.he-fog-on[data-theme="hollow"] .he-fog {
+  display: block;
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  bottom: 40px;
+  height: 150px;
+  opacity: 0.55;
+  background:
+    radial-gradient(260px 50px at 10% 70%, rgba(210, 190, 235, 0.2), transparent 70%),
+    radial-gradient(320px 60px at 30% 55%, rgba(210, 190, 235, 0.16), transparent 70%),
+    radial-gradient(280px 45px at 52% 75%, rgba(210, 190, 235, 0.2), transparent 70%),
+    radial-gradient(340px 60px at 74% 60%, rgba(210, 190, 235, 0.15), transparent 70%),
+    radial-gradient(260px 50px at 92% 72%, rgba(210, 190, 235, 0.18), transparent 70%);
+  animation: he-drift 38s linear infinite;
+  pointer-events: none;
+}
+
+:root.he-fog-on[data-theme="hollow"] .he-fog--near {
+  bottom: 6px;
+  opacity: 0.4;
+  animation-duration: 56s;
+  animation-direction: reverse;
+}
+
+@keyframes he-drift {
+  to {
+    transform: translateX(33%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="hollow"] :is(.he-fog, .he-cat__tail, .he-moonbats, .he-bat, .he-spider__body, .nav__logo) {
+    animation: none;
+  }
+}
+
+/* ---------- Rows and covers ---------- */
+
+:root[data-theme="hollow"] .row__count,
+:root[data-theme="hollow"] .grid-page__count {
+  color: var(--he-ember);
+}
+
+:root[data-theme="hollow"] .row__more:hover {
+  color: var(--he-pumpkin);
+}
+
+:root[data-theme="hollow"] .row__track {
+  padding-top: 30px;
+}
+
+:root[data-theme="hollow"] .row__arrow {
+  border-color: rgba(255, 117, 24, 0.3);
+  background: rgba(23, 16, 31, 0.9);
+}
+
+:root[data-theme="hollow"] .card {
+  position: relative;
+  overflow-clip-margin: 60px;
+}
+
+:root[data-theme="hollow"] .card__art {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="hollow"] .card:is(:hover, :focus-visible) .card__art {
+  transform: translateY(-5px);
+  box-shadow:
+    0 0 0 2px var(--he-pumpkin),
+    0 0 26px rgba(255, 117, 24, 0.45),
+    0 14px 34px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="hollow"] .card:is(:hover, :focus-visible) .card__name {
+  color: var(--he-pumpkin);
+}
+
+:root[data-theme="hollow"] .card__play {
+  background: radial-gradient(circle, rgba(255, 117, 24, 0.25), rgba(11, 7, 16, 0.55) 70%);
+}
+
+/* Each title's own little friend on its cover, picked by its id's last digit. */
+:root[data-theme="hollow"] :is(.card, .tp__cover)::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  background: var(--he-topper, none) center / contain no-repeat;
+  transition: transform 0.35s var(--spring);
+}
+
+:root[data-theme="hollow"] :is(.card, .tp__cover):is([data-id$="0"], [data-id$="9"])::after {
+  --he-topper: var(--he-img-pumpkin);
+  right: 10px;
+  top: -24px;
+  width: 38px;
+  height: 32px;
+}
+
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="9"]::after {
+  right: auto;
+  left: 12px;
+  width: 30px;
+  height: 26px;
+  top: -20px;
+}
+
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="2"]::after {
+  --he-topper: var(--he-img-candy);
+  left: 12px;
+  top: -18px;
+  width: 46px;
+  height: 26px;
+}
+
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="4"]::after {
+  --he-topper: var(--he-img-ghost-peek);
+  right: 14px;
+  top: -26px;
+  width: 30px;
+  height: 33px;
+}
+
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="5"]::after {
+  --he-topper: var(--he-img-spider-thread);
+  left: 28%;
+  top: 0;
+  width: 18px;
+  height: 64px;
+}
+
+:root[data-theme="hollow"] :is(.card, .tp__cover):is([data-id$="1"], [data-id$="6"])::after {
+  --he-topper: var(--he-img-web);
+  left: 0;
+  top: 0;
+  width: 62px;
+  height: 62px;
+  border-radius: var(--radius-card) 0 0 0;
+}
+
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="6"]::after {
+  --he-topper: var(--he-img-web-right);
+  left: auto;
+  right: 0;
+  border-radius: 0 var(--radius-card) 0 0;
+}
+
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="7"]::after {
+  --he-topper: var(--he-img-bat);
+  right: 22%;
+  top: 0;
+  width: 20px;
+  height: 28px;
+  transform-origin: 50% 0;
+}
+
+/* They move along with the cover, and do a little something when it's pointed at. */
+:root[data-theme="hollow"] .card:is(:hover, :focus-visible)::after {
+  transform: translateY(-5px);
+}
+
+:root[data-theme="hollow"] .card:is([data-id$="0"], [data-id$="9"], [data-id$="2"]):is(:hover, :focus-visible)::after {
+  animation: he-hop 0.5s ease;
+}
+
+:root[data-theme="hollow"] .card[data-id$="4"]:is(:hover, :focus-visible)::after {
+  transform: translateY(-14px);
+}
+
+:root[data-theme="hollow"] .card[data-id$="5"]:is(:hover, :focus-visible)::after {
+  transform: translateY(-40px);
+}
+
+:root[data-theme="hollow"] .card[data-id$="7"]:is(:hover, :focus-visible)::after {
+  animation: he-sway 0.6s ease-in-out 2;
+}
+
+@keyframes he-hop {
+  40% {
+    transform: translateY(-12px) rotate(-6deg);
+  }
+  100% {
+    transform: translateY(-5px);
+  }
+}
+
+:root[data-theme="hollow"] .card__name {
+  font-size: 14.5px;
+}
+
+:root[data-theme="hollow"] :is(.card__badge, .ep__new, .ccard__badge) {
+  background: var(--he-slime);
+  color: #0f1a05;
+  box-shadow: 0 0 12px rgba(156, 255, 58, 0.45);
+}
+
+:root[data-theme="hollow"] .watched-badge {
+  background: var(--he-pumpkin);
+  box-shadow: 0 0 10px rgba(255, 117, 24, 0.6);
+}
+
+/* Watching progress: a glowing ember along the bottom. */
+:root[data-theme="hollow"] .progress {
+  height: 5px;
+  background: rgba(0, 0, 0, 0.55);
+  overflow: visible;
+}
+
+:root[data-theme="hollow"] .progress > span {
+  position: relative;
+  border-radius: 9px;
+  background: linear-gradient(90deg, var(--he-pumpkin-dark), var(--he-ember));
+}
+
+:root[data-theme="hollow"] .progress > span::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--he-candle);
+  box-shadow: 0 0 10px 3px rgba(255, 170, 60, 0.85);
+}
+
+/* Continue watching */
+:root[data-theme="hollow"] .ccard__art {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="hollow"] .ccard:hover .ccard__art {
+  box-shadow:
+    0 0 0 2px var(--he-pumpkin),
+    0 0 26px rgba(255, 117, 24, 0.45),
+    0 14px 34px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="hollow"] .ccard__code {
+  color: var(--he-ember);
+}
+
+:root[data-theme="hollow"] .ccard__show {
+  color: var(--he-slime);
+  opacity: 0.85;
+}
+
+/* A closing line under the rows. */
+:root[data-theme="hollow"] .home__end {
+  color: var(--muted);
+  font-size: 15px;
+  font-style: italic;
+}
+
+/* ---------- Show pages: the artwork above a graveyard ---------- */
+
+:root[data-theme="hollow"] .tp {
+  --tp-art-h: 560px;
+}
+
+:root[data-theme="hollow"] .tp__backdrop {
+  height: var(--tp-art-h);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+:root[data-theme="hollow"] .tp__backdrop img {
+  opacity: 0.5;
+}
+
+:root[data-theme="hollow"] .tp__backdrop::after {
+  background:
+    linear-gradient(to top, var(--bg) 0%, transparent 45%),
+    linear-gradient(to right, color-mix(in srgb, var(--bg) 85%, transparent), transparent 70%),
+    linear-gradient(rgba(61, 31, 92, 0.3), transparent 50%);
+}
+
+:root[data-theme="hollow"] .tp__decor--bottom.he-scene {
+  z-index: 0;
+  top: calc(var(--tp-art-h) - var(--he-scene-h) + 60px);
+  bottom: auto;
+}
+
+:root[data-theme="hollow"] .tp--movie {
+  --tp-art-h: 100vh;
+}
+
+:root[data-theme="hollow"] .tp--movie .tp__backdrop {
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+}
+
+:root[data-theme="hollow"] .tp__cover {
+  overflow: visible;
+  box-shadow:
+    0 0 0 2px rgba(255, 117, 24, 0.5),
+    0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="hollow"] .tp__cover img {
+  border-radius: var(--radius-card);
+}
+
+:root[data-theme="hollow"] .tp__desc-box {
+  margin-top: 18px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(14, 9, 20, 0.84);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+:root[data-theme="hollow"] .tp__desc-box .tp__desc {
+  margin-top: 0;
+}
+
+:root[data-theme="hollow"] .tp__desc {
+  color: #e8dccb;
+  font-size: 15.5px;
+}
+
+/* Season tabs: the spooky font, a glowing drip under the one you're on. */
+:root[data-theme="hollow"] .seasons {
+  gap: 6px 24px;
+  margin-bottom: 22px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+:root[data-theme="hollow"] .seasons__tab {
+  position: relative;
+  padding: 8px 4px 12px;
+  background: none;
+  color: var(--muted);
+  font: 400 23px var(--font-display);
+  letter-spacing: 0.03em;
+}
+
+:root[data-theme="hollow"] .seasons__tab:hover {
+  color: var(--he-bone);
+}
+
+:root[data-theme="hollow"] .seasons__tab.is-active {
+  background: none;
+  color: var(--he-pumpkin);
+}
+
+:root[data-theme="hollow"] .seasons__tab.is-active::after {
+  left: -2px;
+  right: -2px;
+  top: calc(100% - 4px);
+}
+
+:root[data-theme="hollow"] .ep {
+  border-radius: 16px;
+}
+
+:root[data-theme="hollow"] .ep:hover {
+  background: rgba(107, 63, 160, 0.16);
+}
+
+:root[data-theme="hollow"] .ep__still {
+  border-radius: 10px;
+}
+
+:root[data-theme="hollow"] .ep__code {
+  color: var(--he-ember);
+}
+
+:root[data-theme="hollow"] .ep__name {
+  font-size: 16px;
+}
+
+:root[data-theme="hollow"] .ep.is-watched .ep__name {
+  color: var(--muted);
+}
+
+:root[data-theme="hollow"] .extra:hover {
+  background: rgba(107, 63, 160, 0.16);
+}
+
+/* ---------- Messages: from a little ghost ---------- */
+
+:root[data-theme="hollow"] .say {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px 12px 14px;
+  border: 0;
+  border-radius: 18px;
+  background: rgba(14, 9, 20, 0.94);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    0 12px 36px rgba(0, 0, 0, 0.55);
+  font-size: 16px;
+  animation: he-say-in 0.4s var(--spring) both;
+}
+
+:root[data-theme="hollow"] .say::before {
+  content: "";
+  width: 36px;
+  height: 40px;
+  flex: none;
+  background: var(--he-img-ghost) center / contain no-repeat;
+  animation: he-float 2.4s ease-in-out infinite;
+}
+
+@keyframes he-say-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 40px);
+  }
+}
+
+@keyframes he-float {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+:root[data-theme="hollow"] .toast {
+  border-radius: 16px;
+}
+
+/* A trick (index.ts): the lights flicker out, a ghost whooshes past. */
+.he-trick {
+  position: fixed;
+  z-index: 2900;
+  inset: 0;
+  background: #000;
+  pointer-events: none;
+  animation: he-lights-out 1.2s steps(1) both;
+}
+
+@keyframes he-lights-out {
+  0% {
+    opacity: 0.85;
+  }
+  12% {
+    opacity: 0;
+  }
+  22% {
+    opacity: 0.9;
+  }
+  40% {
+    opacity: 0.2;
+  }
+  52% {
+    opacity: 0.75;
+  }
+  70%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.he-whoosh {
+  position: fixed;
+  z-index: 2950;
+  top: 30%;
+  left: -160px;
+  width: 130px;
+  height: 142px;
+  opacity: 0.85;
+  pointer-events: none;
+  animation: he-whoosh 1.4s cubic-bezier(0.5, 0, 0.5, 1) forwards;
+}
+
+.he-whoosh svg {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes he-whoosh {
+  0% {
+    transform: translate(0, 0) rotate(8deg);
+  }
+  50% {
+    transform: translate(55vw, -60px) rotate(-6deg);
+  }
+  100% {
+    transform: translate(calc(100vw + 200px), 20px) rotate(10deg);
+  }
+}
+
+/* ---------- Candle out: pressing Play (Candle.tsx; 1.35 s in all) ---------- */
+
+.he-candle {
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--x) var(--y), rgba(255, 150, 50, 0.16), rgba(5, 2, 8, 0.86) 180px, #050208 420px);
+  animation: he-candle-room 1.35s linear both;
+}
+
+/* The room darkens around the flame, goes black when it's blown out, then lifts onto the video. */
+@keyframes he-candle-room {
+  0% {
+    opacity: 0;
+  }
+  28% {
+    opacity: 0.92;
+  }
+  40% {
+    opacity: 0.92;
+    background: radial-gradient(circle at var(--x) var(--y), rgba(255, 150, 50, 0.16), rgba(5, 2, 8, 0.86) 180px, #050208 420px);
+  }
+  50%,
+  70% {
+    opacity: 1;
+    background: #050208;
+  }
+  100% {
+    opacity: 0;
+    background: #050208;
+  }
+}
+
+.he-candle__flame {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 22px;
+  height: 36px;
+  margin: -30px 0 0 -11px;
+  border-radius: 50% 50% 45% 45% / 62% 62% 38% 38%;
+  background: radial-gradient(circle at 50% 72%, #fff6d8 0 18%, #ffd36b 32%, #ff9a2e 62%, rgba(255, 117, 24, 0) 75%);
+  box-shadow: 0 0 40px 14px rgba(255, 150, 50, 0.35);
+  transform-origin: 50% 90%;
+  animation:
+    he-candle-dance 0.18s ease-in-out infinite alternate,
+    he-candle-out 0.16s 0.5s ease-in forwards;
+}
+
+@keyframes he-candle-dance {
+  to {
+    transform: scaleY(1.12) skewX(4deg);
+  }
+}
+
+@keyframes he-candle-out {
+  to {
+    opacity: 0;
+    transform: scale(0.2, 0.4);
+  }
+}
+
+.he-candle__smoke {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 12px;
+  height: 12px;
+  margin: -18px 0 0 -6px;
+  border-radius: 50%;
+  background: rgba(170, 155, 190, 0.55);
+  box-shadow:
+    6px -12px 0 -1px rgba(170, 155, 190, 0.4),
+    -3px -24px 0 -2px rgba(170, 155, 190, 0.28);
+  opacity: 0;
+  animation: he-smoke 0.9s 0.55s ease-out forwards;
+}
+
+/* ---------- Grid pages, search, empty pages ---------- */
+
+:root[data-theme="hollow"] .filter.is-on,
+:root[data-theme="hollow"] .choice.is-on {
+  background: var(--he-pumpkin);
+  color: var(--on-accent);
+}
+
+:root[data-theme="hollow"] .search__secret {
+  color: var(--he-ember);
+  font-size: 18px;
+}
+
+/* ---------- Right-click menus, dialogs, settings ---------- */
+
+:root[data-theme="hollow"] .ctx-menu {
+  border-color: var(--line);
+  border-radius: 16px;
+  background: rgba(23, 16, 31, 0.97);
+}
+
+:root[data-theme="hollow"] .ctx-menu__item {
+  border-radius: 10px;
+}
+
+:root[data-theme="hollow"] .ctx-menu__item:hover {
+  background: rgba(255, 117, 24, 0.16);
+  color: var(--he-bone);
+}
+
+:root[data-theme="hollow"] .modal {
+  backdrop-filter: blur(6px);
+}
+
+:root[data-theme="hollow"] .modal__panel {
+  border-color: var(--line);
+  background:
+    radial-gradient(600px 300px at 100% 0%, rgba(255, 117, 24, 0.08), transparent 70%),
+    radial-gradient(500px 400px at 0% 100%, rgba(107, 63, 160, 0.14), transparent 70%),
+    var(--bg-elev);
+  box-shadow:
+    0 40px 120px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(255, 117, 24, 0.08);
+}
+
+:root[data-theme="hollow"] .settings__heading {
+  color: var(--he-pumpkin);
+}
+
+:root[data-theme="hollow"] .settings__nav.is-active {
+  background: rgba(255, 117, 24, 0.16);
+  color: var(--he-pumpkin);
+}
+
+:root[data-theme="hollow"] .theme-card.is-active {
+  border-color: var(--he-pumpkin);
+  box-shadow: 0 0 20px rgba(255, 117, 24, 0.25);
+}
+
+:root[data-theme="hollow"] .input {
+  border-color: rgba(243, 234, 216, 0.16);
+  background: rgba(11, 7, 16, 0.7);
+}
+
+:root[data-theme="hollow"] .input:focus {
+  border-color: var(--he-pumpkin);
+}
+
+/* Switches: the knob is a pumpkin that rolls over and lights up when it's on. */
+:root[data-theme="hollow"] .toggle {
+  width: 54px;
+  height: 28px;
+  background: #241a30;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="hollow"] .toggle::after {
+  top: -4px;
+  left: -4px;
+  width: 34px;
+  height: 34px;
+  border-radius: 0;
+  background: var(--he-img-knob-off) center / contain no-repeat;
+  transition: transform 0.35s cubic-bezier(0.4, 1.6, 0.5, 1);
+}
+
+:root[data-theme="hollow"] .toggle.is-on {
+  background: rgba(255, 117, 24, 0.35);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 117, 24, 0.7),
+    0 0 14px rgba(255, 117, 24, 0.3);
+}
+
+:root[data-theme="hollow"] .toggle.is-on::after {
+  background: var(--he-img-knob-on) center / contain no-repeat;
+  transform: translateX(28px) rotate(360deg);
+}
+
+:root[data-theme="hollow"] .size-row__slider {
+  accent-color: var(--he-pumpkin);
+}
+
+/* ---------- The preview in Settings → Appearance ---------- */
+
+[data-theme="hollow"] > .tprev {
+  background:
+    radial-gradient(120% 70% at 85% 0%, rgba(255, 117, 24, 0.16), transparent 60%),
+    radial-gradient(90% 80% at 0% 80%, rgba(107, 63, 160, 0.22), transparent 60%),
+    var(--bg);
+}
+
+[data-theme="hollow"] > .tprev .tprev__brand {
+  color: #ff7518;
+  font-family: "Creepster", fantasy;
+  font-size: 11px;
+  text-shadow: 0 0 6px rgba(255, 117, 24, 0.6);
+}
+
+/* A moon and a few pumpkins on dark ground. */
+[data-theme="hollow"] > .tprev .tprev__hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    var(--he-img-pumpkin) right 6px bottom 1px / 15px 13px no-repeat,
+    var(--he-img-pumpkin) right 26px bottom 0 / 10px 9px no-repeat,
+    var(--he-img-pumpkin) right 40px bottom 1px / 13px 11px no-repeat,
+    linear-gradient(transparent 78%, #120a17 78%),
+    radial-gradient(circle at calc(100% - 22px) 28%, #f6d98a 0 6px, rgba(255, 200, 110, 0.25) 7px, transparent 16px);
+}
+
+[data-theme="hollow"] > .tprev .tprev__title {
+  z-index: 1;
+  color: #f3ead8;
+  text-shadow: 0 0 8px rgba(255, 117, 24, 0.5);
+}
+
+[data-theme="hollow"] > .tprev .tprev__btn {
+  z-index: 1;
+  background: linear-gradient(180deg, #ff8a2e, #e25d0c);
+  color: #1a0d05;
+}
+
+[data-theme="hollow"] > .tprev .tprev__tab.is-active {
+  background: #ff7518;
+}
+
+/* ---------- Player ---------- */
+
+:root[data-theme="hollow"] .player__played {
+  background: linear-gradient(90deg, var(--he-potion), var(--he-pumpkin));
+  box-shadow: 0 0 12px rgba(255, 117, 24, 0.5);
+}
+
+/* A pumpkin for the handle. */
+:root[data-theme="hollow"] .player__knob,
+:root[data-theme="hollow"] .player__seek:hover .player__knob {
+  width: 26px;
+  height: 26px;
+  border-radius: 0;
+  background: var(--he-img-knob-on) center / contain no-repeat;
+  box-shadow: none;
+}
+
+:root[data-theme="hollow"] .player__code {
+  color: var(--he-ember);
+}
+
+:root[data-theme="hollow"] .player__title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: 0.03em;
+}
+
+:root[data-theme="hollow"] .player__btn:hover,
+:root[data-theme="hollow"] .player__btn.is-active {
+  color: var(--he-pumpkin);
+}
+
+/* Loading: a bubbling cauldron. */
+:root[data-theme="hollow"] .player__spinner {
+  width: 64px;
+  height: 60px;
+  margin: -30px 0 0 -32px;
+  border: 0;
+  border-radius: 0;
+  background: var(--he-img-cauldron) center / contain no-repeat;
+  animation: he-bubble 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes he-bubble {
+  to {
+    transform: translateY(-3px) scale(1.04, 0.97);
+  }
+}
+
+:root[data-theme="hollow"] .player--mini .player__spinner {
+  width: 40px;
+  height: 37px;
+  margin: -18px 0 0 -20px;
+}
+
+/* ---------- A newer version is out ---------- */
+
+:root[data-theme="hollow"] .update-note {
+  border-radius: 18px;
+  background: rgba(14, 9, 20, 0.96);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    0 12px 36px rgba(0, 0, 0, 0.55);
+}

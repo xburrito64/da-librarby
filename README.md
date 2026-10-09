@@ -31,11 +31,13 @@ Windows only for now.
 - **Search, filters, sorting, right-click menus,** "Surprise me", arrow-key browsing and keyboard
   shortcuts for everything. Everything grows with the window on big screens, and an interface size
   slider makes it bigger or smaller.
-- **Five themes**, switchable any time in Settings → Appearance: **Velvet** (dark and cinematic),
-  **Paper** (a film magazine), **Neon** (synthwave arcade), **Mochi** (soft pastel) and **Snowdin**
+- **Six themes**, switchable any time in Settings → Appearance: **Velvet** (dark and cinematic),
+  **Paper** (a film magazine), **Neon** (synthwave arcade), **Mochi** (soft pastel), **Snowdin**
   (a cozy snowy pixel town, after the game this app's name comes from, with falling snow, a heart
   pointer in the colour of your choice, little sounds, a battle start when you press Play and a
-  few secrets; you can give it your own font, sound files and background music).
+  few secrets; you can give it your own font, sound files and background music) and **Hollow's Eve**
+  (a pumpkin patch on Halloween night: glowing jack-o'-lanterns, bats, a spider, fog, a ghost behind
+  the tombstones and trick or treat). Hollow's Eve takes over by itself in October, if you like.
 
 ## Getting started
 

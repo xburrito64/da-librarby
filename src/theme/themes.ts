@@ -20,6 +20,7 @@ import "./mochi.css";
 import type { Copy } from "./copy";
 import type { SoundName, SoundPlayer } from "./sound";
 import { SNOWDIN } from "./snowdin";
+import { HOLLOW } from "./hollow";
 
 export interface Theme {
   id: string;
@@ -99,6 +100,7 @@ export const THEMES: Theme[] = [
     dark: false,
   },
   SNOWDIN,
+  HOLLOW,
 ];
 
 export const DEFAULT_THEME = "velvet";

@@ -9,7 +9,7 @@ import { getSetting, setSetting } from "../ui/settings";
 import { UPDATES_SETTING } from "../ui/UpdateNote";
 import { scaleSettings, setScale } from "../ui/scale";
 import { THEMES, type ThemeOption } from "../theme/themes";
-import { setTheme, useTheme, useThemeInfo } from "../theme/theme";
+import { setSeasonalSwitch, setTheme, useSeasonalSwitch, useTheme, useThemeInfo } from "../theme/theme";
 import { setThemeOption, useThemeOptions } from "../theme/options";
 import { loadOwnFiles, musicFiles, openOwnFolder, useOwnFiles } from "../theme/ownFiles";
 import { CheckIcon, CloseIcon, FolderIcon, RefreshIcon } from "../ui/icons";
@@ -161,9 +161,26 @@ function Appearance({ titles }: { titles: TitleSummary[] }) {
           </button>
         ))}
       </div>
+      <SeasonalSwitch />
       <ThemeOptions />
       <OwnFiles />
     </section>
+  );
+}
+
+/** Hollow's Eve taking over by itself in October. */
+function SeasonalSwitch() {
+  const on = useSeasonalSwitch();
+  return (
+    <button className="toggle-row seasonal-row" role="switch" aria-checked={on} onClick={() => setSeasonalSwitch(!on)}>
+      <span className="toggle-row__text">
+        <span className="toggle-row__label">Hollow's Eve in October</span>
+        <span className="toggle-row__hint">
+          Switches to Hollow's Eve by itself for October; your own theme is back in November. Picking a theme yourself in October keeps it.
+        </span>
+      </span>
+      <span className={`toggle ${on ? "is-on" : ""}`} />
+    </button>
   );
 }
 

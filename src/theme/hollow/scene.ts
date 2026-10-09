@@ -1,0 +1,189 @@
+// Hollow's Eve's scenes, drawn as vector pictures right in the page (so their pumpkins can glow when
+// pointed at and the ghost can peek out): a pumpkin patch at night under the spotlight, with a
+// haunted house on the hill, and a graveyard on show pages. Both are as wide as the window, with
+// everything placed from the right; the left stays calm, for the text.
+import { C, ghostShape, pumpkinShape } from "./art";
+
+/** The scenes' height (px, as in hollow.css), and where the ground is. */
+export const SCENE_H = 330;
+/** Things are placed as on a 1440-wide scene, shifted to stay at the right. */
+const DESIGN_W = 1440;
+
+/** Same numbers every time, so the scene doesn't reshuffle. */
+function random(seed: number) {
+  return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+}
+
+function defs(id: string) {
+  return `<defs>
+    <radialGradient id="${id}moon-glow"><stop offset="0" stop-color="#ffe4a3" stop-opacity="0.35"/><stop offset="0.45" stop-color="#ffb35c" stop-opacity="0.12"/><stop offset="1" stop-color="#ff8a2e" stop-opacity="0"/></radialGradient>
+    <radialGradient id="${id}moon" cx="0.4" cy="0.38"><stop offset="0" stop-color="#fff2c9"/><stop offset="0.7" stop-color="#f6d98a"/><stop offset="1" stop-color="#e9b862"/></radialGradient>
+    <radialGradient id="${id}light"><stop offset="0" stop-color="#ff9a3c" stop-opacity="0.45"/><stop offset="1" stop-color="#ff7518" stop-opacity="0"/></radialGradient>
+    <radialGradient id="ps" cx="0.35" cy="0.3"><stop offset="0" stop-color="${C.pumpkinLight}"/><stop offset="0.6" stop-color="#f2721c"/><stop offset="1" stop-color="#b8480b"/></radialGradient>
+    <filter id="${id}glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>`;
+}
+
+/** A pumpkin in the scene: plain ones wobble when pointed at, jack-o'-lanterns glow brighter. */
+function pumpkin(id: string, x: number, y: number, r: number, jack: boolean) {
+  const light = jack ? `<ellipse class="he-light" cx="${x}" cy="${y}" rx="${r * 2.6}" ry="${r * 0.7}" fill="url(#${id}light)"/>` : "";
+  const body = pumpkinShape(x, y, r, jack ? C.candle : undefined);
+  // The face glows: drawn again on top, blurred.
+  const face = jack ? `<g filter="url(#${id}glow)" class="he-face">${pumpkinShape(x, y, r, C.candle).replace(/^.*?(<g fill=)/s, "$1")}</g>` : "";
+  return `<g class="he-pumpkin ${jack ? "is-jack" : ""}">${light}${body}${face}</g>`;
+}
+
+function tombstone(x: number, y: number, w: number, h: number, kind: "round" | "cross", tilt = 0) {
+  const fill = "#2c2238";
+  const edge = "#4a3d5e";
+  const shape =
+    kind === "cross"
+      ? `<path d="M${x - 3} ${y}v${-h}h-9v-7h9v-9h7v9h9v7h-9v${h}z" fill="${fill}" stroke="${edge}" stroke-width="1.2"/>`
+      : `<path d="M${x - w / 2} ${y}v${-h + w / 2}a${w / 2} ${w / 2} 0 0 1 ${w} 0v${h - w / 2}z" fill="${fill}" stroke="${edge}" stroke-width="1.2"/>` +
+        `<path d="M${x - w / 4} ${y - h + w / 2 + 6}h${w / 2}M${x - w / 5} ${y - h + w / 2 + 11}h${w / 2.5}" stroke="#1c1526" stroke-width="2" stroke-linecap="round"/>`;
+  return `<g transform="rotate(${tilt} ${x} ${y})">${shape}</g>`;
+}
+
+function bareTree(x: number, y: number, s: number) {
+  const p = (d: string, w: number) => `<path d="${d}" stroke="#0e0814" stroke-width="${w}" fill="none" stroke-linecap="round"/>`;
+  return `<g transform="translate(${x} ${y}) scale(${s})">${[
+    p("M0 0C-2-26 4-46-2-70", 8),
+    p("M-1-40C-14-50-22-58-30-74", 4.5),
+    p("M1-50C15-62 24-66 32-80", 4.5),
+    p("M-2-70C-6-82 0-92-4-104", 3.5),
+    p("M-28-71l-9-5M-26-66l-12 2", 2),
+    p("M30-77l7-9M27-72l12-2", 2),
+    p("M-4-100l-7-6M-3-96l8-8", 1.6),
+  ].join("")}</g>`;
+}
+
+function moon(id: string, x: number, y: number, r: number) {
+  return (
+    `<circle cx="${x}" cy="${y}" r="${r * 2.8}" fill="url(#${id}moon-glow)"/>` +
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#${id}moon)"/>` +
+    `<circle cx="${x - r * 0.28}" cy="${y - r * 0.24}" r="${r * 0.16}" fill="#e8c27a" opacity="0.5"/>` +
+    `<circle cx="${x + r * 0.32}" cy="${y + r * 0.28}" r="${r * 0.22}" fill="#e8c27a" opacity="0.4"/>` +
+    `<circle cx="${x + r * 0.24}" cy="${y - r * 0.4}" r="${r * 0.1}" fill="#e8c27a" opacity="0.45"/>`
+  );
+}
+
+/** Two small bats crossing the moon. */
+function moonBats(x: number, y: number) {
+  return `<g fill="#0e0814" opacity="0.9" class="he-moonbats"><path d="M${x - 54} ${y - 30}q5-5 10 0q3-2 4 1q1-3 4-1q5-5 10 0q-6 0-9 4q-2-2-5 0q-3-4-14-4z"/><path d="M${x + 30} ${y + 34}q4-4 8 0q2-2 3 1q1-3 3-1q4-4 8 0q-5 0-7 3q-2-2-4 0q-2-3-11-3z"/></g>`;
+}
+
+/** The ghost hiding behind a tombstone (it peeks out now and then, see Decor.tsx). */
+function ghost(x: number, y: number, s: number) {
+  return `<g class="he-ghost"><g transform="translate(${x} ${y}) scale(${s})">${ghostShape()}</g></g>`;
+}
+
+/** The ground's top edge, gently rolling. */
+function groundPath(w: number, y: number, amp: number, phase: number) {
+  let d = `M0 ${SCENE_H}L0 ${y}`;
+  for (let x = 0; x <= w; x += 60) d += `L${x} ${(y + Math.sin(x / 180 + phase) * amp + Math.sin(x / 67 + phase * 2) * amp * 0.4).toFixed(1)}`;
+  return `${d}L${w} ${SCENE_H}Z`;
+}
+
+/** A few small pumpkins and vines scattered over the wide middle of a wide window. */
+function scattered(id: string, rand: () => number, from: number, to: number, y: number) {
+  let s = "";
+  for (let x = from + rand() * 80; x < to; x += 150 + rand() * 180) {
+    s += pumpkin(id, x, y + rand() * 6, 6 + rand() * 6, rand() < 0.3);
+    s += `<path d="M${x - 30} ${y + 4}c10-6 20 4 30 0s20-6 30 0" stroke="${C.vine}" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.8"/>`;
+  }
+  return s;
+}
+
+/** The pumpkin patch under the spotlight. */
+export function patchScene(width: number) {
+  const id = "hep-";
+  const w = Math.max(1100, Math.ceil(width));
+  const r = w - DESIGN_W;
+  const rand = random(7);
+  let s = `<svg class="he-scene__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${SCENE_H}" width="${w}" height="${SCENE_H}">${defs(id)}`;
+  s += moon(id, r + 1180, 78, 50) + moonBats(r + 1180, 78);
+  // Far hills, then the hill with the house.
+  s += `<path d="${groundPath(w, 236, 10, 1)}" fill="#1b1026"/>`;
+  s += `<path d="M${r + 930} ${SCENE_H}C${r + 990} 236 ${r + 1076} 176 ${r + 1186} 172C${r + 1296} 168 ${r + 1384} 204 ${w} 220L${w} ${SCENE_H}Z" fill="#140b1d"/>`;
+  // The haunted house, a little crooked, one window flickering.
+  const tilt = `transform="rotate(-2 ${r + 1190} 176)"`;
+  s += `<g ${tilt} fill="#0d0712"><rect x="${r + 1150}" y="122" width="80" height="56"/><polygon points="${r + 1140},124 ${r + 1190},84 ${r + 1240},124"/><rect x="${r + 1208}" y="80" width="26" height="64"/><polygon points="${r + 1202},82 ${r + 1221},38 ${r + 1240},82"/><rect x="${r + 1160}" y="94" width="10" height="24"/></g>`;
+  s += `<g ${tilt} fill="#ffb347" filter="url(#${id}glow)"><rect x="${r + 1162}" y="136" width="12" height="14" rx="1"/><rect class="he-flicker" x="${r + 1196}" y="136" width="12" height="14" rx="1"/><rect class="he-flicker he-flicker--slow" x="${r + 1215}" y="96" width="9" height="12" rx="1"/><rect x="${r + 1184}" y="156" width="14" height="22" rx="7" fill="#c9611a" opacity="0.8"/></g>`;
+  s += `<g ${tilt} stroke="#0d0712" stroke-width="1.6"><path d="M${r + 1168} 136v14M${r + 1162} 143h12M${r + 1202} 136v14M${r + 1196} 143h12"/></g>`;
+  s += bareTree(r + 1088, 196, 1.05) + bareTree(r + 1376, 214, 0.8) + bareTree(r + 890, 236, 0.75);
+  // Distant trees along the hills on a wide window.
+  for (let x = 760; x < r + 760; x += 260 + rand() * 200) s += bareTree(x, 240 + rand() * 8, 0.45 + rand() * 0.25);
+  // Tombstones, the ghost hiding behind the big one.
+  s += ghost(r + 846, 228, 0.62);
+  s += tombstone(r + 700, 262, 22, 34, "round", -4) + tombstone(r + 742, 258, 18, 28, "round", 6) + tombstone(r + 790, 262, 0, 26, "cross", -3);
+  s += tombstone(r + 858, 258, 30, 40, "round", 0) + tombstone(r + 912, 262, 20, 30, "round", 9);
+  // The crooked fence, with a black cat on it.
+  let fence = `<g fill="#1f1529"><rect x="${r + 560}" y="246" width="${w - r - 560}" height="3"/><rect x="${r + 560}" y="258" width="${w - r - 560}" height="3"/>`;
+  for (let x = r + 566; x < w; x += 17) {
+    if (rand() < 0.08) continue;
+    const t = (rand() - 0.5) * 10;
+    const h = 24 + rand() * 6;
+    fence += `<path transform="rotate(${t.toFixed(1)} ${x} 268)" d="M${x - 3} 268v${-h.toFixed(1)}l3-5 3 5v${h.toFixed(1)}z"/>`;
+  }
+  s += `${fence}</g>`;
+  s += `<g transform="translate(${r + 626} 240)" class="he-cat">
+    <path class="he-cat__tail" d="M12 0c10-2 14-10 10-18c-2-4 2-6 4-2c4 10-2 20-14 22z" fill="#07040a"/>
+    <path d="M0 0c-2-10 0-18 4-22c-3-4-4-10-2-14l4 4c2-1 5-1 7 0l4-4c2 4 1 10-2 14c4 4 6 12 4 22z" fill="#07040a"/>
+    <g class="he-cat__eyes" fill="${C.slime}" filter="url(#${id}glow)"><ellipse cx="5" cy="-27" rx="1.6" ry="1.2"/><ellipse cx="11" cy="-27" rx="1.6" ry="1.2"/></g>
+  </g>`;
+  // The ground in front, vines, and the pumpkin patch.
+  s += `<path d="${groundPath(w, 270, 4, 3)}" fill="#120a17"/>`;
+  s += `<g stroke="${C.vine}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.9"><path d="M${r + 740} 300C${r + 800} 290 ${r + 840} 312 ${r + 900} 300S${r + 1000} 290 ${r + 1060} 304S${r + 1200} 296 ${r + 1260} 306S${r + 1360} 300 ${w} 296"/><path d="M${r + 820} 300c6-8 14-6 12 2c-2 6-8 4-6-1"/><path d="M${r + 1010} 298c6-8 14-6 12 2c-2 6-8 4-6-1"/><path d="M${r + 1190} 302c6-8 14-6 12 2c-2 6-8 4-6-1"/></g>`;
+  s += scattered(id, rand, 760, r + 560, 292);
+  s += pumpkin(id, r + 612, 296, 8, false) + pumpkin(id, r + 770, 302, 15, true) + pumpkin(id, r + 842, 298, 9, false) + pumpkin(id, r + 982, 310, 22, true);
+  s += pumpkin(id, r + 1060, 300, 11, false) + pumpkin(id, r + 1146, 306, 17, true) + pumpkin(id, r + 1236, 298, 12, false);
+  s += pumpkin(id, r + 1322, 312, 25, true) + pumpkin(id, r + 1404, 300, 11, false);
+  return `${s}</svg>`;
+}
+
+/** An iron fence with spiky posts. */
+function ironFence(from: number, to: number, y: number) {
+  let s = `<g stroke="#1d1526" stroke-width="2.2" fill="none"><path d="M${from} ${y - 18}H${to}M${from} ${y - 6}H${to}"/>`;
+  for (let x = from; x <= to; x += 11) s += `<path d="M${x} ${y}V${y - 26}"/><path d="M${x - 2.5} ${y - 24}l2.5-5 2.5 5" fill="#1d1526" stroke-width="1"/>`;
+  return `${s}</g>`;
+}
+
+/** The graveyard along the bottom of a show page's artwork, with a crypt on the right. */
+export function graveyardScene(width: number) {
+  const id = "heg-";
+  const w = Math.max(1100, Math.ceil(width));
+  const r = w - DESIGN_W;
+  const rand = random(13);
+  let s = `<svg class="he-scene__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${SCENE_H}" width="${w}" height="${SCENE_H}">${defs(id)}`;
+  s += moon(id, r + 1330, 70, 34);
+  s += `<path d="${groundPath(w, 238, 9, 2)}" fill="#1b1026"/>`;
+  for (let x = 700; x < w; x += 220 + rand() * 220) s += bareTree(x, 244 + rand() * 6, 0.5 + rand() * 0.3);
+  s += bareTree(r + 1150, 262, 1.1);
+  // The crypt: stone, a pointed roof, a door that glows (and sometimes has eyes in it).
+  s += `<g transform="translate(${r + 1250} 264)">
+    <path d="M-52 0V-70H52V0Z" fill="#231a2e" stroke="#3d3050" stroke-width="1.5"/>
+    <path d="M-62-68L0-112L62-68Z" fill="#1a1222" stroke="#3d3050" stroke-width="1.5"/>
+    <path d="M-6-112V-128M-12-122H0" stroke="#3d3050" stroke-width="3" stroke-linecap="round"/>
+    <path d="M-58-68H58" stroke="#3d3050" stroke-width="4"/>
+    <path d="M-16 0V-42A16 16 0 0 1 16-42V0Z" fill="#0a060d"/>
+    <path d="M-16 0V-42A16 16 0 0 1 16-42V0Z" fill="none" stroke="#ff7518" stroke-opacity="0.35" stroke-width="2" filter="url(#${id}glow)"/>
+    <g class="he-eyes" fill="${C.candle}" filter="url(#${id}glow)"><ellipse cx="-5" cy="-30" rx="2.2" ry="1.4"/><ellipse cx="5" cy="-30" rx="2.2" ry="1.4"/></g>
+    <path d="M-44-50h18M-44-40h12M28-50h16M32-40h12" stroke="#2f2540" stroke-width="2"/>
+  </g>`;
+  // A lantern by the path.
+  s += `<g transform="translate(${r + 1120} 270)"><circle cx="0" cy="-56" r="26" fill="url(#${id}light)"/><path d="M0 0V-48" stroke="#1d1526" stroke-width="3"/><rect x="-6" y="-62" width="12" height="14" rx="2" fill="${C.candle}" class="he-flicker" filter="url(#${id}glow)"/><path d="M-8-62h16l-8-7z" fill="#1d1526"/></g>`;
+  s += ironFence(r + 560, r + 1070, 266);
+  // Tombstones in rows, the ghost behind one.
+  s += ghost(r + 906, 232, 0.6);
+  const stones: [number, number, number, number, "round" | "cross", number][] = [
+    [600, 268, 20, 30, "round", -5], [650, 266, 24, 36, "round", 3], [700, 268, 0, 26, "cross", 4], [760, 270, 18, 26, "round", -8],
+    [820, 266, 22, 32, "round", 2], [918, 262, 30, 42, "round", 0], [976, 268, 0, 28, "cross", -6], [1030, 270, 20, 28, "round", 7],
+  ];
+  for (const [x, y, sw, sh, kind, t] of stones) s += tombstone(r + x, y, sw, sh, kind, t);
+  // The path up to the crypt, and the ground.
+  s += `<path d="${groundPath(w, 274, 3, 4)}" fill="#120a17"/>`;
+  s += `<path d="M${r + 760} ${SCENE_H}C${r + 900} 300 ${r + 1100} 296 ${r + 1250} 266L${r + 1266} 266C${r + 1180} 300 ${r + 1000} 316 ${r + 880} ${SCENE_H}Z" fill="#221830" opacity="0.8"/>`;
+  s += scattered(id, rand, 720, r + 560, 296);
+  s += pumpkin(id, r + 1330, 306, 18, true) + pumpkin(id, r + 1384, 300, 10, false) + pumpkin(id, r + 1180, 304, 9, false) + pumpkin(id, r + 1420, 308, 14, true);
+  return `${s}</svg>`;
+}
