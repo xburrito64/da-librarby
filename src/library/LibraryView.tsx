@@ -249,14 +249,17 @@ export default function LibraryView({
         <button
           className="nav__brand"
           onClick={() => {
-            const atHome = tab === "home" && openTitle == null && !query.trim();
+            // A theme that answers clicks on the name (Snowdin's sign) keeps you where you are;
+            // otherwise the name is a way back Home.
+            const stay = brandClick != null;
+            const atHome = stay || (tab === "home" && openTitle == null && !query.trim());
             const line = brandClick?.({ sound: playSound });
             if (line) setSaid({ text: line, n: Date.now() });
             else if (atHome && copy.brandLines.length > 0) {
               const n = brandClicks.current++;
               setSaid({ text: copy.brandLines[n % copy.brandLines.length], n });
             }
-            goTo("home");
+            if (!stay) goTo("home");
           }}
         >
           <span className="nav__logo" aria-hidden="true" />

@@ -49,8 +49,9 @@ export interface ThemeExtras {
   /** Called with the theme's option values while it's the current theme, and again whenever they
    *  change (e.g. to recolour its artwork). */
   apply?: (options: Record<string, boolean | string | undefined>) => void;
-  /** Clicking the app's name: return something to say, or null for the usual `copy.brandLines`
-   *  (said only when already on Home). `sound` plays one of the theme's sounds. */
+  /** Clicking the app's name: return something to say, or null for the usual `copy.brandLines`.
+   *  With this, the name no longer goes back Home (it's the theme's toy). `sound` plays one of
+   *  the theme's sounds. */
   brandClick?: (args: { sound: (name: SoundName) => void }) => string | null;
   /** Shown over everything when something is played from the library, while its "intro" option
    *  is on. It calls `onCovered` once the screen is covered (the video starts underneath) and
