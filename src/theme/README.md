@@ -52,7 +52,9 @@ Themes that leave it out look and behave exactly as before.
 - `typing`: descriptions and messages type themselves out (the `Typed` component in `src/ui`). A line
   starting with `* ` gets its `*` in a separate `.typed__mark` the theme can draw.
 - `sounds`: little interface sounds (`move`, `select`, `back`, `save`, `nope`, `text`), made with
-  `tone()` from `synth.ts`. They play on pointing at and picking things and never during a video.
+  `tone()` from `synth.ts`, or recordings: a list of file addresses per sound, one played at random
+  each time (Hollow's Eve's, in `hollow/sounds` with their sources in its `CREDITS.md`). They play on
+  pointing at and picking things and never during a video.
   Elements can ask for a particular sound with `data-sfx="save"` (or `"none"`).
 - `icons`: pixel versions of the app's icons, by name (see `src/ui/icons.tsx`), drawn from rows of `#`
   and `.`.

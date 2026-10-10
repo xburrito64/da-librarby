@@ -21,11 +21,13 @@ const EYES_EVERY_MS = [20000, 45000];
 const EYES_MS = 3600;
 
 const between = ([a, b]: number[]) => a + Math.random() * (b - a);
+/** The house's door creaks at most this often (ms). */
+const HOUSE_CREAK_MS = 2500;
 
 /** The things under the patch that wake up when pointed at: for how long, and the sound they make. */
-const POKES: Record<string, { ms: number; sound?: "skitter" | "boo" }> = {
-  skeleton: { ms: 2600, sound: "skitter" },
-  coffin: { ms: 2800, sound: "boo" },
+const POKES: Record<string, { ms: number; sound?: "rattle" | "scrape" }> = {
+  skeleton: { ms: 2600, sound: "rattle" },
+  coffin: { ms: 2800, sound: "scrape" },
   stash: { ms: 1800 },
   mushrooms: { ms: 1900 },
   crystals: { ms: 1600 },
@@ -96,8 +98,15 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
     });
 
-  // Pumpkins: plain ones wobble (and go "bonk"), lit ones glow up (in the stylesheet).
+  // Pumpkins: plain ones wobble (and go "bonk"), lit ones glow up (in the stylesheet). The house's
+  // door creaks open (the stylesheet opens it).
+  let creaked = 0;
   const onOver = (e: PointerEvent) => {
+    const house = (e.target as Element).closest?.(".he-house");
+    if (house && !house.contains(e.relatedTarget as Node) && performance.now() - creaked > HOUSE_CREAK_MS) {
+      creaked = performance.now();
+      playSound("creak");
+    }
     const pumpkin = (e.target as Element).closest?.(".he-pumpkin");
     if (!pumpkin || pumpkin.contains(e.relatedTarget as Node) || pumpkin.classList.contains("is-jack")) return;
     pumpkin.classList.remove("is-wobbly");

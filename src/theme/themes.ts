@@ -37,8 +37,9 @@ export interface ThemeExtras {
   options?: ThemeOption[];
   /** Texts that replace the app's usual ones (empty pages, loading lines, flavor). */
   copy?: Partial<Copy>;
-  /** Little interface sounds. They play while the theme's "sounds" option is on. */
-  sounds?: Partial<Record<SoundName, SoundPlayer>>;
+  /** Little interface sounds. They play while the theme's "sounds" option is on: made up on the
+   *  spot, or the addresses of recordings (with several, one at random each time). */
+  sounds?: Partial<Record<SoundName, SoundPlayer | string[]>>;
   /** Descriptions and messages type themselves out while the "typing" option is on. */
   typing?: boolean;
   /** Replacement icons, by name (see src/ui/icons.tsx), drawn from rows of "#" and ".". */
