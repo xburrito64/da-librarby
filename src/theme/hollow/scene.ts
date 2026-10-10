@@ -104,9 +104,30 @@ function moon(id: string, x: number, y: number, r: number) {
   );
 }
 
-/** Two small bats crossing the moon. */
+/** A bat in flight, about 34px across (scaled by `s`), wings flapping (hollow.css): scalloped
+ *  wings with their finger bones, pointed ears, two glinting eyes, the moon catching its edges. */
+function bat(x: number, y: number, s: number, cls: string) {
+  const wing = (side: 1 | -1) => {
+    const p = (px: number, py: number) => `${(px * side).toFixed(1)} ${py}`;
+    return (
+      `<g class="he-mb__wing he-mb__wing--${side < 0 ? "l" : "r"}">` +
+      `<path d="M${p(1.2, -1.6)}C${p(5, -7)} ${p(11, -8.5)} ${p(17, -5)}Q${p(14.6, -2.6)} ${p(13.6, 0.8)}Q${p(11, -1.2)} ${p(8.6, 2)}Q${p(6, -0.2)} ${p(3.4, 2.6)}Q${p(2.2, 1)} ${p(1.2, 1.6)}Z"/>` +
+      `<path d="M${p(1.6, -1.2)}L${p(13.6, 0.8)}M${p(5.4, -4.4)}L${p(8.6, 2)}M${p(3, -2)}L${p(3.4, 2.6)}" fill="none" stroke="#231a33" stroke-width="0.6"/></g>`
+    );
+  };
+  return (
+    `<g transform="translate(${x} ${y}) scale(${s})"><g class="he-mb ${cls}" fill="#0b0610" stroke="#43345f" stroke-width="0.5" stroke-linejoin="round">` +
+    wing(-1) + wing(1) +
+    `<ellipse cx="0" cy="1" rx="2.4" ry="4.2"/><circle cx="0" cy="-3.4" r="2.3"/>` +
+    `<path d="M-1.9-4.6L-2.5-8.6L-0.5-5.6ZM1.9-4.6L2.5-8.6L0.5-5.6Z"/>` +
+    `<g fill="#ffcf5a" stroke="none"><circle cx="-0.8" cy="-3.4" r="0.45"/><circle cx="0.8" cy="-3.4" r="0.45"/></g></g></g>`
+  );
+}
+
+/** Two bats flitting about in front of the moon, one near, one further off. */
 function moonBats(x: number, y: number) {
-  return `<g fill="#0e0814" opacity="0.9" class="he-moonbats"><path d="M${x - 54} ${y - 30}q5-5 10 0q3-2 4 1q1-3 4-1q5-5 10 0q-6 0-9 4q-2-2-5 0q-3-4-14-4z"/><path d="M${x + 30} ${y + 34}q4-4 8 0q2-2 3 1q1-3 3-1q4-4 8 0q-5 0-7 3q-2-2-4 0q-2-3-11-3z"/></g>`;
+  // (Clear of the house's roof and weathervane, which stand in front of the moon's right side.)
+  return bat(x - 34, y - 18, 1, "he-mb--near") + bat(x - 44, y + 34, 0.55, "he-mb--far");
 }
 
 /** The ghost hiding behind a tombstone (it peeks out now and then, see Decor.tsx). */
@@ -124,6 +145,14 @@ function groundPath(w: number, y: number, amp: number, phase: number) {
   let d = `M0 ${SCENE_H}L0 ${y}`;
   for (let x = 0; x <= w; x += 60) d += `L${x} ${groundY(x, y, amp, phase).toFixed(1)}`;
   return `${d}L${w} ${SCENE_H}Z`;
+}
+
+/** How high a curve (one cubic Bézier: start, two pulls, end, as x, y pairs) is at x. */
+function curveY(x: number, [x0, y0, x1, y1, x2, y2, x3, y3]: number[]) {
+  const at = (t: number, a: number, b: number, c: number, d: number) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t * t * c + t ** 3 * d;
+  let best = 0;
+  for (let t = 0; t <= 1; t += 0.002) if (Math.abs(at(t, x0, x1, x2, x3) - x) < Math.abs(at(best, x0, x1, x2, x3) - x)) best = t;
+  return at(best, y0, y1, y2, y3);
 }
 
 /** ...and where something standing on it at x has its feet (a little way in, so it's planted). */
@@ -230,7 +259,11 @@ export function patchScene(width: number, spots?: Spot[]) {
   // The haunted house (house.ts).
   s += house(id, r + 1190, 178);
   // Three trees with a personality of their own, and distant ones along the hills on a wide window.
-  s += owlTree(r + 1084, 198, 128) + spiralTree(r + 1380, 216, 100) + swingTree(r + 884, groundAt(r + 884, ...hill, 6), 90);
+  // (The owl's tree grows a little way up the house's hill, a rise of earth round its roots.)
+  const owlX = r + 1092;
+  const owlGround = curveY(owlX, [r + 930, 330, r + 990, 236, r + 1076, 176, r + 1186, 172]);
+  s += owlTree(owlX, owlGround + 7, 128) + `<ellipse cx="${owlX}" cy="${(owlGround + 6).toFixed(1)}" rx="24" ry="7" fill="#140b1d"/>`;
+  s += spiralTree(r + 1380, 216, 100) + swingTree(r + 884, groundAt(r + 884, ...hill, 6), 90);
   // (Those out in the valley are smaller, far away on its hills.)
   for (let x = 760, n = 1; x < r + 760; x += 260 + rand() * 200, n++) {
     const away = x < edge - 140;

@@ -118,8 +118,8 @@ const stash = (x: number, y: number) => {
   return (
     `<g class="heu-stash" data-poke="stash" transform="translate(${f(x)} ${f(y)})">` +
     `<path d="M-26 6C-28-6-14-14 0-14S27-6 26 5S12 15 0 15S-24 15-26 6Z" fill="#08050c" stroke="#2c1f3d" stroke-width="2.2"/>` +
-    `<path d="M14-16l2 4" stroke="#f3ead8" stroke-width="1.4" stroke-linecap="round"/><circle cx="13" cy="-18" r="4" fill="#9b5de5"/><path d="M11-19.5a2.4 2.4 0 0 1 4 1" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.7"/>` +
-    sweet(-12, 6, 10, "#e94f64") + sweet(10, 7, -14, "#58c46d") + corn(-2, 4, -8) + corn(4, 9, 22) + corn(-17, 10, 40) + sweet(0, 11, 4, "#4aa3ff") + corn(16, 0, -30) +
+    `<path d="M-2 3L-9-4" stroke="#f3ead8" stroke-width="1.4" stroke-linecap="round"/><circle cx="-11" cy="-6" r="3.6" fill="#9b5de5"/><path d="M-13-7.4a2.2 2.2 0 0 1 3.6 0.8" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.7"/>` +
+    sweet(-12, 6, 10, "#e94f64") + sweet(10, 7, -14, "#58c46d") + corn(-2, 4, -8) + corn(4, 9, 22) + corn(-17, 8, 40) + sweet(0, 10, 4, "#4aa3ff") + corn(13, 2, -30) +
     `<g class="heu-stash__glints" fill="#fff6dc">${[[-10, 0], [6, 2], [16, -6], [-2, 8]].map(([gx, gy], i) => `<path d="M${gx} ${gy - 3}L${gx + 0.8} ${gy}L${gx} ${gy + 3}L${gx - 0.8} ${gy}ZM${gx - 3} ${gy}L${gx} ${gy + 0.8}L${gx + 3} ${gy}L${gx} ${gy - 0.8}Z" style="animation-delay:${i * 0.15}s"/>`).join("")}</g></g>`
   );
 };

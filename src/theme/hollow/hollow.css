@@ -1019,13 +1019,62 @@
   }
 }
 
-:root[data-theme="hollow"] .he-moonbats {
-  animation: he-moonbats 9s ease-in-out infinite alternate;
+/* The bats by the moon: wings flapping, each flitting about on a lazy loop of its own. */
+:root[data-theme="hollow"] .he-mb__wing {
+  transform-box: fill-box;
+  animation: he-mb-flap 0.3s ease-in-out infinite alternate;
 }
 
-@keyframes he-moonbats {
+:root[data-theme="hollow"] .he-mb__wing--l {
+  transform-origin: 100% 30%;
+}
+
+:root[data-theme="hollow"] .he-mb__wing--r {
+  transform-origin: 0% 30%;
+}
+
+:root[data-theme="hollow"] .he-mb--far .he-mb__wing {
+  animation-duration: 0.24s;
+}
+
+@keyframes he-mb-flap {
+  from {
+    transform: scaleY(1);
+  }
   to {
-    transform: translate(-18px, 6px);
+    transform: scaleY(-0.5);
+  }
+}
+
+:root[data-theme="hollow"] .he-mb--near {
+  animation: he-mb-near 13s ease-in-out infinite;
+}
+
+:root[data-theme="hollow"] .he-mb--far {
+  animation: he-mb-far 17s ease-in-out infinite;
+}
+
+@keyframes he-mb-near {
+  25% {
+    transform: translate(-8px, -6px) rotate(-6deg);
+  }
+  50% {
+    transform: translate(-16px, 4px) rotate(4deg);
+  }
+  75% {
+    transform: translate(-4px, 9px) rotate(-3deg);
+  }
+}
+
+@keyframes he-mb-far {
+  30% {
+    transform: translate(-14px, 6px) rotate(5deg);
+  }
+  60% {
+    transform: translate(-26px, -4px) rotate(-4deg);
+  }
+  85% {
+    transform: translate(-8px, -8px);
   }
 }
 
@@ -1095,7 +1144,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root[data-theme="hollow"] :is(.he-fog, .he-valley-fog, .he-cat__tail, .he-moonbats, .he-bat, .he-spider__body, .nav__logo) {
+  :root[data-theme="hollow"] :is(.he-fog, .he-valley-fog, .he-cat__tail, .he-mb, .he-mb__wing, .he-bat, .he-spider__body, .nav__logo) {
     animation: none;
   }
 
