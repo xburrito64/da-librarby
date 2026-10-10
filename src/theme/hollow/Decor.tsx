@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { GHOST } from "./art";
 import { startLogo } from "./logo";
+import { startTitleFit } from "./titlefit";
 import { startTopBar } from "./topbar";
 import { startScenes } from "./scenes";
 import { followScroll, startLeaves } from "./leaves";
@@ -43,6 +44,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
 
   useEffect(() => (active ? startTopBar() : undefined), [active]);
   useEffect(() => (active ? startLogo() : undefined), [active]);
+  useEffect(() => (active ? startTitleFit() : undefined), [active]);
   useEffect(() => (leaves && leavesCanvas.current ? startLeaves(leavesCanvas.current) : undefined), [leaves]);
   useEffect(() => (active ? startScenes({ surprises }) : undefined), [active, surprises]);
 

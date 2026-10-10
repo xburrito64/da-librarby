@@ -664,8 +664,8 @@
 }
 
 :root[data-theme="hollow"] .hero__title {
-  /* At most three lines. The box reaches well past the letters (and the margins take that back),
-     so their glow isn't cut off at its edges. */
+  /* At most three lines (a long title gets smaller to fit, titlefit.ts). The box reaches well past
+     the letters (and the margins take that back), so their glow isn't cut off at its edges. */
   margin: -26px -40px -12px;
   padding: 34px 40px 26px;
   font-size: clamp(40px, 4.4vw, 72px);
@@ -718,7 +718,9 @@
   right: 0;
   bottom: 0;
   height: var(--he-scene-h);
-  overflow: hidden;
+  /* Kept to the page's width, but the moon's glow may reach up above it. */
+  overflow-x: clip;
+  overflow-y: visible;
   pointer-events: none;
 }
 

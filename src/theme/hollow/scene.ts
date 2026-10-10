@@ -10,6 +10,10 @@ import { CUT_IN, underArt, type Spot } from "./under";
 
 /** The scenes' height (px, as in hollow.css), and where the ground is. */
 export const SCENE_H = 330;
+/** Room above the scene for the moon's glow to fade out in (it reaches up past the scene's top). */
+const HEAD = 150;
+/** Opens a scene's picture: SCENE_H tall, with the room above it. */
+const open = (w: number) => `<svg class="he-scene__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 ${-HEAD} ${w} ${SCENE_H + HEAD}" width="${w}" height="${SCENE_H + HEAD}">`;
 /** Things are placed as on a 1440-wide scene, shifted to stay at the right. */
 const DESIGN_W = 1440;
 
@@ -209,7 +213,7 @@ export function patchScene(width: number, spots?: Spot[]) {
   const w = Math.max(1100, Math.ceil(width));
   const r = w - DESIGN_W;
   const rand = random(7);
-  let s = `<svg class="he-scene__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${SCENE_H}" width="${w}" height="${SCENE_H}">${defs(id)}`;
+  let s = `${open(w)}${defs(id)}`;
   s += moon(id, r + 1180, 78, 50) + moonBats(r + 1180, 78);
   // The valley on the left, then the patch's hill (falling away towards the valley), then the hill
   // with the house.
@@ -249,7 +253,7 @@ export function patchScene(width: number, spots?: Spot[]) {
   }
   s += `${fence}</g>`;
   s += `<g transform="translate(${r + 626} 240)" class="he-cat">
-    <path class="he-cat__tail" d="M12 0c10-2 14-10 10-18c-2-4 2-6 4-2c4 10-2 20-14 22z" fill="#07040a"/>
+    <path class="he-cat__tail" d="M11-3c10-2 14-10 10-18c-2-4 2-6 4-2c4 10-2 20-14 21z" fill="#07040a"/>
     <path d="M0 0c-2-10 0-18 4-22c-3-4-4-10-2-14l4 4c2-1 5-1 7 0l4-4c2 4 1 10-2 14c4 4 6 12 4 22z" fill="#07040a"/>
     <g class="he-cat__eyes" fill="${C.slime}" filter="url(#${id}glow)"><ellipse cx="5" cy="-27" rx="1.6" ry="1.2"/><ellipse cx="11" cy="-27" rx="1.6" ry="1.2"/></g>
   </g>`;
@@ -287,7 +291,7 @@ export function graveyardScene(width: number) {
   const w = Math.max(1100, Math.ceil(width));
   const r = w - DESIGN_W;
   const rand = random(13);
-  let s = `<svg class="he-scene__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${SCENE_H}" width="${w}" height="${SCENE_H}">${defs(id)}`;
+  let s = `${open(w)}${defs(id)}`;
   s += moon(id, r + 1330, 70, 34);
   const hill = [238, 9, 2] as const;
   s += `<path d="${groundPath(w, ...hill)}" fill="#1b1026"/>`;
