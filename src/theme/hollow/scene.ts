@@ -6,6 +6,7 @@ import { C, ghostShape } from "./art";
 import { anyPumpkin, drawPumpkin, pumpkinDefs, type PumpkinSpec } from "./pumpkins";
 import { faceTree, farTree, owlTree, spiralTree, swingTree } from "./trees";
 import { tuft, type Lantern } from "./grass";
+import { house } from "./house";
 import { CUT_IN, underArt, type Spot } from "./under";
 
 /** The scenes' height (px, as in hollow.css), and where the ground is. */
@@ -226,11 +227,8 @@ export function patchScene(width: number, spots?: Spot[]) {
   for (let x = 0; x <= w; x += 30) hillD += `L${x} ${(groundY(x, ...hill) + dip(x)).toFixed(1)}`;
   s += `<path d="${hillD}L${w} ${SCENE_H}Z" fill="#1b1026"/>`;
   s += `<path d="M${r + 930} ${SCENE_H}C${r + 990} 236 ${r + 1076} 176 ${r + 1186} 172C${r + 1296} 168 ${r + 1384} 204 ${w} 220L${w} ${SCENE_H}Z" fill="#140b1d"/>`;
-  // The haunted house, a little crooked, one window flickering.
-  const tilt = `transform="rotate(-2 ${r + 1190} 176)"`;
-  s += `<g ${tilt} fill="#0d0712"><rect x="${r + 1150}" y="122" width="80" height="56"/><polygon points="${r + 1140},124 ${r + 1190},84 ${r + 1240},124"/><rect x="${r + 1208}" y="80" width="26" height="64"/><polygon points="${r + 1202},82 ${r + 1221},38 ${r + 1240},82"/><rect x="${r + 1160}" y="94" width="10" height="24"/></g>`;
-  s += `<g ${tilt} fill="#ffb347" filter="url(#${id}glow)"><rect x="${r + 1162}" y="136" width="12" height="14" rx="1"/><rect class="he-flicker" x="${r + 1196}" y="136" width="12" height="14" rx="1"/><rect class="he-flicker he-flicker--slow" x="${r + 1215}" y="96" width="9" height="12" rx="1"/><rect x="${r + 1184}" y="156" width="14" height="22" rx="7" fill="#c9611a" opacity="0.8"/></g>`;
-  s += `<g ${tilt} stroke="#0d0712" stroke-width="1.6"><path d="M${r + 1168} 136v14M${r + 1162} 143h12M${r + 1202} 136v14M${r + 1196} 143h12"/></g>`;
+  // The haunted house (house.ts).
+  s += house(id, r + 1190, 178);
   // Three trees with a personality of their own, and distant ones along the hills on a wide window.
   s += owlTree(r + 1084, 198, 128) + spiralTree(r + 1380, 216, 100) + swingTree(r + 884, groundAt(r + 884, ...hill, 6), 90);
   // (Those out in the valley are smaller, far away on its hills.)

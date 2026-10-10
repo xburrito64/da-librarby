@@ -2070,6 +2070,129 @@
   }
 }
 
+/* The house (house.ts): lights going on and off, someone passing the attic window, a bat leaving the
+   tower now and then, smoke from the chimney, and the door creaking open when pointed at. */
+:root[data-theme="hollow"] .he-house {
+  pointer-events: visiblePainted;
+}
+
+:root[data-theme="hollow"] .he-house :is(.he-door, .he-door-eyes, .he-house-bat, .he-chimney-smoke circle) {
+  transform-box: fill-box;
+}
+
+:root[data-theme="hollow"] .he-door {
+  transform-origin: 0% 50%;
+  transition: transform 0.6s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+:root[data-theme="hollow"] .he-house:hover .he-door {
+  transform: scaleX(0.45);
+  transition-delay: 0.15s;
+}
+
+:root[data-theme="hollow"] .he-door-eyes {
+  opacity: 0;
+  transform-origin: center;
+  transition: opacity 0.2s;
+}
+
+:root[data-theme="hollow"] .he-house:hover .he-door-eyes {
+  opacity: 1;
+  transition-delay: 0.7s;
+  animation: heu-blink 1.6s 1.4s infinite;
+}
+
+:root[data-theme="hollow"] .he-win--a {
+  animation: he-win-a 23s steps(1) infinite;
+}
+
+:root[data-theme="hollow"] .he-win--b {
+  animation: he-win-b 31s steps(1) infinite;
+}
+
+@keyframes he-win-a {
+  61% {
+    opacity: 0.1;
+  }
+  79% {
+    opacity: 1;
+  }
+}
+
+@keyframes he-win-b {
+  22% {
+    opacity: 0.1;
+  }
+  37% {
+    opacity: 1;
+  }
+}
+
+:root[data-theme="hollow"] .he-attic {
+  animation: he-attic 19s ease-in-out infinite;
+}
+
+@keyframes he-attic {
+  0%,
+  76% {
+    transform: translateX(-16px);
+  }
+  84%,
+  88% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(16px);
+  }
+}
+
+:root[data-theme="hollow"] .he-chimney-smoke circle {
+  transform-origin: center;
+  opacity: 0;
+  animation: he-chimney 4.8s ease-out infinite;
+}
+
+@keyframes he-chimney {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  20% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(10px, -26px) scale(2.4);
+  }
+}
+
+:root[data-theme="hollow"] .he-house-bat {
+  transform-origin: center;
+  opacity: 0;
+  animation: he-house-bat 21s ease-in infinite;
+}
+
+@keyframes he-house-bat {
+  0%,
+  90% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  91% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(46px, -70px) scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="hollow"] .he-house * {
+    animation: none !important;
+  }
+}
+
 /* The grass along the cut's edge sways a little (grass.ts). */
 :root[data-theme="hollow"] .he-grass {
   pointer-events: none;
