@@ -6,10 +6,12 @@
 // break loose. Each leaf is painted once (a maple, oak, birch, elm or plain one, its colour shading
 // from stalk to tip, veins, sometimes spots, a nibbled hole or a curled edge, the moon on its rim and
 // a darker back) and then turned and tilted as it falls. Click one and it's flicked away, spinning,
-// with a quiet rustle. They belong to the page: scrolling moves them along with everything else. In front of the pages, under the top bar and dialogs; the ones
+// with a quiet rustle. Now and then something rare happens among them (moments.ts). They belong to
+// the page: scrolling moves them along with everything else. In front of the pages, under the top bar and dialogs; the ones
 // off the branch start over the top bar (a second canvas). See hollow.css (".he-leaves").
 import { playSound } from "../sound";
 import { perches } from "./branch";
+import { startMoments, type Field } from "./moments";
 
 /** One leaf per this many square pixels of window (not counting the near ones and the branch's). */
 const AREA_PER_LEAF = 54000;
@@ -22,7 +24,13 @@ const MAX_HANGING = 2;
 const NEAR_EVERY = [18, 40];
 
 type Kind = "maple" | "oak" | "birch" | "elm" | "plain";
-type Depth = "far" | "mid" | "near";
+export type Depth = "far" | "mid" | "near";
+/** What a leaf looks like, when it isn't up to chance: its kind and colour, or golden. */
+export interface Look {
+  kind?: Kind;
+  color?: string;
+  gold?: boolean;
+}
 
 const KINDS: Kind[] = ["maple", "maple", "oak", "oak", "birch", "elm", "plain"];
 const COLORS: Record<Kind, string[]> = {
@@ -121,16 +129,18 @@ interface Sprite {
   px: number;
 }
 
-/** Paints a leaf `size` px from its middle to its tip: its front and its (darker) back. */
-function paint(kind: Kind, color: string, size: number, depth: Depth): Sprite {
+/** Paints a leaf `size` px from its middle to its tip: its front and its (darker) back. A golden one
+ *  is pure gold and flawless. */
+function paint(kind: Kind, color: string, size: number, depth: Depth, gold = false): Sprite {
   const dpr = window.devicePixelRatio || 1;
   const blur = depth === "near" ? 1.6 : 0;
   const px = Math.ceil(size * 2.8 + blur * 6);
   const { path, veins, edge, stalk } = shape(kind, 0.1 + Math.random() * 0.1);
-  const back = mix(color, "#24101a", 0.45);
-  const spots = Array.from({ length: Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 2) : 0 }, () => [(Math.random() - 0.5) * 0.6, -0.6 + Math.random() * 1.2, 0.15 + Math.random() * 0.15]);
-  const holes = Array.from({ length: Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 2) : 0 }, () => [(Math.random() - 0.5) * 0.45, -0.5 + Math.random() * 0.9, 0.06 + Math.random() * 0.05]);
-  const curl = Math.random() < 0.25 ? (Math.random() < 0.5 ? -1 : 1) : 0;
+  const back = gold ? "#d9a52a" : mix(color, "#24101a", 0.45);
+  const flawed = gold ? 0 : 1;
+  const spots = Array.from({ length: flawed && Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 2) : 0 }, () => [(Math.random() - 0.5) * 0.6, -0.6 + Math.random() * 1.2, 0.15 + Math.random() * 0.15]);
+  const holes = Array.from({ length: flawed && Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 2) : 0 }, () => [(Math.random() - 0.5) * 0.45, -0.5 + Math.random() * 0.9, 0.06 + Math.random() * 0.05]);
+  const curl = flawed && Math.random() < 0.25 ? (Math.random() < 0.5 ? -1 : 1) : 0;
   const curlY = -0.5 + Math.random() * 0.8;
   const curlX = curl * (edge(curlY) + 0.2);
 
@@ -141,7 +151,11 @@ function paint(kind: Kind, color: string, size: number, depth: Depth): Sprite {
     g.setTransform(size * dpr, 0, 0, size * dpr, c.width / 2, c.height / 2);
     // Shading from the tip (lighter) to the stalk (darker); the back duller.
     const fill = g.createLinearGradient(0, -1, 0, 0.9);
-    if (front) {
+    if (gold && front) {
+      fill.addColorStop(0, "#fff6c8");
+      fill.addColorStop(0.5, "#ffd23f");
+      fill.addColorStop(1, "#c98a12");
+    } else if (front) {
       fill.addColorStop(0, mix(color, "#ffd27a", 0.25));
       fill.addColorStop(0.55, color);
       fill.addColorStop(1, mix(color, "#3a1206", 0.3));
@@ -179,8 +193,8 @@ function paint(kind: Kind, color: string, size: number, depth: Depth): Sprite {
     // The moon catching its rim.
     if (front) {
       const rim = g.createLinearGradient(-0.9, -0.9, 0, 0);
-      rim.addColorStop(0, "rgba(214, 200, 255, 0.5)");
-      rim.addColorStop(1, "rgba(214, 200, 255, 0)");
+      rim.addColorStop(0, gold ? "rgba(255, 252, 230, 0.95)" : "rgba(214, 200, 255, 0.5)");
+      rim.addColorStop(1, gold ? "rgba(255, 252, 230, 0)" : "rgba(214, 200, 255, 0)");
       g.strokeStyle = rim;
       g.lineWidth = 0.08;
       g.stroke(path);
@@ -222,7 +236,7 @@ function paint(kind: Kind, color: string, size: number, depth: Depth): Sprite {
 
 // ---------- Falling ----------
 
-interface Leaf {
+export interface Leaf {
   depth: Depth;
   sprite: Sprite;
   x: number;
@@ -258,17 +272,26 @@ interface Leaf {
   /** Off the branch: drawn over the top bar while it's up there, and the way it settles to lie. */
   high?: boolean;
   settle?: number;
+  /** Heading for a spot (px in the window; null once it's gone), and what then (moments.ts). */
+  aim?: { at: () => [number, number] | null; then: (l: Leaf) => void };
+  /** Resting somewhere: places it each frame, false once it's let go (moments.ts). */
+  rest?: (l: Leaf, dt: number) => boolean;
+  /** Golden (glowing, sparkling); or a bat or moth in disguise, unfolding after `reveal` s. */
+  gold?: boolean;
+  critter?: "bat" | "moth";
+  reveal?: number;
 }
 
-function spawn(depth: Depth, w: number, h: number, anywhere: boolean, size?: number): Leaf {
+function spawn(depth: Depth, w: number, h: number, anywhere: boolean, size?: number, look: Look = {}): Leaf {
   const d = DEPTHS[depth];
-  const kind = pick(KINDS);
+  const kind = look.kind ?? pick(KINDS);
   const s = size ?? between(d.size);
   const fall = between(d.fall);
   const speed = (1.5 + Math.random() * 1.1) * (depth === "far" ? 0.8 : depth === "near" ? 1.2 : 1);
   return {
     depth,
-    sprite: paint(kind, pick(COLORS[kind]), s, depth),
+    sprite: paint(kind, look.color ?? pick(COLORS[kind]), s, depth, look.gold),
+    gold: look.gold,
     x: Math.random() * (w + 80) - 40,
     y: anywhere ? Math.random() * h : -s * 2 - Math.random() * 60,
     size: s,
@@ -330,24 +353,44 @@ function move(l: Leaf, dt: number, wind: number, shift: number) {
     }
     return;
   }
+  if (l.rest) {
+    if (l.rest(l, dt)) return;
+    l.rest = undefined;
+    l.born = Math.max(l.born, 1.4);
+  }
   const d = DEPTHS[l.depth];
   l.born += dt;
   const ease = Math.min(1, l.born / 1.4);
-  // Now and then it loses the air and tumbles for a moment.
+  // Heading for a spot: the swing dies down and it drifts over as it gets close, out of the wind.
+  const to = l.aim?.at();
+  if (l.aim && (!to || to[1] < l.y - 12)) l.aim = undefined;
+  const close = to && l.aim ? 1 - Math.min(1, (to[1] - l.y) / 260) : 0;
+  if (l.aim) wind = 0;
+  // Now and then it loses the air and tumbles for a moment (more often in a strong wind).
   if (l.tumbleLeft > 0) l.tumbleLeft -= dt;
-  else if (ease === 1 && Math.random() < d.tumble * dt) {
+  else if (ease === 1 && !l.aim && Math.random() < d.tumble * (1 + Math.abs(wind) / 50) * dt) {
     l.tumbleLeft = 0.6 + Math.random() * 0.8;
     l.tumbleSpin = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 3);
   }
   l.tumble += ((l.tumbleLeft > 0 ? 1 : 0) - l.tumble) * Math.min(1, dt * 5);
-  const glide = (1 - l.tumble) * ease;
+  const glide = (1 - l.tumble) * ease * (1 - 0.8 * close);
   // Swinging like a pendulum: sideways fastest in the middle of a swing, lifting a little as it
   // slows at the end, then back the other way; sinking all the while.
   l.phase += l.speed * dt;
   const vx = l.swing * l.speed * Math.cos(l.phase) * glide;
   const vy = l.fall * (0.3 + 0.7 * ease) * (1 + 1.4 * l.tumble) - l.lift * l.speed * Math.sin(2 * l.phase) * glide;
   l.x += (vx + wind * d.wind + l.kickX) * dt;
-  l.y += (vy + l.kickY) * dt - shift;
+  // (A strong wind lifts them a little.)
+  l.y += (vy + l.kickY - Math.max(0, Math.abs(wind) - 60) * 0.15) * dt - shift;
+  if (l.aim && to) {
+    l.x += (to[0] - l.x) * Math.min(1, dt * (0.6 + 4 * close * close));
+    if (to[1] - l.y < 1.5) {
+      const then = l.aim.then;
+      l.aim = undefined;
+      [l.x, l.y] = to;
+      then(l);
+    }
+  }
   const drag = Math.exp(-dt * 2.4);
   l.kickX *= drag;
   l.kickY *= drag;
@@ -362,9 +405,9 @@ function move(l: Leaf, dt: number, wind: number, shift: number) {
 /** Flicks a leaf away from where it was clicked: off it flies, spinning and tumbling, until the air
  *  catches it again (off the branch, if it was still hanging there). */
 function flick(l: Leaf, fromX: number, fromY: number) {
-  if (l.hang) {
-    l.hang = undefined;
-    l.born = 1.4;
+  if (l.hang || l.rest || l.aim) {
+    l.hang = l.rest = l.aim = undefined;
+    l.born = Math.max(l.born, 1.4);
     l.show = 1;
   }
   let dx = l.x - fromX;
@@ -385,6 +428,20 @@ function draw(g: CanvasRenderingContext2D, l: Leaf) {
   // edge-on, its back showing (mirrored) past that.
   const turn = Math.cos(l.flip + 0.5 * Math.sin(l.phase) * (1 - l.tumble));
   const { front, back, px } = l.sprite;
+  if (l.gold) {
+    // A golden glow round it, pulsing softly.
+    const r = l.size * 3.4;
+    const glow = g.createRadialGradient(l.x, l.y, 0, l.x, l.y, r);
+    const pulse = (0.8 + 0.2 * Math.sin(l.phase * 2.3)) * l.show;
+    glow.addColorStop(0, `rgba(255, 226, 120, ${0.75 * pulse})`);
+    glow.addColorStop(0.35, `rgba(255, 200, 70, ${0.3 * pulse})`);
+    glow.addColorStop(1, "rgba(255, 190, 60, 0)");
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    g.fillStyle = glow;
+    g.fillRect(l.x - r, l.y - r, r * 2, r * 2);
+    g.restore();
+  }
   g.save();
   g.translate(l.x, l.y);
   g.rotate(l.heading + l.rock);
@@ -433,6 +490,18 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
   let nextBranch = 3 + Math.random() * 5;
   let nextNear = between(NEAR_EVERY) / 2;
   const scroll = followScroll();
+  const moments = startMoments();
+  const field: Field = {
+    w: 0,
+    h: 0,
+    line: 0,
+    extra,
+    spawn: (depth, size, look) => spawn(depth, field.w, field.h, false, size, look),
+    flick,
+    draw,
+  };
+  // (For trying things out while developing: start a moment, see where the leaves are.)
+  if (import.meta.env.DEV) Object.assign(window, { heMoment: (name: string) => moments.run(name, Object.assign(field, { extra })), heLeaves: () => [...list, ...extra] });
   // Clicking a leaf flicks it away (and the click goes no further, so whatever's under it isn't
   // clicked too). Tiny far ones are easy to miss, so they're a little bigger to hit than they look.
   const onClick = (e: MouseEvent) => {
@@ -442,11 +511,14 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
     let best = Infinity;
     for (const l of [...list, ...extra]) {
       const d = Math.hypot(l.x - e.clientX, l.y - e.clientY);
-      if (l.show > 0.3 && d < Math.max(l.size * 0.95, 7) + 3 && d < best) [hit, best] = [l, d];
+      const reach = l.gold ? l.size * 1.6 + 8 : Math.max(l.size * 0.95, 7) + 3;
+      if (l.show > 0.3 && d < reach && d < best) [hit, best] = [l, d];
     }
     if (!hit) return;
     e.preventDefault();
     e.stopPropagation();
+    // (A golden one, or a bat in disguise, is something else.)
+    if (moments.clicked(hit)) return;
     flick(hit, e.clientX, e.clientY);
     playSound("rustle");
   };
@@ -483,7 +555,9 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
     gt.setTransform(dpr, 0, 0, dpr, 0, 0);
     gt.clearRect(0, 0, w, line);
     const shift = scroll.take();
-    const wind = breeze(clock);
+    const wind = breeze(clock) + moments.wind();
+    Object.assign(field, { w, h, line, extra });
+    moments.step(field, dt, shift);
 
     // Now and then one comes off the branch, or a big one passes close by.
     nextBranch -= dt;
@@ -508,8 +582,8 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
       return l.y > h + 30 ? spawn(l.depth, w, h, false) : l;
     });
     extra = extra.filter((l) => {
-      move(l, dt, wind, l.hang ? 0 : shift);
-      return l.y < h + 80 && (l.hang !== undefined || l.y > -80) && l.x > -120 && l.x < w + 120;
+      move(l, dt, wind, l.hang || l.rest ? 0 : shift);
+      return l.y < h + 80 && (l.hang !== undefined || l.rest !== undefined || l.y > -80) && l.x > -120 && l.x < w + 120;
     });
 
     for (const l of list) if (l.depth === "far") draw(g, l);
@@ -532,6 +606,7 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
       }
       if (l.y - reach > line) l.high = false;
     }
+    moments.draw(g, field);
     frame = requestAnimationFrame(step);
   };
   frame = requestAnimationFrame(step);
@@ -539,6 +614,7 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
     cancelAnimationFrame(frame);
     scroll.stop();
     document.removeEventListener("click", onClick, true);
+    moments.stop();
     g.clearRect(0, 0, el.width, el.height);
     gt.clearRect(0, 0, top.width, top.height);
   };

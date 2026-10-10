@@ -323,7 +323,7 @@ function cemetery(id: string, to: number) {
   s += `<g transform="translate(${gate - G - 6.5} 234)" class="he-cat">
     <path class="he-cat__tail" d="M11-3c10-2 14-10 10-18c-2-4 2-6 4-2c4 10-2 20-14 21z" fill="#07040a"/>
     <path d="M0 0c-2-10 0-18 4-22c-3-4-4-10-2-14l4 4c2-1 5-1 7 0l4-4c2 4 1 10-2 14c4 4 6 12 4 22z" fill="#07040a"/>
-    <g class="he-cat__eyes" fill="${C.slime}" filter="url(#${id}glow)"><ellipse cx="5" cy="-27" rx="1.6" ry="1.2"/><ellipse cx="11" cy="-27" rx="1.6" ry="1.2"/></g>
+    <g class="he-cat__eyes"><g class="he-cat__glow" fill="${C.slime}" filter="url(#${id}glow)"><rect x="-1" y="-33" width="18" height="12" fill="none"/><ellipse cx="5" cy="-27" rx="1.6" ry="1.2"/><ellipse cx="11" cy="-27" rx="1.6" ry="1.2"/></g><g class="he-cat__look" fill="#07040a"><ellipse cx="5" cy="-27" rx="0.42" ry="0.95"/><ellipse cx="11" cy="-27" rx="0.42" ry="0.95"/></g></g>
   </g>`;
   // The stones, by how far left of `to` they stand. Nearest the gate, the first seven (as before);
   // beyond them, more at the same spacing, alternating rows, as far as the window goes, each one

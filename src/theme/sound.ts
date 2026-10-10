@@ -30,8 +30,10 @@ export type SoundName =
   | "rattle"
   | "scrape"
   | "moan"
-  /** A falling leaf flicked away. */
-  | "rustle";
+  /** A falling leaf flicked away; a gust of wind; a little whirlwind. */
+  | "rustle"
+  | "gust"
+  | "whirl";
 
 /** Plays a sound into `out`, which carries the chosen volume. */
 export type SoundPlayer = (ctx: AudioContext, out: AudioNode) => void;

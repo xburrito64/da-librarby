@@ -218,7 +218,7 @@ export function drawPumpkin(pre: string, x: number, y: number, spec: PumpkinSpec
     const lid = `M${f(x - W * 0.19)} ${f(top + H * 0.07)}L${f(x - W * 0.12)} ${f(top + H * 0.12)}L${f(x - W * 0.06)} ${f(top + H * 0.1)}L${f(x)} ${f(top + H * 0.15)}L${f(x + W * 0.06)} ${f(top + H * 0.1)}L${f(x + W * 0.12)} ${f(top + H * 0.12)}L${f(x + W * 0.19)} ${f(top + H * 0.07)}`;
     s += `<g class="he-face" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="${lid}" stroke="#ff9a30" stroke-width="${f(W * 0.05)}" opacity="0.3"/><path d="${lid}" stroke="#ffd47a" stroke-width="${f(Math.max(0.5, W * 0.016))}"/></g>`;
   }
-  if (!extras.includes("hat")) s += stemShape(pre, x, top + H * 0.05, W, stem);
+  if (!extras.includes("hat")) s += `<g class="he-pumpkin__stem">${stemShape(pre, x, top + H * 0.05, W, stem)}</g>`;
   if (extras.includes("leaf")) s += leaf(x + W * 0.08, top + H * 0.02, W);
   if (extras.includes("bow")) s += bow(x, top + H * 0.02, W);
 

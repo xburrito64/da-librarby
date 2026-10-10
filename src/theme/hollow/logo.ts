@@ -1,7 +1,8 @@
 // Jack, the jack-o'-lantern by the app's name: a chubby pumpkin with a curly stem and a leaf, big
 // carved eyes whose pupils follow the pointer, one eyebrow raised, and a snaggle-toothed grin. He blinks now and then
 // (sometimes winks), laughs when you point at him, and when his candle is blown out (trick or treat,
-// index.ts) his face goes dark but two little glowing eyes keep watching. See hollow.css ("The top
+// index.ts) his face goes dark but two little glowing eyes keep watching. When a leaf lands on his
+// head (leaves.ts) he looks up at it, puffs his cheeks and blows it away. See hollow.css ("The top
 // bar").
 import { drawPumpkin, pumpkinDefs } from "./pumpkins";
 
@@ -11,6 +12,8 @@ const GRIN = "M12.6 31.6Q24 37.2 35.4 31.6Q34 39.8 24 40.3Q14 39.8 12.6 31.6Z";
 /** His eyebrows: one level, one raised (he's up to something). */
 const BROWS = "M12.4 19.4Q15.8 17.4 20 18.6M28.4 17.8Q31.8 15 35.6 17.4";
 const LAUGH = "M12.2 31Q24 34.6 35.8 31Q34.4 42.2 24 42.6Q13.6 42.2 12.2 31Z";
+/** Blowing: a little round mouth. */
+const BLOW = "M24 33.4Q27.2 33.4 27.2 36.5Q27.2 39.6 24 39.6Q20.8 39.6 20.8 36.5Q20.8 33.4 24 33.4Z";
 
 /** Jack as a picture (48 x 46). `live`: with the parts that move (for the top bar). */
 export function logoSvg(live = false) {
@@ -47,7 +50,7 @@ export function logoSvg(live = false) {
     eye("l", carved(EYE_L), "#3a1204", true) +
     eye("r", carved(EYE_R), "#3a1204", true) +
     `<g class="he-logo__grin">${carved(GRIN)}${teeth(false)}</g>` +
-    (live ? `<g class="he-logo__laugh">${carved(LAUGH)}${teeth(true)}<ellipse cx="24" cy="40.2" rx="3.6" ry="1.8" fill="#ff5d73"/></g>` : "") +
+    (live ? `<g class="he-logo__laugh">${carved(LAUGH)}${teeth(true)}<ellipse cx="24" cy="40.2" rx="3.6" ry="1.8" fill="#ff5d73"/></g><g class="he-logo__blow">${carved(BLOW)}</g>` : "") +
     `</g>` +
     // Candle out: a dark face, but his eyes still glow a little in there.
     (live ? `<g class="he-logo__dark"><path d="${BROWS}" fill="none" stroke="#2a0e04" stroke-width="1.6" stroke-linecap="round"/>${dark(GRIN)}${eye("l", dark(EYE_L), "#ffcf5a", false)}${eye("r", dark(EYE_R), "#ffcf5a", false)}</g>` : "") +
@@ -72,9 +75,11 @@ export function startLogo() {
     timers.add(t);
   };
 
-  // His pupils follow the pointer.
+  // His pupils follow the pointer (or a leaf on his head, while there is one).
   let frame = 0;
   let at: [number, number] | null = null;
+  let pointer: [number, number] | null = null;
+  let leaf: [number, number] | null = null;
   const look = () => {
     frame = 0;
     if (!at) return;
@@ -82,15 +87,32 @@ export function startLogo() {
     const dx = at[0] - (r.left + r.width / 2);
     const dy = at[1] - (r.top + r.height * 0.55);
     const d = Math.hypot(dx, dy) || 1;
-    const k = Math.min(1, d / 160);
+    const k = leaf ? 1 : Math.min(1, d / 160);
     const move = `translate(${((dx / d) * k * 1.4).toFixed(2)}px, ${((dy / d) * k * 1.1).toFixed(2)}px)`;
     looks.forEach((g) => (g.style.transform = move));
   };
   const onMove = (e: PointerEvent) => {
-    at = [e.clientX, e.clientY];
+    pointer = [e.clientX, e.clientY];
+    if (leaf) return;
+    at = pointer;
     if (!frame) frame = requestAnimationFrame(look);
   };
   if (!still) window.addEventListener("pointermove", onMove, { passive: true });
+
+  // A leaf landed on his head: he looks up at it (`watch`, null when it's gone), then blows.
+  const onLeaf = (e: Event) => {
+    const { watch, blow } = (e as CustomEvent<{ watch?: [number, number] | null; blow?: boolean }>).detail;
+    if (watch !== undefined) {
+      leaf = watch;
+      at = leaf ?? pointer;
+      if (!frame) frame = requestAnimationFrame(look);
+    }
+    if (blow) {
+      svg.classList.add("is-blowing");
+      later(() => svg.classList.remove("is-blowing"), 650);
+    }
+  };
+  window.addEventListener("he:jack-leaf", onLeaf);
 
   // Blinking: mostly both eyes, now and then twice, or a wink.
   const blink = () => {
@@ -111,6 +133,7 @@ export function startLogo() {
 
   return () => {
     window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("he:jack-leaf", onLeaf);
     cancelAnimationFrame(frame);
     timers.forEach((t) => window.clearTimeout(t));
     svg.remove();

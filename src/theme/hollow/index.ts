@@ -174,6 +174,8 @@ export const HOLLOW: Theme = {
         { name: "scrape", label: "The coffin lid sliding" },
         { name: "moan", label: "Whoever's in the coffin" },
         { name: "rustle", label: "A leaf flicked away" },
+        { name: "gust", label: "A gust of wind" },
+        { name: "whirl", label: "A little whirlwind" },
       ],
       music: true,
     },

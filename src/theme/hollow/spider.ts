@@ -24,6 +24,10 @@ const HIDE_MS = [3500, 5000];
 /** Between the little things it does by itself (ms). */
 const IDLE_MS = [5000, 11000];
 
+/** Where the spider's thread is right now (px in the window: where it starts, how long, its angle),
+ *  whether a leaf can get caught on it, and how to set it swinging (leaves.ts). */
+export const spiderNow = { x: 0, y: 0, len: 0, angle: 0, ready: false, nudge: (_spin: number) => {} };
+
 export function startSpider(layer: HTMLElement, still: boolean) {
   const el = document.createElement("div");
   el.className = "he-spider";
@@ -86,6 +90,7 @@ export function startSpider(layer: HTMLElement, still: boolean) {
     spin = Math.max(-4, Math.min(4, spin));
     angle = Math.max(-0.7, Math.min(0.7, angle + spin * dt));
     draw();
+    Object.assign(spiderNow, { x, y: hang, len, angle, ready: shown && !scared });
     frame = requestAnimationFrame(step);
   };
 
@@ -156,6 +161,9 @@ export function startSpider(layer: HTMLElement, still: boolean) {
     }, between(IDLE_MS));
   };
 
+  spiderNow.nudge = (push: number) => {
+    spin += push;
+  };
   if (still) draw();
   else {
     frame = requestAnimationFrame(step);
@@ -173,6 +181,7 @@ export function startSpider(layer: HTMLElement, still: boolean) {
       el.hidden = !room;
     },
     stop() {
+      spiderNow.ready = false;
       cancelAnimationFrame(frame);
       timers.forEach((t) => window.clearTimeout(t));
       window.removeEventListener("pointermove", stir);

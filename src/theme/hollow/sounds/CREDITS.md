@@ -91,6 +91,14 @@ change and share, no credit required. Where they came from, gratefully:
 - `rustle-2.ogg`: a single leaf brushed. Freesound #57659, “17 lower-leaf.wav” by jianhicks (CC0).
 - `rustle-3.ogg`: leaves shaken on a branch. Freesound #540278, “tree shake.wav” by zepurple (CC0).
 
+## A gust of wind (`gust`)
+
+- `gust.ogg`: a gust of wind. Freesound #146932, “Wind Gust” by crashoverride6 (CC0).
+
+## A little whirlwind (`whirl`)
+
+- `whirl.ogg`: a soft, low whoosh. Freesound #423799, “Little Whoosh 2” by ch_ase (CC0).
+
 Sources: [VSCO 2 Community Edition](https://github.com/sgossner/VSCO-2-CE) by Versilian Studios (organ by
 Simon Dalzell of Ivy Audio), [Kenney](https://kenney.nl) and [Freesound](https://freesound.org) (each sound's
 page: https://freesound.org/s/<number>/).

@@ -191,11 +191,12 @@
 }
 
 .he-logo__laugh,
-.he-logo__dark {
+.he-logo__dark,
+.he-logo__blow {
   opacity: 0;
 }
 
-.he-logo :is(.he-logo__lit, .he-logo__grin, .he-logo__laugh, .he-logo__dark) {
+.he-logo :is(.he-logo__lit, .he-logo__grin, .he-logo__laugh, .he-logo__dark, .he-logo__blow) {
   transition: opacity 0.15s;
 }
 
@@ -219,9 +220,32 @@
   transform: translateY(-1.2px);
 }
 
+/* Blowing a leaf off his head (leaves.ts): cheeks puffed, a little round mouth, eyes squeezed. */
+.he-logo {
+  transform-origin: 50% 100%;
+}
+
+.he-logo.is-blowing {
+  transform: scale(1.07, 0.95);
+}
+
+.he-logo.is-blowing :is(.he-logo__grin, .he-logo__laugh) {
+  opacity: 0;
+}
+
+.he-logo.is-blowing .he-logo__blow {
+  opacity: 1;
+}
+
+.he-logo.is-blowing .he-logo__lit .he-logo__eye {
+  transform: scaleY(0.5);
+}
+
 /* With his candle out he's just a pumpkin in the dark (but for his eyes). */
 .he-logo {
-  transition: filter 0.2s;
+  transition:
+    filter 0.2s,
+    transform 0.18s var(--spring);
 }
 
 :root.he-jack-out .he-logo {
@@ -986,6 +1010,21 @@
   50% {
     transform: rotate(-14deg);
   }
+}
+
+/* Its pupils follow a leaf falling past (leaves.ts), its eyes going wide. */
+:root[data-theme="hollow"] .he-cat__look {
+  transition: transform 0.2s ease-out;
+}
+
+:root[data-theme="hollow"] .he-cat__glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.35s var(--spring);
+}
+
+:root[data-theme="hollow"] .he-cat.is-watching .he-cat__glow {
+  transform: scale(1.12, 1.4);
 }
 
 :root[data-theme="hollow"] .he-cat__eyes {
