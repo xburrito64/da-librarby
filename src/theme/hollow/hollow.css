@@ -2068,6 +2068,33 @@
   }
 }
 
+/* The grass along the cut's edge sways a little (grass.ts). */
+:root[data-theme="hollow"] .he-grass {
+  pointer-events: none;
+  will-change: transform;
+}
+
+:root[data-theme="hollow"] .he-tuft {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: he-grass-sway 5s ease-in-out infinite alternate;
+}
+
+@keyframes he-grass-sway {
+  from {
+    transform: rotate(-3deg);
+  }
+  to {
+    transform: rotate(2.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="hollow"] .he-tuft {
+    animation: none;
+  }
+}
+
 /* The fog lying on the patch thins out before the cut, rather than stopping at it. */
 :root.he-fog-on[data-theme="hollow"] .hero .he-fog {
   -webkit-mask-image: linear-gradient(#000 55%, transparent 92%);

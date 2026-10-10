@@ -5,6 +5,7 @@
 import { C, ghostShape } from "./art";
 import { anyPumpkin, drawPumpkin, pumpkinDefs, type PumpkinSpec } from "./pumpkins";
 import { faceTree, farTree, owlTree, spiralTree, swingTree } from "./trees";
+import { tuft, type Lantern } from "./grass";
 import { CUT_IN, underArt, type Spot } from "./under";
 
 /** The scenes' height (px, as in hollow.css), and where the ground is. */
@@ -261,9 +262,16 @@ export function patchScene(width: number, spots?: Spot[]) {
   const patch = scattered(id, rand, 760, r + 560, 292, found) + pumpkins(id, r, PATCH, found);
   const cut = underArt(w, found);
   s += `<defs>${cut.defs}</defs><g transform="translate(0 ${SCENE_H - CUT_IN})">${cut.body}</g>`;
+  // Grass: tufts along the back of the patch (still), the pumpkins, then tufts along the cut's edge
+  // in front of them, swaying (in a layer of their own, so only they need redrawing as they move).
+  const lanterns: Lantern[] = found.filter((p) => p.lit).map((p) => ({ x: p.x, y: 302, reach: p.size * 2.2 + 24 }));
+  const grow = random(31);
+  for (let x = grow() * 20; x < w; x += x < r + 560 ? 40 + grow() * 60 : 22 + grow() * 34) s += tuft(grow, x, 276 + grow() * 8, 6 + grow() * 6, "#0d0812", lanterns, false);
   s += patch;
+  let front = "";
+  for (let x = grow() * 10; x < w; x += grow() < 0.2 ? 36 + grow() * 60 : 8 + grow() * 16) front += tuft(grow, x, SCENE_H - CUT_IN + cut.edgeAt(x) + 1.5, 7 + grow() * 9, "#07040a", lanterns, true);
   spots?.push(...found);
-  return `${s}</svg>`;
+  return `${s}</svg><svg class="he-scene__svg he-grass" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${SCENE_H}" width="${w}" height="${SCENE_H}">${front}</svg>`;
 }
 
 /** An iron fence with spiky posts. */

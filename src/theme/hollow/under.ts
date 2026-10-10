@@ -199,7 +199,7 @@ function stone(x: number, y: number, r: number, rand: () => number) {
 export const CUT_IN = 12;
 
 /** The slice of earth under the patch, `w` wide (the same as the patch's scene), with its cut edge
- *  at y = 0: what goes in an SVG's defs, and the picture. */
+ *  at y = 0: what goes in an SVG's defs, the picture, and how far down its ragged edge is at x. */
 export function underArt(w: number, spots: Spot[]) {
   const rand = random(19);
   const defs = `
@@ -216,6 +216,13 @@ export function underArt(w: number, spots: Spot[]) {
   const edge: [number, number][] = [];
   for (let x = -10; x <= w + 30; x += 14 + rand() * 26) edge.push([x, rand() < 0.2 ? 5 + rand() * 7 : rand() * 3]);
   const edgeD = "M" + edge.map(([x, y]) => `${f(x)} ${f(y)}`).join("L");
+  /** How far down the edge is at x. */
+  const edgeAt = (x: number) => {
+    const i = Math.max(0, edge.findIndex(([ex]) => ex > x) - 1);
+    const [ax, ay] = edge[i];
+    const [bx, by] = edge[Math.min(edge.length - 1, i + 1)];
+    return bx === ax ? ay : ay + ((by - ay) * (x - ax)) / (bx - ax);
+  };
 
   // The cut face, and its layers of earth, darker as they go down, each edge catching a little light.
   s += `<path d="${edgeD}L${w + 30} ${UNDER_H}L-10 ${UNDER_H}Z" fill="#21141f"/>`;
@@ -299,34 +306,32 @@ export function underArt(w: number, spots: Spot[]) {
   // Candlelight from the lit pumpkins spilling over the edge onto the cut face.
   for (const p of spots.filter((p) => p.lit)) s += `<ellipse cx="${f(p.x)}" cy="0" rx="${f(p.size * 1.9)}" ry="${f(40 + p.size)}" fill="url(#heu-warm)"/>`;
 
-  // The lip: a shadow under it, a pale rim where it's cut, crumbs falling, and grass and leaves
-  // hanging over.
+  // The lip: a shadow under it, a pale rim where it's cut, crumbs falling, fine roots poking out
+  // of the cut and dangling, and the odd fallen leaf lying on the edge. (The grass growing along
+  // it is the scene's, see grass.ts.)
   s += `<g transform="translate(0 5)"><path d="${edgeD}" stroke="#050208" stroke-width="10" fill="none" opacity="0.55" stroke-linejoin="round"/></g>`;
   s += `<path d="${edgeD}" stroke="#55405e" stroke-width="2.2" fill="none" stroke-linejoin="round"/>`;
   for (let i = 0; i < w / 90; i++) {
     const x = rand() * w;
     for (let j = 0; j < 3; j++) s += `<circle cx="${f(x + (rand() - 0.5) * 6)}" cy="${f(10 + j * 9 + rand() * 4)}" r="${f(1.3 - j * 0.3)}" fill="#3a2a44" opacity="${f(0.9 - j * 0.28)}"/>`;
   }
+  for (let x = rand() * 10; x < w; x += rand() < 0.35 ? 30 + rand() * 60 : 4 + rand() * 9) {
+    const top = edgeAt(x) + 3;
+    const len = 4 + rand() * 12;
+    const dx = (rand() - 0.5) * 6;
+    const thick = rand() < 0.2;
+    s += `<path d="M${f(x)} ${f(top)}q${f(dx * 0.2 + (rand() - 0.5) * 3)} ${f(len * 0.5)} ${f(dx)} ${f(len)}" stroke="${thick ? "#4a3228" : "#5d4236"}" stroke-width="${thick ? 1.5 : 0.8}" fill="none" stroke-linecap="round" opacity="0.85"/>`;
+  }
   const leafColors = ["#7a3f10", "#8a4a12", "#5a2410", "#6b3412"];
-  for (let x = rand() * 10; x < w; x += rand() < 0.3 ? 40 + rand() * 90 : 5 + rand() * 12) {
-    const n = 2 + Math.floor(rand() * 4);
-    for (let i = 0; i < n; i++) {
-      const bx = x + i * 2.2;
-      const len = 5 + rand() * 11;
-      const dx = (rand() - 0.5) * 8;
-      s += `<path d="M${f(bx)} -1Q${f(bx + dx * 0.3)} ${f(len * 0.3)} ${f(bx + dx)} ${f(len)}" stroke="${rand() < 0.5 ? "#26321b" : "#33421f"}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
-    }
-    if (rand() < 0.22) {
-      const lx = x + rand() * 10;
-      const ly = rand() * 4;
-      const r = 3 + rand() * 3;
-      s += `<path transform="translate(${f(lx)} ${f(ly)}) rotate(${f((rand() - 0.5) * 60)})" d="M${-r} 0Q0 ${-r * 0.8} ${r} 0Q0 ${r * 0.8} ${-r} 0Z" fill="${leafColors[Math.floor(rand() * leafColors.length)]}"/>`;
-    }
+  for (let x = rand() * 40; x < w; x += 50 + rand() * 120) {
+    const ly = edgeAt(x) - 1 + rand() * 3;
+    const r = 3 + rand() * 3;
+    s += `<path transform="translate(${f(x)} ${f(ly)}) rotate(${f((rand() - 0.5) * 60)})" d="M${-r} 0Q0 ${-r * 0.8} ${r} 0Q0 ${r * 0.8} ${-r} 0Z" fill="${leafColors[Math.floor(rand() * leafColors.length)]}"/>`;
   }
 
   // Down into the night.
   s += `<rect y="${DEEP}" width="${w}" height="${UNDER_H - DEEP}" fill="url(#heu-fade)"/>`;
-  return { defs, body: s };
+  return { defs, body: s, edgeAt };
 }
 
 /** The slice as a picture of its own, for under the spotlight: from where the spotlight (which
