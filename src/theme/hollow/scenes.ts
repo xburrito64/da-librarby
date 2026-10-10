@@ -1,13 +1,14 @@
-// Puts Hollow's Eve's scenes where they're shown (the pumpkin patch under the spotlight, the
-// graveyard on show pages) and keeps them alive: pumpkins wobble or glow when pointed at, the ghost
+// Puts Hollow's Eve's scenes where they're shown (the pumpkin patch under the spotlight with the
+// slice of earth under it, the graveyard on show pages) and keeps them alive: pumpkins wobble or glow when pointed at, the ghost
 // peeks out from behind its tombstone now and then (and ducks back down when you come close), and
 // once in a while a pair of eyes looks out of the crypt's door.
 import { playSound } from "../sound";
 import { graveyardScene, patchScene } from "./scene";
+import { underScene, type Spot } from "./under";
 
 const HOSTS = [
   { selector: ".hero__decor--bottom", draw: patchScene },
-  { selector: ".tp__decor--bottom", draw: graveyardScene },
+  { selector: ".tp__decor--bottom", draw: (width: number, _spots: Spot[]) => graveyardScene(width) },
 ];
 
 /** The ghost peeks out every so often, for a while; it hides when the pointer comes this close (px). */
@@ -38,7 +39,14 @@ export function startScenes({ surprises }: { surprises: boolean }) {
         if (drawn.get(host) === width) return;
         drawn.set(host, width);
         host.classList.add("he-scene");
-        host.innerHTML = `${scene(width)}<span class="he-fog"></span><span class="he-fog he-fog--near"></span>`;
+        const spots: Spot[] = [];
+        host.innerHTML = `${scene(width, spots)}<span class="he-fog"></span><span class="he-fog he-fog--near"></span>`;
+        // Under the patch, the slice of earth, lined up with it (at the top of the rows below).
+        const rows = spots.length ? document.querySelector(".home__rows") : null;
+        if (rows) {
+          rows.querySelector(":scope > .he-under")?.remove();
+          rows.insertAdjacentHTML("beforeend", `<div class="he-under" aria-hidden="true">${underScene(Math.max(1100, Math.ceil(width)), spots)}</div>`);
+        }
       });
     for (const host of drawn.keys()) if (!host.isConnected) drawn.delete(host);
   };
@@ -123,5 +131,6 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       host.innerHTML = "";
       host.classList.remove("he-scene");
     }
+    document.querySelectorAll(".he-under").forEach((el) => el.remove());
   };
 }

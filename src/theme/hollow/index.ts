@@ -9,10 +9,8 @@ import { SOUNDS } from "./sounds";
 import Decor from "./Decor";
 import Candle from "./Candle";
 import { drawArt } from "./art";
-import { drawSeam } from "./seam";
 
 drawArt();
-drawSeam();
 
 const TRICKS = [
   "Trick! Something just floated past… did you see that?",

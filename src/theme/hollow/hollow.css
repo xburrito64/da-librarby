@@ -1066,6 +1066,22 @@
   animation-direction: reverse;
 }
 
+/* Fog in the valley left of the patch, drifting to and fro. */
+:root[data-theme="hollow"] .he-valley-fog {
+  animation: he-valley-drift 26s ease-in-out infinite alternate;
+}
+
+:root[data-theme="hollow"] .he-valley-fog--slow {
+  animation-duration: 41s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes he-valley-drift {
+  to {
+    transform: translateX(60px);
+  }
+}
+
 @keyframes he-drift {
   to {
     transform: translateX(33%);
@@ -1073,7 +1089,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root[data-theme="hollow"] :is(.he-fog, .he-cat__tail, .he-moonbats, .he-bat, .he-spider__body, .nav__logo) {
+  :root[data-theme="hollow"] :is(.he-fog, .he-valley-fog, .he-cat__tail, .he-moonbats, .he-bat, .he-spider__body, .nav__logo) {
     animation: none;
   }
 
@@ -1843,73 +1859,38 @@
   transition: transform 0.25s var(--spring);
 }
 
-/* ---------- Below the patch: the ground goes on down into the page (seam.ts) ----------
-   A slice through the earth under the patch (roots, stones, old bones, fallen leaves), with mist
-   lying over where they meet, all fading slowly into the night. The rows start a little lower to
-   give it room. */
+/* ---------- Under the patch: a slice of earth, cut away (under.ts) ----------
+   The patch's ground ends in a ragged cut at the bottom of the spotlight, and the layers of earth
+   below it carry on behind the top of the rows. The rows start lower to give it room. */
 
 :root[data-theme="hollow"] {
-  --rows-overlap: 64px;
+  --rows-overlap: 200px;
 }
 
 :root[data-theme="hollow"] .hero .he-scene::after {
   display: none;
 }
 
-/* The earth's colour carrying on from the patch, and the mist drifting over the top of it. */
-:root[data-theme="hollow"] .home__rows::before {
-  content: "";
+:root:not([data-theme="hollow"]) .he-under {
+  display: none;
+}
+
+.he-under {
   position: absolute;
   z-index: -1;
-  left: 0;
   right: 0;
-  top: calc(-1 * var(--rows-overlap) - 130px);
-  height: 760px;
-  background:
-    /* Each puff stays inside its 1600px strip (centre ± width), so none is cut off where they repeat. */
-    radial-gradient(240px 52px at 280px 50%, rgba(200, 180, 230, 0.15), transparent 70%) 0 0 / 1600px 260px repeat-x,
-    radial-gradient(280px 64px at 640px 58%, rgba(200, 180, 230, 0.13), transparent 70%) 0 0 / 1600px 260px repeat-x,
-    radial-gradient(240px 56px at 1000px 44%, rgba(200, 180, 230, 0.15), transparent 70%) 0 0 / 1600px 260px repeat-x,
-    radial-gradient(250px 70px at 1340px 56%, rgba(200, 180, 230, 0.12), transparent 70%) 0 0 / 1600px 260px repeat-x,
-    linear-gradient(transparent, rgba(150, 125, 190, 0.07) 50%, transparent) 0 0 / 100% 260px no-repeat,
-    linear-gradient(#120a17, #140b1b 25%, rgba(20, 11, 27, 0.6) 60%, transparent) 0 130px / 100% 630px no-repeat;
-  animation: he-mist 90s linear infinite;
+  /* Lined up with the cut's top, drawn inside the spotlight (CUT_IN in under.ts). */
+  top: calc(-1 * var(--rows-overlap) - 12px);
   pointer-events: none;
 }
 
-@keyframes he-mist {
-  to {
-    background-position:
-      1600px 0,
-      -1600px 0,
-      1600px 0,
-      -1600px 0,
-      0 0,
-      0 130px;
-  }
+.he-under__svg {
+  display: block;
 }
 
-/* The slice through the ground, with fallen leaves on top. */
-:root[data-theme="hollow"] .home__rows::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  left: 0;
-  right: 0;
-  top: calc(-1 * var(--rows-overlap));
-  height: 320px;
-  background:
-    var(--he-img-leaves) 0 0 / 640px 280px repeat-x,
-    var(--he-img-buried) 0 0 / 3200px 300px repeat-x,
-    var(--he-img-soil) 0 0 / 760px 300px repeat-x;
-  -webkit-mask-image: linear-gradient(#000 35%, transparent);
-  mask-image: linear-gradient(#000 35%, transparent);
-  opacity: 0.85;
-  pointer-events: none;
+/* The fog lying on the patch thins out before the cut, rather than stopping at it. */
+:root.he-fog-on[data-theme="hollow"] .hero .he-fog {
+  -webkit-mask-image: linear-gradient(#000 55%, transparent 92%);
+  mask-image: linear-gradient(#000 55%, transparent 92%);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  :root[data-theme="hollow"] .home__rows::before {
-    animation: none;
-  }
-}
