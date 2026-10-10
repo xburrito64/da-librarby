@@ -85,6 +85,12 @@ change and share, no credit required. Where they came from, gratefully:
 - `snuff-2.ogg`: a candle blown out (2). Freesound #803296, “blow_4” by Dragon20C (CC0).
 - `snuff-3.ogg`: a candle blown out (3). Freesound #406647, “Blowing Out Candle_shorter.wav” by tlcolbe (CC0).
 
+## A leaf flicked away (`rustle`)
+
+- `rustle-1.ogg`: a dry leaf rustling. Freesound #106130, “leafpilehit.wav” by j1987 (CC0).
+- `rustle-2.ogg`: a single leaf brushed. Freesound #57659, “17 lower-leaf.wav” by jianhicks (CC0).
+- `rustle-3.ogg`: leaves shaken on a branch. Freesound #540278, “tree shake.wav” by zepurple (CC0).
+
 Sources: [VSCO 2 Community Edition](https://github.com/sgossner/VSCO-2-CE) by Versilian Studios (organ by
 Simon Dalzell of Ivy Audio), [Kenney](https://kenney.nl) and [Freesound](https://freesound.org) (each sound's
 page: https://freesound.org/s/<number>/).

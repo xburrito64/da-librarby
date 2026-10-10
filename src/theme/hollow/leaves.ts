@@ -5,15 +5,16 @@
 // big blurry one passing close by. Some come off the branch in the top bar: they wiggle a moment and
 // break loose. Each leaf is painted once (a maple, oak, birch, elm or plain one, its colour shading
 // from stalk to tip, veins, sometimes spots, a nibbled hole or a curled edge, the moon on its rim and
-// a darker back) and then turned and tilted as it falls. They belong to the page: scrolling moves
-// them along with everything else. In front of the pages, under the top bar and dialogs; the ones
+// a darker back) and then turned and tilted as it falls. Click one and it's flicked away, spinning,
+// with a quiet rustle. They belong to the page: scrolling moves them along with everything else. In front of the pages, under the top bar and dialogs; the ones
 // off the branch start over the top bar (a second canvas). See hollow.css (".he-leaves").
+import { playSound } from "../sound";
 import { perches } from "./branch";
 
 /** One leaf per this many square pixels of window (not counting the near ones and the branch's). */
-const AREA_PER_LEAF = 80000;
+const AREA_PER_LEAF = 54000;
 /** How many of them are far away. */
-const FAR_SHARE = 0.35;
+const FAR_SHARE = 0.45;
 /** A leaf comes off the branch every so often (s), at most this many hanging at once. */
 const BRANCH_EVERY = [7, 16];
 const MAX_HANGING = 2;
@@ -241,6 +242,9 @@ interface Leaf {
   /** Turning over (round its middle vein). */
   flip: number;
   flipSpeed: number;
+  /** Flicked: how fast it's still flying off (px/s), slowing as the air catches it. */
+  kickX: number;
+  kickY: number;
   /** Tumbling: how much (0..1), for how much longer (s), spinning how fast. */
   tumble: number;
   tumbleLeft: number;
@@ -276,6 +280,8 @@ function spawn(depth: Depth, w: number, h: number, anywhere: boolean, size?: num
     heading: (Math.random() < 0.5 ? -1 : 1) * (Math.PI / 2 + (Math.random() - 0.5)),
     spin: (Math.random() - 0.5) * 0.5,
     rock: 0,
+    kickX: 0,
+    kickY: 0,
     flip: Math.random() * Math.PI * 2,
     flipSpeed: 0.4 + Math.random() * 0.9,
     tumble: 0,
@@ -340,14 +346,38 @@ function move(l: Leaf, dt: number, wind: number, shift: number) {
   l.phase += l.speed * dt;
   const vx = l.swing * l.speed * Math.cos(l.phase) * glide;
   const vy = l.fall * (0.3 + 0.7 * ease) * (1 + 1.4 * l.tumble) - l.lift * l.speed * Math.sin(2 * l.phase) * glide;
-  l.x += (vx + wind * d.wind) * dt;
-  l.y += vy * dt - shift;
+  l.x += (vx + wind * d.wind + l.kickX) * dt;
+  l.y += (vy + l.kickY) * dt - shift;
+  const drag = Math.exp(-dt * 2.4);
+  l.kickX *= drag;
+  l.kickY *= drag;
   // Tilted the way it glides (dipping into each swing, nose up at the end of it).
   const tilt = Math.max(-0.8, Math.min(0.8, Math.atan2(vy, Math.abs(vx) + 1) * Math.sign(vx) * 0.85));
   l.rock += (tilt * glide - l.rock) * Math.min(1, dt * 5);
   l.heading += (l.spin + l.tumbleSpin * l.tumble) * dt;
   if (l.settle !== undefined && l.born < 4) l.heading += (l.settle - l.heading) * Math.min(1, dt * 0.9);
   l.flip += l.flipSpeed * (1 + 9 * l.tumble) * dt;
+}
+
+/** Flicks a leaf away from where it was clicked: off it flies, spinning and tumbling, until the air
+ *  catches it again (off the branch, if it was still hanging there). */
+function flick(l: Leaf, fromX: number, fromY: number) {
+  if (l.hang) {
+    l.hang = undefined;
+    l.born = 1.4;
+    l.show = 1;
+  }
+  let dx = l.x - fromX;
+  let dy = l.y - fromY;
+  const far = Math.hypot(dx, dy);
+  if (far < 2) [dx, dy] = [Math.random() - 0.5, -0.5];
+  const k = 1 / Math.hypot(dx, dy);
+  // Mostly away from the click, and a little up.
+  const speed = (l.depth === "far" ? 170 : 300) + Math.random() * 120;
+  l.kickX = dx * k * speed;
+  l.kickY = (Math.min(dy * k, 0.3) - 0.75) * speed;
+  l.tumbleLeft = 0.8 + Math.random() * 0.5;
+  l.tumbleSpin = (dx < 0 ? -1 : 1) * (8 + Math.random() * 5);
 }
 
 function draw(g: CanvasRenderingContext2D, l: Leaf) {
@@ -403,6 +433,24 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
   let nextBranch = 3 + Math.random() * 5;
   let nextNear = between(NEAR_EVERY) / 2;
   const scroll = followScroll();
+  // Clicking a leaf flicks it away (and the click goes no further, so whatever's under it isn't
+  // clicked too). Tiny far ones are easy to miss, so they're a little bigger to hit than they look.
+  const onClick = (e: MouseEvent) => {
+    // Not through a dialog or menu (the leaves are under those).
+    if (document.querySelector(".modal, .ctx-menu") || (e.target as Element | null)?.closest?.(".toast, .say, .update-note")) return;
+    let hit: Leaf | null = null;
+    let best = Infinity;
+    for (const l of [...list, ...extra]) {
+      const d = Math.hypot(l.x - e.clientX, l.y - e.clientY);
+      if (l.show > 0.3 && d < Math.max(l.size * 0.95, 7) + 3 && d < best) [hit, best] = [l, d];
+    }
+    if (!hit) return;
+    e.preventDefault();
+    e.stopPropagation();
+    flick(hit, e.clientX, e.clientY);
+    playSound("rustle");
+  };
+  document.addEventListener("click", onClick, true);
   const size = (c: HTMLCanvasElement) => {
     const dpr = window.devicePixelRatio || 1;
     const w = Math.round(c.clientWidth * dpr);
@@ -490,6 +538,7 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
   return () => {
     cancelAnimationFrame(frame);
     scroll.stop();
+    document.removeEventListener("click", onClick, true);
     g.clearRect(0, 0, el.width, el.height);
     gt.clearRect(0, 0, top.width, top.height);
   };

@@ -29,7 +29,9 @@ export type SoundName =
   | "creak"
   | "rattle"
   | "scrape"
-  | "moan";
+  | "moan"
+  /** A falling leaf flicked away. */
+  | "rustle";
 
 /** Plays a sound into `out`, which carries the chosen volume. */
 export type SoundPlayer = (ctx: AudioContext, out: AudioNode) => void;
