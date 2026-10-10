@@ -335,17 +335,22 @@ export function graveyardScene(width: number) {
   // A lantern by the path.
   s += `<g transform="translate(${r + 1120} 270)"><circle cx="0" cy="-56" r="26" fill="url(#${id}light)"/><path d="M0 0V-48" stroke="#1d1526" stroke-width="3"/><rect x="-6" y="-62" width="12" height="14" rx="2" fill="${C.candle}" class="he-flicker" filter="url(#${id}glow)"/><path d="M-8-62h16l-8-7z" fill="#1d1526"/></g>`;
   s += ironFence(r + 560, r + 1070, 266);
-  // Tombstones in rows, the ghost behind one.
-  s += ghost(r + 906, 232, 0.6);
-  const stones: [number, number, Stone, number, number][] = [
-    [600, 268, "obelisk", 40, -3], [650, 266, "angel", 34, 2], [700, 268, "celtic", 34, 4], [760, 272, "slab", 30, -1],
-    [820, 266, "moon", 32, 2], [918, 263, "gothic", 44, 0], [976, 269, "wooden", 32, -7], [1030, 270, "heart", 26, 5],
-  ];
-  stones.forEach(([x, y, kind, h, t], i) => (s += tombstone(kind, r + x, y, h, t, id, i)));
   // The path up to the crypt, and the ground.
   s += `<path d="${groundPath(w, 274, 3, 4)}" fill="#120a17"/>`;
   s += `<path d="M${r + 760} ${SCENE_H}C${r + 900} 300 ${r + 1100} 296 ${r + 1250} 266L${r + 1266} 266C${r + 1180} 300 ${r + 1000} 316 ${r + 880} ${SCENE_H}Z" fill="#221830" opacity="0.8"/>`;
-  s += scattered(id, rand, 720, r + 560, 296);
+  // The tombstones, in the grass in front, left of the path: two loose rows (the nearer ones lower
+  // and a little bigger), the ghost behind the big one. Spread over what room the window leaves.
+  const from = Math.max(70, r + 300);
+  const to = r + 770;
+  const stones: [number, number, Stone, number, number][] = [
+    [0, 298, "obelisk", 42, -3], [0.13, 316, "angel", 38, 2], [0.27, 299, "celtic", 36, 4], [0.42, 317, "gothic", 48, 0],
+    [0.56, 300, "moon", 34, 2], [0.69, 318, "slab", 33, -1], [0.83, 301, "wooden", 34, -7], [0.97, 314, "heart", 28, 5],
+  ];
+  const at = (t: number) => from + (to - from) * t;
+  s += ghost(at(0.42) - 13, 282, 0.62);
+  stones.forEach(([t, y, kind, h, tilt], i) => (s += tombstone(kind, at(t), y, h, tilt, id, i)));
+  // (A few small pumpkins further left, on a wide window.)
+  s += scattered(id, rand, 720, from - 40, 300);
   s += pumpkins(id, r, GRAVEYARD);
   return `${s}</svg>`;
 }
