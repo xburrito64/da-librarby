@@ -8,6 +8,7 @@ import { faceTree, farTree, owlTree, spiralTree, swingTree } from "./trees";
 import { tuft, type Lantern } from "./grass";
 import { house } from "./house";
 import { tombstone, type Stone } from "./tombstones";
+import { tomb } from "./tomb";
 import { CUT_IN, underArt, type Spot } from "./under";
 
 /** The scenes' height (px, as in hollow.css), and where the ground is. */
@@ -369,7 +370,7 @@ function ironFence(from: number, to: number, y: number) {
   return `${s}</g>`;
 }
 
-/** The graveyard along the bottom of a show page's artwork, with a crypt on the right. */
+/** The graveyard along the bottom of a show page's artwork, with a family tomb on the right. */
 export function graveyardScene(width: number) {
   const id = "heg-";
   const w = Math.max(1100, Math.ceil(width));
@@ -381,21 +382,12 @@ export function graveyardScene(width: number) {
   s += `<path d="${groundPath(w, ...hill)}" fill="#1b1026"/>`;
   for (let x = 700, n = 1; x < r + 1300; x += 220 + rand() * 220, n++) s += farTree(x, groundAt(x, ...hill, 3 + rand() * 6), 50 + rand() * 32, n * 7 + 3);
   s += faceTree(r + 1392, 270, 132);
-  // The crypt: stone, a pointed roof, a door that glows (and sometimes has eyes in it).
-  s += `<g transform="translate(${r + 1250} 264)">
-    <path d="M-52 0V-70H52V0Z" fill="#231a2e" stroke="#3d3050" stroke-width="1.5"/>
-    <path d="M-62-68L0-112L62-68Z" fill="#1a1222" stroke="#3d3050" stroke-width="1.5"/>
-    <path d="M-6-112V-128M-12-122H0" stroke="#3d3050" stroke-width="3" stroke-linecap="round"/>
-    <path d="M-58-68H58" stroke="#3d3050" stroke-width="4"/>
-    <path d="M-16 0V-42A16 16 0 0 1 16-42V0Z" fill="#0a060d"/>
-    <path d="M-16 0V-42A16 16 0 0 1 16-42V0Z" fill="none" stroke="#ff7518" stroke-opacity="0.35" stroke-width="2" filter="url(#${id}glow)"/>
-    <g class="he-eyes" fill="${C.candle}" filter="url(#${id}glow)"><ellipse cx="-5" cy="-30" rx="2.2" ry="1.4"/><ellipse cx="5" cy="-30" rx="2.2" ry="1.4"/></g>
-    <path d="M-44-50h18M-44-40h12M28-50h16M32-40h12" stroke="#2f2540" stroke-width="2"/>
-  </g>`;
+  // The family tomb at the end of the path (tomb.ts).
+  s += tomb(id, r + 1250, 264, 0.95);
   // A lantern by the path.
   s += `<g transform="translate(${r + 1120} 270)"><circle cx="0" cy="-56" r="26" fill="url(#${id}light)"/><path d="M0 0V-48" stroke="#1d1526" stroke-width="3"/><rect x="-6" y="-62" width="12" height="14" rx="2" fill="${C.candle}" class="he-flicker" filter="url(#${id}glow)"/><path d="M-8-62h16l-8-7z" fill="#1d1526"/></g>`;
   s += ironFence(r + 560, r + 1070, 266);
-  // The path up to the crypt, and the ground.
+  // The path up to the tomb, and the ground.
   s += `<path d="${groundPath(w, 274, 3, 4)}" fill="#120a17"/>`;
   s += `<path d="M${r + 760} ${SCENE_H}C${r + 900} 300 ${r + 1100} 296 ${r + 1250} 266L${r + 1266} 266C${r + 1180} 300 ${r + 1000} 316 ${r + 880} ${SCENE_H}Z" fill="#221830" opacity="0.8"/>`;
   // The tombstones, in the grass in front, left of the path: two loose rows (the nearer ones lower

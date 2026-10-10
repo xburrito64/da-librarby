@@ -3,8 +3,9 @@
 // a click, never to the pointer just passing by (too many sounds otherwise): pumpkins wobble with
 // a knock, the house's door creaks open, the ghost (peeking out from behind its tombstone now and
 // then) gets a fright and ducks back down, and under the patch the skeleton wakes up, the coffin
-// opens, the mushrooms puff spores and the candy stash is found. Once in a while a pair of eyes
-// looks out of the crypt's door by itself.
+// opens, the mushrooms puff spores and the candy stash is found. On show pages, the tomb's gate
+// creaks open (eyes looking out), its gargoyle turns its head, its candles can be blown out. Once
+// in a while a pair of eyes looks out of the tomb's door by itself.
 import { playSound } from "../sound";
 import { graveyardScene, patchScene } from "./scene";
 import { underScene, type Spot } from "./under";
@@ -17,11 +18,15 @@ const HOSTS = [
 /** The ghost peeks out every so often, for a while. */
 const PEEK_EVERY_MS = [6000, 15000];
 const PEEK_MS = 4200;
-/** Eyes in the crypt's door: how often, for how long. */
+/** Eyes in the tomb's door: how often, for how long. */
 const EYES_EVERY_MS = [20000, 45000];
 const EYES_MS = 3600;
 /** The house's door stays open this long (ms). */
 const DOOR_OPEN_MS = 3200;
+/** The tomb's gate stays open, the gargoyle keeps looking, a blown-out candle stays out (ms). */
+const GATE_OPEN_MS = 3000;
+const GARGOYLE_MS = 2200;
+const CANDLE_OUT_MS = [7000, 12000];
 
 const between = ([a, b]: number[]) => a + Math.random() * (b - a);
 
@@ -128,6 +133,44 @@ export function startScenes({ surprises }: { surprises: boolean }) {
         house.classList.replace("is-opening", "is-open");
         later(() => house.classList.remove("is-open"), Math.max(DOOR_OPEN_MS, swing * 1000 + 2200));
       });
+      return;
+    }
+    // The tomb: its gate creaks open (as slowly as the creak lasts) and the eyes look out; the
+    // gargoyle turns its head with a grind of stone; a candle goes out, and lights again later.
+    const gate = target.closest?.(".he-tomb__door");
+    const tomb = gate?.closest(".he-tomb");
+    if (gate && tomb) {
+      if (tomb.classList.contains("is-opening") || tomb.classList.contains("is-open")) return;
+      tomb.classList.add("is-opening");
+      void playSound("creak").then((seconds) => {
+        const swing = Math.min(1.6, Math.max(0.35, (seconds ?? 0.6) * 0.85));
+        tomb.querySelectorAll<SVGElement>(".he-tomb__leaf").forEach((leaf) => leaf.style.setProperty("transition-duration", `${swing}s`));
+        tomb.classList.replace("is-opening", "is-open");
+        later(() => tomb.classList.remove("is-open"), Math.max(GATE_OPEN_MS, swing * 1000 + 2000));
+      });
+      return;
+    }
+    const gargoyle = target.closest?.(".he-tomb__gargoyle");
+    if (gargoyle) {
+      if (gargoyle.classList.contains("is-looking")) return;
+      gargoyle.classList.add("is-looking");
+      void playSound("scrape").then((seconds) => {
+        const turn = Math.min(1.2, Math.max(0.3, (seconds ?? 0.8) * 0.8));
+        gargoyle.querySelector<SVGElement>(".he-tomb__head")?.style.setProperty("transition-duration", `${turn}s`);
+        gargoyle.classList.add("is-turned");
+        later(() => gargoyle.classList.remove("is-turned", "is-looking"), turn * 1000 + GARGOYLE_MS);
+      });
+      return;
+    }
+    const flame = target.closest?.(".he-tomb__candle");
+    if (flame) {
+      if (flame.classList.contains("is-out")) return;
+      flame.classList.add("is-out");
+      playSound("snuff");
+      later(() => {
+        flame.classList.remove("is-out");
+        playSound("ignite");
+      }, between(CANDLE_OUT_MS));
       return;
     }
     const ghost = target.closest?.(".he-ghost.is-peeking") as SVGGElement | null;

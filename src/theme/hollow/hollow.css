@@ -1128,13 +1128,14 @@
   }
 }
 
-/* Eyes in the crypt's door, now and then. */
+/* Eyes in the tomb's door, now and then (or when its gate is opened). */
 :root[data-theme="hollow"] .he-eyes {
   opacity: 0;
   transition: opacity 0.6s;
 }
 
-:root[data-theme="hollow"] .he-eyes.is-open {
+:root[data-theme="hollow"] .he-eyes.is-open,
+:root[data-theme="hollow"] .he-tomb.is-open .he-eyes {
   opacity: 1;
   transform-box: fill-box;
   transform-origin: center;
@@ -2297,6 +2298,115 @@
 @media (prefers-reduced-motion: reduce) {
   :root[data-theme="hollow"] .he-house * {
     animation: none !important;
+  }
+}
+
+/* The tomb (tomb.ts): its gate, gargoyle and candles answer clicks; a light passes behind its round
+   window now and then. */
+:root[data-theme="hollow"] :is(.he-tomb__door, .he-tomb__gargoyle, .he-tomb__candle) {
+  pointer-events: visiblePainted;
+  cursor: pointer;
+}
+
+:root[data-theme="hollow"] :is(.he-tomb__leaf, .he-tomb__head, .he-tomb__geyes, .he-tomb__flame, .he-tomb__smoke) {
+  transform-box: fill-box;
+}
+
+:root[data-theme="hollow"] .he-tomb__leaf {
+  transition: transform 0.6s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+:root[data-theme="hollow"] .he-tomb__leaf--l {
+  transform-origin: 0% 50%;
+}
+
+:root[data-theme="hollow"] .he-tomb__leaf--r {
+  transform-origin: 100% 50%;
+}
+
+:root[data-theme="hollow"] .he-tomb.is-open .he-tomb__leaf {
+  transform: scaleX(0.35);
+}
+
+:root[data-theme="hollow"] .he-tomb__head {
+  transform-origin: 50% 100%;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.3, 1);
+}
+
+:root[data-theme="hollow"] .he-tomb__gargoyle.is-turned .he-tomb__head {
+  transform: rotate(-22deg) translate(-1px, 0.5px);
+}
+
+:root[data-theme="hollow"] .he-tomb__geyes {
+  transform-origin: center;
+  opacity: 0.75;
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
+}
+
+:root[data-theme="hollow"] .he-tomb__gargoyle.is-turned .he-tomb__geyes {
+  opacity: 1;
+  transform: scale(1.5);
+}
+
+:root[data-theme="hollow"] .he-tomb__flame {
+  transition: opacity 0.15s;
+}
+
+:root[data-theme="hollow"] .he-tomb__candle.is-out .he-tomb__flame {
+  opacity: 0;
+  animation: none;
+}
+
+:root[data-theme="hollow"] .he-tomb__smoke {
+  opacity: 0;
+  transform-origin: 50% 100%;
+}
+
+:root[data-theme="hollow"] .he-tomb__candle.is-out .he-tomb__smoke {
+  animation: he-tomb-smoke 1.6s ease-out;
+}
+
+@keyframes he-tomb-smoke {
+  0% {
+    opacity: 0.7;
+    transform: translateY(0) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(1.3);
+  }
+}
+
+:root[data-theme="hollow"] .he-tomb__pass {
+  opacity: 0;
+  animation: he-tomb-pass 37s ease-in-out infinite;
+}
+
+@keyframes he-tomb-pass {
+  0%,
+  78% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  81% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  91%,
+  100% {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="hollow"] .he-tomb * {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
