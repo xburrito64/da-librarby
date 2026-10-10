@@ -22,7 +22,12 @@ export interface Branch {
   svg: string;
   /** Where its underside is at x (px from its left end), for something to hang from it. */
   under: (x: number) => number;
+  /** Twig tips and spots under it where a leaf can hang (px from its left end and top). */
+  perches: [number, number][];
 }
+
+/** Where leaves can hang from the branch now in the top bar (px in the window), for leaves.ts. */
+export const perches = { list: [] as [number, number][] };
 
 /** The branch, `w` px long. `keepClear`: x positions (from its left end) where things hang, so
  *  hanging twigs stay out of their way. */
@@ -75,6 +80,7 @@ export function drawBranch(w: number, keepClear: number[]): Branch {
   };
   const clear = (x: number, room: number) => keepClear.every((k) => Math.abs(k - x) > room);
   const leaves: [number, number, number][] = [];
+  const spots: [number, number][] = [];
   let webAt: [number, number] | null = null;
   for (let x = 24 + rand() * 20; x < w - 10; x += 26 + rand() * 40) {
     const t = u(x);
@@ -83,10 +89,12 @@ export function drawBranch(w: number, keepClear: number[]): Branch {
       const long = t > 0.6 && rand() < 0.35;
       const [ex, ey] = twig(x, top(x) + 1.5, -Math.PI / 2 - 0.35 - rand() * 0.7, (long ? 26 : 7) + rand() * 14 * (0.5 + t), 1.4 + t * 3, rand() < 0.45);
       if (rand() < 0.25) leaves.push([ex, ey, -30 + rand() * 60]);
+      spots.push([ex, ey]);
     } else if (clear(x, 26)) {
       // Hanging down.
       const [ex, ey] = twig(x, under(x) - 1, Math.PI / 2 - 0.4 + rand() * 0.5, 6 + rand() * 10, 1.1 + t * 1.6, false);
       if (rand() < 0.5) leaves.push([ex, ey - 0.5, 70 + rand() * 40]);
+      spots.push([ex, ey]);
       if (!webAt && t > 0.55) webAt = [x, under(x)];
     }
   }
@@ -141,5 +149,7 @@ export function drawBranch(w: number, keepClear: number[]): Branch {
     s += `<path d="${web}" stroke="#f3ead8" stroke-width="0.5" fill="none" opacity="0.35"/>`;
   }
 
-  return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${BRANCH_H}" viewBox="0 0 ${w} ${BRANCH_H}" overflow="visible">${s}</svg>`, under };
+  for (let x = 30; x < w - 20; x += 35) if (clear(x, 20)) spots.push([x, under(x) - 1]);
+
+  return { perches: spots, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${BRANCH_H}" viewBox="0 0 ${w} ${BRANCH_H}" overflow="visible">${s}</svg>`, under };
 }

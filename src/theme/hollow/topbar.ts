@@ -4,7 +4,7 @@
 // See hollow.css ("The top bar").
 import { playSound } from "../sound";
 import { FLYING_BAT, HANGING_BAT } from "./art";
-import { drawBranch } from "./branch";
+import { drawBranch, perches } from "./branch";
 import { startSpider } from "./spider";
 
 /** Bats come back to hang this long after flying off (ms). */
@@ -65,6 +65,7 @@ export function startTopBar() {
       const drawn = drawBranch(width, [...batX.map((x) => x + 11 - left), spiderX - left]);
       branch.innerHTML = drawn.svg;
       under = drawn.under;
+      perches.list = drawn.perches.map(([x, y]) => [x + left, y]);
     }
     branch.style.left = `${left}px`;
     bats.forEach((bat, i) => {
@@ -116,6 +117,7 @@ export function startTopBar() {
     window.removeEventListener("resize", layout);
     timers.forEach((t) => window.clearTimeout(t));
     spider.stop();
+    perches.list = [];
     layer.remove();
     bats = [];
   };

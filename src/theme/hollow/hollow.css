@@ -101,6 +101,18 @@
   pointer-events: none;
 }
 
+/* The leaves coming off the branch, while they're up by it: over the top bar (and its branch), down
+   to where its shadow ends. */
+.he-leaves-top {
+  position: absolute;
+  z-index: 22;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: calc(var(--nav-h) + 48px);
+  pointer-events: none;
+}
+
 /* ---------- The top bar ---------- */
 
 :root[data-theme="hollow"] .nav {

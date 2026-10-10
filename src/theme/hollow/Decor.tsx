@@ -38,6 +38,7 @@ function trick() {
 export default function Decor({ active, options }: { active: boolean; options: Record<string, boolean | string | undefined> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const leavesCanvas = useRef<HTMLCanvasElement>(null);
+  const leavesTop = useRef<HTMLCanvasElement>(null);
   const embers = active && options.embers !== false;
   const leaves = active && options.leaves !== false;
   const surprises = options.surprises !== false;
@@ -45,7 +46,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
   useEffect(() => (active ? startTopBar() : undefined), [active]);
   useEffect(() => (active ? startLogo() : undefined), [active]);
   useEffect(() => (active ? startTitleFit() : undefined), [active]);
-  useEffect(() => (leaves && leavesCanvas.current ? startLeaves(leavesCanvas.current) : undefined), [leaves]);
+  useEffect(() => (leaves && leavesCanvas.current && leavesTop.current ? startLeaves(leavesCanvas.current, leavesTop.current) : undefined), [leaves]);
   useEffect(() => (active ? startScenes({ surprises }) : undefined), [active, surprises]);
 
   useEffect(() => {
@@ -128,6 +129,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
     <>
       <canvas ref={canvas} className="he-embers" aria-hidden="true" />
       <canvas ref={leavesCanvas} className="he-leaves" aria-hidden="true" />
+      <canvas ref={leavesTop} className="he-leaves-top" aria-hidden="true" />
     </>
   );
 }
