@@ -18,7 +18,11 @@ export type Stone =
   | "slab"
   | "moon"
   | "wooden"
-  | "heart";
+  | "heart"
+  | "urn"
+  | "twin"
+  | "column"
+  | "plain";
 
 const EDGE = "#4a3d5e";
 const CARVE = "#16101e";
@@ -110,6 +114,33 @@ export function tombstone(kind: Stone, x: number, y: number, h: number, tilt = 0
       s =
         `<g fill="#3b2b24" stroke="#57422f" stroke-width="1" vector-effect="non-scaling-stroke"><path d="M-2.4 2V-31L0-33L2.4-31V2Z"/><path d="M-10-24.5L10-26.5V-22.5L-10-20.5Z"/></g>` +
         `<path d="M-0.8-30V-2M0.9-12V0" stroke="#2a1d18" stroke-width="0.5"/><g fill="#8a7a6a"><circle cx="-0.8" cy="-23.4" r="0.6"/><circle cx="0.8" cy="-23.6" r="0.6"/></g>`;
+      break;
+    case "urn":
+      // A plinth with a draped urn on top.
+      s =
+        solid("M-10 0V-17H10V0Z") +
+        solid("M-11.5-17V-20H11.5V-17Z") +
+        solid("M-5.5-20Q-8.5-25-5-30H5Q8.5-25 5.5-20Z") +
+        solid("M-6.5-30H6.5V-32H-6.5Z") +
+        solid("M-3-32Q0-37 3-32Z") +
+        `<path d="M-6-27Q0-22 6-27" stroke="${EDGE}" stroke-width="0.8" fill="none"/>` +
+        carve("M-6-11H6M-5-7H5", 1);
+      break;
+    case "twin":
+      // Two arches side by side: a couple, resting together.
+      s =
+        solid("M-15 0V-20A7.5 7.5 0 0 1 0-20A7.5 7.5 0 0 1 15-20V0Z") +
+        carve("M0-24V-3", 0.8) +
+        carve("M-11-17H-4M-11-13H-4M4-17H11M4-13H11", 1) +
+        `<path d="M0-8C-2.4-9.8-2.2-12.2-0.9-12.2C-0.4-12.2 0-11.8 0-11.4C0-11.8 0.4-12.2 0.9-12.2C2.2-12.2 2.4-9.8 0-8Z" fill="${CARVE}"/>`;
+      break;
+    case "column":
+      // A broken column on a base, fluted, snapped off at the top.
+      s = solid("M-9 0V-4H9V0Z") + solid("M-6-4V-33L-3-30L0-35L3-29L6-32V-4Z") + carve("M-3-6V-28M0-6V-31M3-6V-27", 0.6);
+      break;
+    case "plain":
+      // Plain and old, its corners cut, a small cross carved at the top.
+      s = solid("M-10 0V-24L-7-27H7L10-24V0Z") + carve("M0-24v8M-3-21H3", 1.2) + carve("M-6-10H6M-5-6H5", 1) + crack("M-10-15L-7-13L-8-10");
       break;
     case "heart":
       // Small, a heart carved in it, wilted flowers leaning on it.

@@ -58,8 +58,6 @@ function pumpkins(id: string, r: number, list: Placed[], spots?: Spot[]) {
 
 /** The patch's pumpkins, each one its own character. */
 const PATCH: Placed[] = [
-  [606, 296, { size: 13, palette: "pale", stem: "curly", squat: 0.78 }],
-  [640, 300, { size: 9, palette: "orange", stem: "short", squat: 0.7, tilt: 8 }],
   [702, 300, { size: 24, face: "cute", palette: "ghost", stem: "short", squat: 0.8, tilt: -4 }],
   [772, 306, { size: 42, face: "classic", stem: "curly", extras: ["leaf"], squat: 0.8 }],
   [838, 300, { size: 27, palette: "deep", stem: "bent", squat: 0.66, extras: ["hat"], tilt: -3 }],
@@ -273,8 +271,8 @@ export function patchScene(width: number, spots?: Spot[]) {
   // The ground in front, vines, and the pumpkin patch.
   s += `<path d="${groundPath(w, 270, 4, 3)}" fill="#120a17"/>`;
   // On the left, where the land starts falling away into the valley, the old cemetery.
-  const yard = { from: Math.max(28, edge - 520), to: edge - 30 };
-  s += cemetery(id, yard.from, yard.to);
+  const yard = { to: edge - 30 };
+  s += cemetery(id, yard.to);
   s += `<g stroke="${C.vine}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.9"><path d="M${r + 740} 300C${r + 800} 290 ${r + 840} 312 ${r + 900} 300S${r + 1000} 290 ${r + 1060} 304S${r + 1200} 296 ${r + 1260} 306S${r + 1360} 300 ${w} 296"/><path d="M${r + 820} 300c6-8 14-6 12 2c-2 6-8 4-6-1"/><path d="M${r + 1010} 298c6-8 14-6 12 2c-2 6-8 4-6-1"/><path d="M${r + 1190} 302c6-8 14-6 12 2c-2 6-8 4-6-1"/></g>`;
   // The pumpkins, standing just behind where the ground is cut away (the top of under.ts's slice,
   // which carries on below the spotlight).
@@ -294,54 +292,73 @@ export function patchScene(width: number, spots?: Spot[]) {
   return `${s}</svg><svg class="he-scene__svg he-grass" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${SCENE_H}" width="${w}" height="${SCENE_H}">${front}</svg>`;
 }
 
-/** The old cemetery left of the patch, from x `from` to `to` on the ground in front: an iron fence
- *  along its back with an arched gate at the patch end (a lantern on it, the black cat on a
- *  pillar), a path from the gate towards the patch, and the tombstones in two staggered rows (the
- *  back row smaller and dimmer), each its own (tombstones.ts). The ghost hides behind the big one.
- *  Fewer stones when there's less room. */
-function cemetery(id: string, from: number, to: number) {
-  const span = to - from;
+/** The old cemetery left of the patch, reaching from the window's left edge to `to`: an iron fence
+ *  along its back with a wide arched gate at the patch end (a lantern on it, the black cat on a
+ *  pillar), the path leading out of the gate towards the patch, and the tombstones in two staggered
+ *  rows (the back row smaller and dimmer), each its own (tombstones.ts), as far as the window
+ *  goes. The ghost hides behind the big one. */
+function cemetery(id: string, to: number) {
   const gate = to - 26;
+  /** Half the gate's width, pillar to pillar. */
+  const G = 24;
+  const L = gate - G + 4;
+  const R = gate + G - 4;
   let s = "";
-  // The path out of the gate, towards the patch.
-  s += `<path d="M${gate - 14} 276C${gate + 10} 288 ${gate + 40} 294 ${to + 120} 300L${to + 120} 310C${gate + 30} 306 ${gate} 298 ${gate - 16} 284Z" fill="#221830" opacity="0.7"/>`;
-  // The fence along the back, up to the gate.
-  s += ironFence(from, gate - 16, 276);
-  // The gate: two stone pillars with ball tops, an iron arch over the way in, its doors ajar.
-  const pillar = (x: number) => `<rect x="${x - 4}" y="244" width="8" height="34" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/><rect x="${x - 5.5}" y="241" width="11" height="4" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/><circle cx="${x}" cy="237.5" r="4" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/>`;
-  s += `<path d="M${gate - 12} 248Q${gate} 228 ${gate + 12} 248" stroke="#1d1526" stroke-width="2" fill="none"/><path d="M${gate - 6} 238l0-5M${gate} 235l0-6M${gate + 6} 238l0-5" stroke="#1d1526" stroke-width="1.4"/>`;
-  s += `<g stroke="#1d1526" stroke-width="1.4" fill="none"><path d="M${gate - 12} 277V252L${gate - 3} 254V277M${gate - 12} 260H${gate - 3}M${gate - 12} 269H${gate - 3}M${gate - 9} 252V277M${gate - 6} 253V277"/><path d="M${gate + 12} 277V252L${gate + 20} 256V279M${gate + 12} 261L${gate + 20} 264M${gate + 12} 270L${gate + 20} 272"/></g>`;
-  s += pillar(gate - 16) + pillar(gate + 16);
+  // The path, leading out of the gate's opening and down towards the patch, wider as it nears.
+  s += `<path d="M${L} 278C${L + 2} 296 ${gate + 40} 312 ${to + 150} 314L${to + 150} 302C${gate + 60} 300 ${R + 4} 292 ${R} 278Z" fill="#221830" opacity="0.75"/>`;
+  // The fence along the back, from beyond the window's left edge up to the gate.
+  s += ironFence(-12, gate - G - 4, 276);
+  // The gate: two stone pillars with ball tops, an iron arch over the way in, the left door shut,
+  // the right one swung open.
+  const pillar = (x: number) =>
+    `<rect x="${x - 4}" y="244" width="8" height="34" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/><rect x="${x - 5.5}" y="241" width="11" height="4" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/><circle cx="${x}" cy="237.5" r="4" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/>`;
+  s += `<path d="M${L} 248Q${gate} 224 ${R} 248" stroke="#1d1526" stroke-width="2.2" fill="none"/><path d="M${L + 5} 251Q${gate} 232 ${R - 5} 251" stroke="#1d1526" stroke-width="1" fill="none"/><path d="M${gate - 10} 240l0-5M${gate} 237l0-7M${gate + 10} 240l0-5" stroke="#1d1526" stroke-width="1.4"/>`;
+  s +=
+    `<g stroke="#1d1526" stroke-width="1.4" fill="none"><path d="M${L} 277V252L${gate - 1} 255V277M${L} 261H${gate - 1}M${L} 270H${gate - 1}M${L + 5} 252.6V277M${L + 10} 253.4V277M${L + 15} 254.2V277"/>` +
+    `<path d="M${R} 277V252L${R + 11} 257V281M${R} 261L${R + 11} 265M${R} 270L${R + 11} 274M${R + 5.5} 254.5V279"/></g>`;
+  s += pillar(gate - G) + pillar(gate + G);
   // A lantern hanging from the right pillar.
-  s += `<g transform="translate(${gate + 22} 246)"><circle cx="0" cy="6" r="18" fill="url(#${id}light)"/><path d="M-6-2H0V2" stroke="#1d1526" stroke-width="1.4" fill="none"/><rect x="-3" y="2" width="6" height="8" rx="1" fill="${C.candle}" class="he-flicker" filter="url(#${id}glow)"/><path d="M-4 2h8l-4-4z" fill="#1d1526"/></g>`;
+  s += `<g transform="translate(${gate + G + 6} 246)"><circle cx="0" cy="6" r="18" fill="url(#${id}light)"/><path d="M-6-2H0V2" stroke="#1d1526" stroke-width="1.4" fill="none"/><rect x="-3" y="2" width="6" height="8" rx="1" fill="${C.candle}" class="he-flicker" filter="url(#${id}glow)"/><path d="M-4 2h8l-4-4z" fill="#1d1526"/></g>`;
   // The black cat, sitting on the left pillar.
-  s += `<g transform="translate(${gate - 22} 234)" class="he-cat">
+  s += `<g transform="translate(${gate - G - 6.5} 234)" class="he-cat">
     <path class="he-cat__tail" d="M11-3c10-2 14-10 10-18c-2-4 2-6 4-2c4 10-2 20-14 21z" fill="#07040a"/>
     <path d="M0 0c-2-10 0-18 4-22c-3-4-4-10-2-14l4 4c2-1 5-1 7 0l4-4c2 4 1 10-2 14c4 4 6 12 4 22z" fill="#07040a"/>
     <g class="he-cat__eyes" fill="${C.slime}" filter="url(#${id}glow)"><ellipse cx="5" cy="-27" rx="1.6" ry="1.2"/><ellipse cx="11" cy="-27" rx="1.6" ry="1.2"/></g>
   </g>`;
-  // The stones: where along the yard (0 to 1, the gate end kept clear), which row, which stone.
-  // The ones marked as extra only fit when there's room.
-  const stones: [t: number, front: boolean, kind: Stone, h: number, tilt: number, extra: boolean][] = [
-    [0.04, false, "ivyCross", 35, -6, false],
-    [0.14, true, "broken", 32, 3, false],
-    [0.27, false, "rip", 34, 2, true],
-    [0.37, true, "gothic", 48, 0, false],
-    [0.5, false, "cat", 34, -4, false],
-    [0.6, true, "candle", 34, 5, false],
-    [0.73, false, "heart", 27, -3, true],
+  // The stones, by how far left of `to` they stand. Nearest the gate, the first seven (as before);
+  // beyond them, more at the same spacing, alternating rows, as far as the window goes, each one
+  // different from its neighbours.
+  type Grave = { d: number; front: boolean; kind: Stone; h: number; tilt: number };
+  const graves: Grave[] = [
+    { d: 166, front: false, kind: "heart", h: 27, tilt: -3 },
+    { d: 222, front: true, kind: "candle", h: 34, tilt: 5 },
+    { d: 265, front: false, kind: "cat", h: 34, tilt: -4 },
+    { d: 321, front: true, kind: "gothic", h: 48, tilt: 0 },
+    { d: 364, front: false, kind: "rip", h: 34, tilt: 2 },
+    { d: 420, front: true, kind: "broken", h: 32, tilt: 3 },
+    { d: 463, front: false, kind: "ivyCross", h: 35, tilt: -6 },
   ];
-  const room = span > 330;
-  const usable = span - 60;
-  const at = (t: number) => from + 10 + usable * (room ? t : t / 0.75);
+  const HEIGHT: Partial<Record<Stone, number>> = { obelisk: 44, urn: 40, column: 40, heart: 27, slab: 30, plain: 30, twin: 32 };
+  const pool: Stone[] = ["obelisk", "angel", "twin", "celtic", "slab", "urn", "moon", "wooden", "plain", "column", "candle", "heart", "ivyCross", "cat", "broken", "rip"];
+  const rand = random(61);
+  let bag: Stone[] = [];
+  for (let d = 463, front = true; to - d > -20; front = !front) {
+    d += front ? 56 : 43;
+    if (bag.length < 4) bag = bag.concat([...pool].sort(() => rand() - 0.5));
+    const recent = graves.slice(-4).map((g) => g.kind);
+    const kind = bag.splice(Math.max(0, bag.findIndex((k) => !recent.includes(k))), 1)[0];
+    graves.push({ d: d + (rand() - 0.5) * 8, front, kind, h: (HEIGHT[kind] ?? 34) * (0.92 + rand() * 0.14), tilt: (rand() - 0.5) * 12 });
+  }
   // (The back row first, so the front row stands in front of it.)
-  [...stones].sort((a, b) => Number(a[1]) - Number(b[1])).forEach(([t, front, kind, h, tilt, extra], i) => {
-    if (extra && !room) return;
-    const x = at(t);
-    if (front && kind === "gothic") s += ghost(x - 13, 268, 0.62);
-    const stone = tombstone(kind, x, front ? 303 : 285, front ? h : h * 0.88, tilt, id, i);
-    s += front ? stone : `<g opacity="0.88">${stone}</g>`;
-  });
+  [...graves]
+    .sort((a, b) => Number(a.front) - Number(b.front))
+    .forEach(({ d, front, kind, h, tilt }, i) => {
+      const x = to - d;
+      if (x < -20) return;
+      if (kind === "gothic") s += ghost(x - 13, 268, 0.62);
+      const stone = tombstone(kind, x, front ? 303 : 285, front ? h : h * 0.88, tilt, id, i);
+      s += front ? stone : `<g opacity="0.88">${stone}</g>`;
+    });
   return s;
 }
 
