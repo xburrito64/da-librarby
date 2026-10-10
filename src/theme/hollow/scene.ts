@@ -7,6 +7,7 @@ import { anyPumpkin, drawPumpkin, pumpkinDefs, type PumpkinSpec } from "./pumpki
 import { faceTree, farTree, owlTree, spiralTree, swingTree } from "./trees";
 import { tuft, type Lantern } from "./grass";
 import { house } from "./house";
+import { tombstone, type Stone } from "./tombstones";
 import { CUT_IN, underArt, type Spot } from "./under";
 
 /** The scenes' height (px, as in hollow.css), and where the ground is. */
@@ -83,16 +84,6 @@ const GRAVEYARD: Placed[] = [
   [1428, 308, { size: 30, face: "classic", stem: "short", squat: 0.8, tilt: -5 }],
 ];
 
-function tombstone(x: number, y: number, w: number, h: number, kind: "round" | "cross", tilt = 0) {
-  const fill = "#2c2238";
-  const edge = "#4a3d5e";
-  const shape =
-    kind === "cross"
-      ? `<path d="M${x - 3} ${y}v${-h}h-9v-7h9v-9h7v9h9v7h-9v${h}z" fill="${fill}" stroke="${edge}" stroke-width="1.2"/>`
-      : `<path d="M${x - w / 2} ${y}v${-h + w / 2}a${w / 2} ${w / 2} 0 0 1 ${w} 0v${h - w / 2}z" fill="${fill}" stroke="${edge}" stroke-width="1.2"/>` +
-        `<path d="M${x - w / 4} ${y - h + w / 2 + 6}h${w / 2}M${x - w / 5} ${y - h + w / 2 + 11}h${w / 2.5}" stroke="#1c1526" stroke-width="2" stroke-linecap="round"/>`;
-  return `<g transform="rotate(${tilt} ${x} ${y})">${shape}</g>`;
-}
 
 function moon(id: string, x: number, y: number, r: number) {
   return (
@@ -270,10 +261,6 @@ export function patchScene(width: number, spots?: Spot[]) {
     const sink = 3 + rand() * 6;
     s += farTree(x, away ? vale.mid.at(x) + 2 : groundAt(x, ...hill, sink) + dip(x), (46 + rand() * 30) * (away ? 0.5 : 1), n * 5);
   }
-  // Tombstones, the ghost hiding behind the big one.
-  s += ghost(r + 846, 228, 0.62);
-  s += tombstone(r + 700, 262, 22, 34, "round", -4) + tombstone(r + 742, 258, 18, 28, "round", 6) + tombstone(r + 790, 262, 0, 26, "cross", -3);
-  s += tombstone(r + 858, 258, 30, 40, "round", 0) + tombstone(r + 912, 262, 20, 30, "round", 9);
   // The crooked fence, with a black cat on it.
   let fence = `<g fill="#1f1529"><rect x="${r + 560}" y="246" width="${w - r - 560}" height="3"/><rect x="${r + 560}" y="258" width="${w - r - 560}" height="3"/>`;
   for (let x = r + 566; x < w; x += 17) {
@@ -290,6 +277,12 @@ export function patchScene(width: number, spots?: Spot[]) {
   </g>`;
   // The ground in front, vines, and the pumpkin patch.
   s += `<path d="${groundPath(w, 270, 4, 3)}" fill="#120a17"/>`;
+  // Tombstones in front of the fence, each its own (see tombstones.ts: a cat's grave, a broken
+  // one, a cross with ivy, the ghost's, and a mossy one with a candle); the ghost hides behind the
+  // big one.
+  s += ghost(r + 846, 246, 0.62);
+  s += tombstone("cat", r + 700, 279, 30, -4, id, 0) + tombstone("broken", r + 744, 277, 28, 3, id, 1) + tombstone("ivyCross", r + 792, 279, 31, -6, id, 2);
+  s += tombstone("gothic", r + 858, 278, 42, 0, id, 3) + tombstone("candle", r + 914, 279, 30, 6, id, 1);
   s += `<g stroke="${C.vine}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.9"><path d="M${r + 740} 300C${r + 800} 290 ${r + 840} 312 ${r + 900} 300S${r + 1000} 290 ${r + 1060} 304S${r + 1200} 296 ${r + 1260} 306S${r + 1360} 300 ${w} 296"/><path d="M${r + 820} 300c6-8 14-6 12 2c-2 6-8 4-6-1"/><path d="M${r + 1010} 298c6-8 14-6 12 2c-2 6-8 4-6-1"/><path d="M${r + 1190} 302c6-8 14-6 12 2c-2 6-8 4-6-1"/></g>`;
   // The pumpkins, standing just behind where the ground is cut away (the top of under.ts's slice,
   // which carries on below the spotlight).
@@ -344,11 +337,11 @@ export function graveyardScene(width: number) {
   s += ironFence(r + 560, r + 1070, 266);
   // Tombstones in rows, the ghost behind one.
   s += ghost(r + 906, 232, 0.6);
-  const stones: [number, number, number, number, "round" | "cross", number][] = [
-    [600, 268, 20, 30, "round", -5], [650, 266, 24, 36, "round", 3], [700, 268, 0, 26, "cross", 4], [760, 270, 18, 26, "round", -8],
-    [820, 266, 22, 32, "round", 2], [918, 262, 30, 42, "round", 0], [976, 268, 0, 28, "cross", -6], [1030, 270, 20, 28, "round", 7],
+  const stones: [number, number, Stone, number, number][] = [
+    [600, 268, "obelisk", 40, -3], [650, 266, "angel", 34, 2], [700, 268, "celtic", 34, 4], [760, 272, "slab", 30, -1],
+    [820, 266, "moon", 32, 2], [918, 263, "gothic", 44, 0], [976, 269, "wooden", 32, -7], [1030, 270, "heart", 26, 5],
   ];
-  for (const [x, y, sw, sh, kind, t] of stones) s += tombstone(r + x, y, sw, sh, kind, t);
+  stones.forEach(([x, y, kind, h, t], i) => (s += tombstone(kind, r + x, y, h, t, id, i)));
   // The path up to the crypt, and the ground.
   s += `<path d="${groundPath(w, 274, 3, 4)}" fill="#120a17"/>`;
   s += `<path d="M${r + 760} ${SCENE_H}C${r + 900} 300 ${r + 1100} 296 ${r + 1250} 266L${r + 1266} 266C${r + 1180} 300 ${r + 1000} 316 ${r + 880} ${SCENE_H}Z" fill="#221830" opacity="0.8"/>`;
