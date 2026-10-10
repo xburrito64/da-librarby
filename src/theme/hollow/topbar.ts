@@ -4,6 +4,7 @@
 // See hollow.css ("The top bar").
 import { playSound } from "../sound";
 import { FLYING_BAT, HANGING_BAT } from "./art";
+import { drawBranch } from "./branch";
 import { startSpider } from "./spider";
 
 /** Bats come back to hang this long after flying off (ms). */
@@ -19,17 +20,12 @@ export function startTopBar() {
   layer.setAttribute("aria-hidden", "true");
   const branch = document.createElement("div");
   branch.className = "he-branch";
-  branch.innerHTML = `<svg viewBox="0 0 800 40" preserveAspectRatio="none">
-    <path d="M800 0L800 26C760 24 730 20 690 22C640 25 610 17 560 19C500 22 470 15 420 17C360 20 330 13 280 15C220 17 190 12 140 13C100 14 60 11 20 12L0 11C40 8 90 9 140 7C200 5 240 8 290 5C350 2 390 7 440 4C500 1 540 6 600 3C680 0 740 4 800 0Z" fill="#2a1b33"/>
-    <path d="M800 1C740 5 680 1 600 4C540 7 500 2 440 5C390 8 350 3 290 6C240 9 200 6 140 8C90 10 40 9 2 11" stroke="#5a4473" stroke-width="1.6" fill="none"/>
-    <path d="M610 18c-8 6-12 12-12 18M470 15c4 8 4 14 2 20M330 14c-10 4-16 10-18 16M180 13c6 6 8 12 6 18M90 11c-8 2-14 6-18 10" stroke="#2a1b33" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-    <path d="M598 36c-6 0-9-4-6-7c4 1 6 4 6 7zM472 35c6-1 8-6 5-8c-4 2-6 5-5 8zM72 22c-6 1-9-2-7-6c4 0 7 3 7 6z" fill="#3d2a1a"/>
-  </svg>`;
   layer.appendChild(branch);
   const spider = startSpider(layer, still);
   (document.querySelector(".app") ?? document.body).appendChild(layer);
 
   let bats: HTMLElement[] = [];
+  let under = (_x: number) => 10;
   const timers = new Set<number>();
   const later = (fn: () => void, ms: number) => {
     const t = window.setTimeout(() => {
@@ -47,7 +43,7 @@ export function startTopBar() {
     const from = tabs.right + 24;
     const to = (end && end.left > from ? end.left : window.innerWidth) - 24;
     const room = Math.max(0, to - from);
-    branch.style.left = `${Math.max(0, from - 60)}px`;
+    const left = Math.max(0, from - 60);
     const count = Math.min(MAX_BATS, Math.floor(room / ROOM_PER_BAT));
     while (bats.length > count) bats.pop()!.remove();
     while (bats.length < count) {
@@ -59,13 +55,23 @@ export function startTopBar() {
       layer.appendChild(bat);
       bats.push(bat);
     }
-    // Spread out over the left part of the gap; the spider hangs near its right end.
+    // Spread out over the left part of the gap; the spider hangs near its right end. The branch is
+    // drawn to fit (its hanging twigs keep out of their way), and they grip its underside.
+    const batX = bats.map((_, i) => from + ((i + 0.5) / Math.max(1, count)) * room * 0.72);
+    const spiderX = from + room * 0.86;
+    const width = Math.ceil(window.innerWidth - left);
+    if (branch.dataset.size !== `${left}/${width}/${count}`) {
+      branch.dataset.size = `${left}/${width}/${count}`;
+      const drawn = drawBranch(width, [...batX.map((x) => x + 11 - left), spiderX - left]);
+      branch.innerHTML = drawn.svg;
+      under = drawn.under;
+    }
+    branch.style.left = `${left}px`;
     bats.forEach((bat, i) => {
-      const x = from + ((i + 0.5) / Math.max(1, count)) * room * 0.72;
-      bat.style.left = `${x}px`;
-      bat.style.top = `${7 + ((i * 5) % 4)}px`;
+      bat.style.left = `${batX[i]}px`;
+      bat.style.top = `${under(batX[i] + 11 - left) - 3}px`;
     });
-    spider.place(from + room * 0.86, room >= 80);
+    spider.place(spiderX, room >= 80, under(spiderX - left) - 2);
   };
 
   // Bats near the one pointed at take off too, and fly off across the top.

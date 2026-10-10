@@ -45,6 +45,8 @@ export function startSpider(layer: HTMLElement, still: boolean) {
   let scared = false;
   let x = 0;
   let shown = true;
+  /** Where its thread starts (px from the top). */
+  let hang = 6;
   let frame = 0;
   let last = performance.now();
   const timers = new Set<number>();
@@ -123,7 +125,7 @@ export function startSpider(layer: HTMLElement, still: boolean) {
     if (scared || !shown || e.clientY > 180) return;
     const reach = len + BODY;
     const bx = x + Math.sin(angle) * reach;
-    const by = 6 + Math.cos(angle) * reach;
+    const by = hang + Math.cos(angle) * reach;
     const near = 1 - Math.hypot(e.clientX - bx, e.clientY - by) / 90;
     if (near > 0) spin += Math.max(-1.2, Math.min(1.2, dx * 0.02 * near));
   };
@@ -161,10 +163,12 @@ export function startSpider(layer: HTMLElement, still: boolean) {
   }
 
   return {
-    /** Hangs it at x (the middle of the gap); hidden when there's no room. */
-    place(at: number, room: boolean) {
+    /** Hangs it at x (the middle of the gap), its thread starting at y; hidden when there's no room. */
+    place(at: number, room: boolean, y = 6) {
       x = at;
+      hang = y;
       el.style.left = `${at}px`;
+      el.style.top = `${y}px`;
       shown = room;
       el.hidden = !room;
     },
