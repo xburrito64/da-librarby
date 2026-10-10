@@ -35,6 +35,13 @@ change and share, no credit required. Where they came from, gratefully:
 
 - `moan.ogg`: a ghostly moan. Freesound #643741, “Ghostly Moan.mp3” by SnowFightStudios (CC0).
 
+## The ghost, startled (`boo`)
+
+- `boo-1.ogg`: a tiny startled “hoh!” (voice made small and high). Freesound #242606, “gasp HOH!.wav” by Reitanna (CC0).
+- `boo-2.ogg`: a small surprised “oh!” (voice made small and high). Freesound #242677, “surprised 'oh!'.wav” by Reitanna (CC0).
+- `boo-3.ogg`: a slide whistle zipping up. Freesound #497092, “FX swanee whistle up.wav” by v0idation (CC0).
+- `boo-4.ogg`: a cute squeak. Freesound #857748, “Cute Computer Squeak” by qubodup (CC0).
+
 ## The spider scurrying up (`skitter`)
 
 - `skitter.ogg`: something crawling, fast. Freesound #266014, “Fast Crawling Bu” by dasrealized (CC0).

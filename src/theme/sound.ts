@@ -73,15 +73,20 @@ function take(name: SoundName, urls: string[]) {
   return urls[i];
 }
 
+/** Plays a recording; resolves with how long it is (seconds), or null if it couldn't play. */
 function playBuffer(audio: AudioContext, out: AudioNode, buffer: Promise<AudioBuffer>, failed: () => void) {
-  buffer
+  return buffer
     .then((b) => {
       const source = audio.createBufferSource();
       source.buffer = b;
       source.connect(out);
       source.start();
+      return b.duration;
     })
-    .catch(failed);
+    .catch(() => {
+      failed();
+      return null;
+    });
 }
 
 export function setOwnSounds(files: Map<SoundName, ArrayBuffer>) {
@@ -93,15 +98,17 @@ export function setSoundsMuted(on: boolean) {
   muted = on;
 }
 
-export function playSound(name: SoundName) {
-  if (muted) return;
+/** Plays one of the theme's sounds. Resolves with how long it lasts (seconds) when that's known (a
+ *  recording), else null (made-up sounds, or none played). */
+export function playSound(name: SoundName): Promise<number | null> {
+  if (muted) return Promise.resolve(null);
   const theme = findTheme(currentTheme());
   const sound = theme?.extras?.sounds?.[name];
   const file = own.get(name);
-  if (!theme || !(sound || file) || themeOption(theme.id, "sounds") === false) return;
+  if (!theme || !(sound || file) || themeOption(theme.id, "sounds") === false) return Promise.resolve(null);
   if (name === "move") {
     const now = performance.now();
-    if (now - lastMove < MOVE_GAP_MS) return;
+    if (now - lastMove < MOVE_GAP_MS) return Promise.resolve(null);
     lastMove = now;
   }
   try {
@@ -115,16 +122,19 @@ export function playSound(name: SoundName) {
     out.connect(audio.destination);
     if (file) {
       file.buffer ??= audio.decodeAudioData(file.data.slice(0));
-      playBuffer(audio, out, file.buffer, () => own.delete(name));
-    } else if (Array.isArray(sound)) {
-      playBuffer(audio, out, recording(audio, take(name, sound)), () => {});
+      return playBuffer(audio, out, file.buffer, () => own.delete(name));
+    }
+    if (Array.isArray(sound)) {
       // Get the theme's other recordings ready, so they play without a delay when it's their turn.
       if (recordings.size < 2)
         for (const urls of Object.values(theme.extras?.sounds ?? {})) if (Array.isArray(urls)) urls.forEach((u) => recording(audio, u));
-    } else sound!(audio, out);
+      return playBuffer(audio, out, recording(audio, take(name, sound)), () => {});
+    }
+    sound!(audio, out);
   } catch {
     // No audio device: stay quiet.
   }
+  return Promise.resolve(null);
 }
 
 const POINTABLE = "button, [role='button'], [role='tab'], select, .card";

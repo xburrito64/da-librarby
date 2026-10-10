@@ -124,12 +124,18 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       later(() => house.classList.remove("is-open"), DOOR_OPEN_MS);
       return;
     }
-    const ghost = target.closest?.(".he-ghost.is-peeking");
+    const ghost = target.closest?.(".he-ghost.is-peeking") as SVGGElement | null;
     if (ghost) {
-      ghost.classList.remove("is-peeking");
-      ghost.classList.add("is-hiding");
-      playSound("boo");
-      later(() => ghost.classList.remove("is-hiding"), 400);
+      // It ducks down as fast as its little cry lasts: a squeak, quick; a slide whistle, slower.
+      // (The speed has to be set before it starts moving.)
+      if (ghost.classList.contains("is-startled")) return;
+      ghost.classList.add("is-startled");
+      void playSound("boo").then((seconds) => {
+        const hide = Math.min(0.75, Math.max(0.14, (seconds ?? 0.2) * 0.85));
+        ghost.style.transitionDuration = `${hide}s`;
+        ghost.classList.remove("is-peeking", "is-startled");
+        later(() => (ghost.style.transitionDuration = ""), hide * 1000 + 100);
+      });
       return;
     }
     if (!surprises || target.closest?.("a, button, input, textarea, select, .card, [role=button], [role=tab]")) return;

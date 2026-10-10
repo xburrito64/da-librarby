@@ -154,10 +154,12 @@ export function drawPumpkin(pre: string, x: number, y: number, spec: PumpkinSpec
   const top = y - H;
   const k = (ribs - 1) / 2;
   const f = (n: number) => n.toFixed(2);
-  // Its shadow: soft and wide, and dark right where it touches the ground.
-  let s = ground
+  // Its shadow: soft and wide, and dark right where it touches the ground. (It stays put on the
+  // ground when the pumpkin wobbles, like the light.)
+  const shadow = ground
     ? `<ellipse cx="${f(x + W * 0.04)}" cy="${f(y)}" rx="${f(W * 0.62)}" ry="${f(H * 0.13)}" fill="#05020a" opacity="0.3"/><ellipse cx="${f(x)}" cy="${f(y - H * 0.01)}" rx="${f(W * 0.4)}" ry="${f(H * 0.055)}" fill="#05020a" opacity="0.55"/>`
     : "";
+  let s = "";
 
   // The lobes, outermost first, so the middle one is in front.
   const lobes: { t: number; cx: number; rx: number; ry: number }[] = [];
@@ -228,7 +230,8 @@ export function drawPumpkin(pre: string, x: number, y: number, spec: PumpkinSpec
   // Its candlelight, falling on the ground around and in front of it.
   const light = lit && ground ? `<ellipse class="he-light" cx="${f(x)}" cy="${f(y + H * 0.08)}" rx="${f(W * 1.5)}" ry="${f(H * 0.36)}" fill="url(#${pre}pool)"/>` : "";
   const sleepy = face === "sleepy" ? zzz(x + W * 0.32, top - W * 0.02, W) : "";
-  return `<g class="he-pumpkin he-pk--${face ?? "plain"} ${lit ? "is-jack" : ""}">${light}<g transform="rotate(${tilt} ${f(x)} ${f(y)})">${s}</g>${sleepy}</g>`;
+  // The pumpkin itself moves (wobbles, jumps) in its own group; its light and shadow stay on the ground.
+  return `<g class="he-pumpkin he-pk--${face ?? "plain"} ${lit ? "is-jack" : ""}">${light}${shadow}<g transform="rotate(${tilt} ${f(x)} ${f(y)})"><g class="he-pumpkin__body">${s}</g></g>${sleepy}</g>`;
 }
 
 function carvedFace(pre: string, cx: number, cy: number, sx: number, sy: number, parts: FaceParts, flesh: string, unlit: boolean) {
