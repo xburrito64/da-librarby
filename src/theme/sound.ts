@@ -25,10 +25,11 @@ export type SoundName =
   | "flutter"
   | "skitter"
   | "bonk"
-  /** The haunted house's door, the skeleton underground, the coffin's lid. */
+  /** The haunted house's door, the skeleton underground, the coffin's lid and whoever's inside. */
   | "creak"
   | "rattle"
-  | "scrape";
+  | "scrape"
+  | "moan";
 
 /** Plays a sound into `out`, which carries the chosen volume. */
 export type SoundPlayer = (ctx: AudioContext, out: AudioNode) => void;

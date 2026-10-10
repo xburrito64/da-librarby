@@ -1,7 +1,7 @@
 // The spider in the top bar, hanging on its thread from the branch. Thread and spider swing together
 // like a pendulum, stirred by a gentle draught and by the pointer passing close by. The silk is a bit
 // springy, so it bobs when it stops. Now and then it lets itself down a little, climbs back up,
-// turns around or kicks its legs. Point at it and it scurries up its thread, then lowers itself
+// turns around or kicks its legs. Click it and it scurries up its thread, then lowers itself
 // again bit by bit. See hollow.css ("The top bar").
 import { playSound } from "../sound";
 import { SPIDER } from "./art";
@@ -82,7 +82,7 @@ export function startSpider(layer: HTMLElement, still: boolean) {
     frame = requestAnimationFrame(step);
   };
 
-  // Pointing at it: it scurries up, waits, then lets itself down again in stages.
+  // Clicked: it scurries up, waits, then lets itself down again in stages.
   const scare = () => {
     if (scared || still || !shown) return;
     scared = true;
@@ -101,7 +101,7 @@ export function startSpider(layer: HTMLElement, still: boolean) {
       }, 1300);
     }, between(HIDE_MS));
   };
-  body.addEventListener("pointerenter", scare);
+  body.addEventListener("click", scare);
 
   // The pointer passing close by stirs the air: the swing goes along with it a little.
   let px: number | null = null;

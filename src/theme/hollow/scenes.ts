@@ -1,8 +1,10 @@
 // Puts Hollow's Eve's scenes where they're shown (the pumpkin patch under the spotlight with the
-// slice of earth under it, the graveyard on show pages) and keeps them alive: pumpkins wobble or glow when pointed at, the ghost
-// peeks out from behind its tombstone now and then (and ducks back down when you come close), and
-// once in a while a pair of eyes looks out of the crypt's door. Under the patch, things wake up
-// when pointed at (the skeleton, the coffin, the mushrooms...), and the candy stash can be found.
+// slice of earth under it, the graveyard on show pages) and keeps them alive. Everything reacts to
+// a click, never to the pointer just passing by (too many sounds otherwise): pumpkins wobble with
+// a knock, the house's door creaks open, the ghost (peeking out from behind its tombstone now and
+// then) gets a fright and ducks back down, and under the patch the skeleton wakes up, the coffin
+// opens, the mushrooms puff spores and the candy stash is found. Once in a while a pair of eyes
+// looks out of the crypt's door by itself.
 import { playSound } from "../sound";
 import { graveyardScene, patchScene } from "./scene";
 import { underScene, type Spot } from "./under";
@@ -12,22 +14,22 @@ const HOSTS = [
   { selector: ".tp__decor--bottom", draw: (width: number, _spots: Spot[]) => graveyardScene(width) },
 ];
 
-/** The ghost peeks out every so often, for a while; it hides when the pointer comes this close (px). */
+/** The ghost peeks out every so often, for a while. */
 const PEEK_EVERY_MS = [6000, 15000];
-const PEEK_MS = 2800;
-const SHY_PX = 110;
+const PEEK_MS = 4200;
 /** Eyes in the crypt's door: how often, for how long. */
 const EYES_EVERY_MS = [20000, 45000];
 const EYES_MS = 3600;
+/** The house's door stays open this long (ms). */
+const DOOR_OPEN_MS = 3200;
 
 const between = ([a, b]: number[]) => a + Math.random() * (b - a);
-/** The house's door creaks at most this often (ms). */
-const HOUSE_CREAK_MS = 2500;
 
-/** The things under the patch that wake up when pointed at: for how long, and the sound they make. */
-const POKES: Record<string, { ms: number; sound?: "rattle" | "scrape" }> = {
-  skeleton: { ms: 2600, sound: "rattle" },
-  coffin: { ms: 2800, sound: "scrape" },
+/** The things under the patch that wake up when clicked: for how long, and the sounds they make
+ *  (and when, ms). The coffin's lid scrapes open, then whoever's inside moans. */
+const POKES: Record<string, { ms: number; sounds?: ["rattle" | "scrape" | "moan", number][] }> = {
+  skeleton: { ms: 2600, sounds: [["rattle", 0]] },
+  coffin: { ms: 2800, sounds: [["scrape", 0], ["moan", 650]] },
   stash: { ms: 1800 },
   mushrooms: { ms: 1900 },
   crystals: { ms: 1600 },
@@ -98,57 +100,75 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
     });
 
-  // Pumpkins: plain ones wobble (and go "bonk"), lit ones glow up (in the stylesheet). The house's
-  // door creaks open (the stylesheet opens it).
-  let creaked = 0;
-  const onOver = (e: PointerEvent) => {
-    const house = (e.target as Element).closest?.(".he-house");
-    if (house && !house.contains(e.relatedTarget as Node) && performance.now() - creaked > HOUSE_CREAK_MS) {
-      creaked = performance.now();
-      playSound("creak");
-    }
-    const pumpkin = (e.target as Element).closest?.(".he-pumpkin");
-    if (!pumpkin || pumpkin.contains(e.relatedTarget as Node) || pumpkin.classList.contains("is-jack")) return;
-    pumpkin.classList.remove("is-wobbly");
-    void (pumpkin as SVGGraphicsElement).getBBox();
-    pumpkin.classList.add("is-wobbly");
-    playSound("bonk");
-  };
-  document.addEventListener("pointerover", onOver);
-
-  // The ghost ducks back down when you come looking; things under the patch wake up.
+  // Clicks: on a pumpkin, the house, the ghost, or (where nothing else was clicked) something
+  // under the patch.
   const resting = new Set<Element>();
-  const onMove = (e: PointerEvent) => {
+  const onClick = (e: MouseEvent) => {
+    const target = e.target as Element;
+    const pumpkin = target.closest?.(".he-pumpkin");
+    if (pumpkin) {
+      pumpkin.classList.remove("is-wobbly");
+      void (pumpkin as SVGGraphicsElement).getBBox();
+      pumpkin.classList.add("is-wobbly", "is-poked");
+      playSound("bonk");
+      // Its own little reaction (the sleepy one wakes up, ...), for a moment.
+      window.clearTimeout(Number((pumpkin as HTMLElement).dataset.poked));
+      (pumpkin as HTMLElement).dataset.poked = String(window.setTimeout(() => pumpkin.classList.remove("is-poked"), 2200));
+      return;
+    }
+    const house = target.closest?.(".he-house");
+    if (house) {
+      if (house.classList.contains("is-open")) return;
+      house.classList.add("is-open");
+      playSound("creak");
+      later(() => house.classList.remove("is-open"), DOOR_OPEN_MS);
+      return;
+    }
+    const ghost = target.closest?.(".he-ghost.is-peeking");
+    if (ghost) {
+      ghost.classList.remove("is-peeking");
+      ghost.classList.add("is-hiding");
+      playSound("boo");
+      later(() => ghost.classList.remove("is-hiding"), 400);
+      return;
+    }
+    if (!surprises || target.closest?.("a, button, input, textarea, select, .card, [role=button], [role=tab]")) return;
+    const stash = document.querySelector(".he-under .heu-stash");
+    if (stash && over(stash, e.clientX, e.clientY, 2)) {
+      stash.classList.remove("is-poked");
+      void (stash as SVGGraphicsElement).getBBox();
+      stash.classList.add("is-poked");
+      later(() => stash.classList.remove("is-poked"), 1800);
+      playSound("treat");
+      window.dispatchEvent(new CustomEvent("da:say", { detail: STASH_FOUND[Math.floor(Math.random() * STASH_FOUND.length)] }));
+      return;
+    }
     for (const thing of document.querySelectorAll(".he-under [data-poke]")) {
       if (resting.has(thing) || !over(thing, e.clientX, e.clientY)) continue;
       const poke = POKES[(thing as HTMLElement).dataset.poke ?? ""];
       if (!poke) continue;
       resting.add(thing);
       thing.classList.add("is-poked");
-      if (poke.sound) playSound(poke.sound);
+      for (const [sound, at] of poke.sounds ?? []) later(() => playSound(sound), at);
       later(() => thing.classList.remove("is-poked"), poke.ms);
-      later(() => resting.delete(thing), poke.ms + 1500);
+      later(() => resting.delete(thing), poke.ms + 300);
+      return;
     }
-    for (const ghost of document.querySelectorAll(".he-ghost.is-peeking")) {
-      const r = ghost.getBoundingClientRect();
-      if (Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2)) < SHY_PX) {
-        ghost.classList.remove("is-peeking");
-        ghost.classList.add("is-hiding");
-        playSound("boo");
-        later(() => ghost.classList.remove("is-hiding"), 400);
-      }
-    }
+  };
+  document.addEventListener("click", onClick);
+
+  // The things under the patch sit behind the page, so the pointer shows they can be clicked.
+  let pointing = 0;
+  const onMove = (e: PointerEvent) => {
+    if (pointing) return;
+    pointing = requestAnimationFrame(() => {
+      pointing = 0;
+      const hit = [...document.querySelectorAll(".he-under [data-poke]")].some((t) => over(t, e.clientX, e.clientY));
+      const onPage = (e.target as Element).closest?.("a, button, input, .card, [role=button]");
+      document.documentElement.classList.toggle("he-can-poke", hit && !onPage);
+    });
   };
   if (surprises) window.addEventListener("pointermove", onMove, { passive: true });
-
-  // Clicking the candy stash (where nothing else is being clicked).
-  const onClick = (e: MouseEvent) => {
-    const stash = document.querySelector(".he-under .heu-stash");
-    if (!stash || !over(stash, e.clientX, e.clientY, 2) || (e.target as Element).closest?.("a, button, input, .card, [role=button]")) return;
-    playSound("treat");
-    window.dispatchEvent(new CustomEvent("da:say", { detail: STASH_FOUND[Math.floor(Math.random() * STASH_FOUND.length)] }));
-  };
-  if (surprises) document.addEventListener("click", onClick);
 
   const peek = () => {
     later(peek, between(PEEK_EVERY_MS));
@@ -176,9 +196,10 @@ export function startScenes({ surprises }: { surprises: boolean }) {
     cancelAnimationFrame(queued);
     window.clearTimeout(resizeTimer);
     window.removeEventListener("resize", onResize);
-    document.removeEventListener("pointerover", onOver);
     window.removeEventListener("pointermove", onMove);
     document.removeEventListener("click", onClick);
+    cancelAnimationFrame(pointing);
+    document.documentElement.classList.remove("he-can-poke");
     timers.forEach((t) => window.clearTimeout(t));
     for (const host of drawn.keys()) {
       host.innerHTML = "";

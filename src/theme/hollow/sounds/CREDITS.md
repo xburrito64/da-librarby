@@ -5,7 +5,7 @@ change and share, no credit required. Where they came from, gratefully:
 
 ## Pointing at something (`move`)
 
-- `move.ogg`: a quiet violin pluck. VSCO 2 Community Edition (CC0).
+- `move.ogg`: a small wooden tick. VSCO 2 Community Edition (CC0).
 
 ## Picking something (`select`)
 
@@ -31,9 +31,9 @@ change and share, no credit required. Where they came from, gratefully:
 
 - `trick.ogg`: organ “dun dun dunnn”, then the chord. VSCO 2 Community Edition (CC0).
 
-## The ghost (`boo`)
+## Whoever's in the coffin (`moan`)
 
-- `boo.ogg`: a ghostly moan. Freesound #643741, “Ghostly Moan.mp3” by SnowFightStudios (CC0).
+- `moan.ogg`: a ghostly moan. Freesound #643741, “Ghostly Moan.mp3” by SnowFightStudios (CC0).
 
 ## The spider scurrying up (`skitter`)
 
@@ -45,8 +45,7 @@ change and share, no credit required. Where they came from, gratefully:
 
 ## A pumpkin bonked (`bonk`)
 
-- `bonk-1.ogg`: a hollow log drum, “thok”. VSCO 2 Community Edition (CC0).
-- `bonk-2.ogg`: a lower log drum. VSCO 2 Community Edition (CC0).
+- `bonk.ogg`: a wooden knock. Kenney (CC0).
 
 ## The house's door creaking open (`creak`)
 

@@ -832,16 +832,16 @@
   opacity: 0;
 }
 
-:root[data-theme="hollow"] .he-pk--sleepy:hover .he-awake-eyes {
+:root[data-theme="hollow"] .he-pk--sleepy.is-poked .he-awake-eyes {
   opacity: 1;
 }
 
-:root[data-theme="hollow"] .he-pk--sleepy:hover :is(.he-asleep-eyes, .he-zzz) {
+:root[data-theme="hollow"] .he-pk--sleepy.is-poked :is(.he-asleep-eyes, .he-zzz) {
   opacity: 0;
 }
 
 /* The surprised one jumps. */
-:root[data-theme="hollow"] .he-pk--surprised:hover {
+:root[data-theme="hollow"] .he-pk--surprised.is-poked {
   transform-box: fill-box;
   animation: he-jump 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
@@ -887,11 +887,11 @@
 }
 
 /* The winking one sticks its tongue out further, the goofy one wobbles a lot. */
-:root[data-theme="hollow"] .he-pk--wink:hover .he-tongue {
+:root[data-theme="hollow"] .he-pk--wink.is-poked .he-tongue {
   transform: translateY(0.08px) scale(1.15);
 }
 
-:root[data-theme="hollow"] .he-pk--goofy:hover {
+:root[data-theme="hollow"] .he-pk--goofy.is-poked {
   transform-box: fill-box;
   transform-origin: 50% 100%;
   animation: he-wobble 0.7s ease-in-out 2;
@@ -948,13 +948,15 @@
   }
 }
 
-/* The ghost behind its tombstone: peeks out, and ducks back down fast when you look. */
+/* The ghost behind its tombstone: peeks out, and when clicked gets a fright and ducks back down. */
 :root[data-theme="hollow"] .he-ghost {
   transition: transform 0.9s cubic-bezier(0.3, 0.7, 0.3, 1);
 }
 
 :root[data-theme="hollow"] .he-ghost.is-peeking {
   transform: translateY(-22px);
+  pointer-events: visiblePainted;
+  cursor: pointer;
 }
 
 :root[data-theme="hollow"] .he-ghost.is-hiding {
@@ -1890,9 +1892,14 @@
   display: block;
 }
 
-/* Who lives down there, and what they do when pointed at (under.ts, scenes.ts). The skeleton dozes,
+/* Who lives down there, and what they do when clicked (under.ts, scenes.ts). The pointer shows
+   they can be clicked (scenes.ts sets .he-can-poke). The skeleton dozes,
    then lifts its head, waves and chatters; the mushrooms glow and puff spores; the candy stash
    glints; the coffin's lid slides open a crack and eyes look out; the crystals twinkle. */
+:root.he-can-poke[data-theme="hollow"] .home__rows {
+  cursor: pointer;
+}
+
 .he-under :is(.heu-skel__head, .heu-skel__arm, .heu-skel__jaw, .heu-skel__z, .heu-coffin__lid, .heu-stash__glints path) {
   transform-box: fill-box;
 }
@@ -2071,9 +2078,10 @@
 }
 
 /* The house (house.ts): lights going on and off, someone passing the attic window, a bat leaving the
-   tower now and then, smoke from the chimney, and the door creaking open when pointed at. */
+   tower now and then, smoke from the chimney, and the door creaking open when clicked. */
 :root[data-theme="hollow"] .he-house {
   pointer-events: visiblePainted;
+  cursor: pointer;
 }
 
 :root[data-theme="hollow"] .he-house :is(.he-door, .he-door-eyes, .he-house-bat, .he-chimney-smoke circle) {
@@ -2085,7 +2093,7 @@
   transition: transform 0.6s cubic-bezier(0.3, 0.7, 0.4, 1);
 }
 
-:root[data-theme="hollow"] .he-house:hover .he-door {
+:root[data-theme="hollow"] .he-house.is-open .he-door {
   transform: scaleX(0.45);
   transition-delay: 0.15s;
 }
@@ -2096,7 +2104,7 @@
   transition: opacity 0.2s;
 }
 
-:root[data-theme="hollow"] .he-house:hover .he-door-eyes {
+:root[data-theme="hollow"] .he-house.is-open .he-door-eyes {
   opacity: 1;
   transition-delay: 0.7s;
   animation: heu-blink 1.6s 1.4s infinite;

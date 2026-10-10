@@ -1,5 +1,5 @@
 // The top bar's little residents: a gnarled branch reaching in from the top-right corner with bats
-// asleep under it (point at one and they take off, coming back to hang a while later), and a spider
+// asleep under it (click one and they take off, coming back to hang a while later), and a spider
 // swinging on its thread (see spider.ts). They sit in the gap between the menu and the search box.
 // See hollow.css ("The top bar").
 import { playSound } from "../sound";
@@ -55,7 +55,7 @@ export function startTopBar() {
       bat.className = "he-bat";
       bat.innerHTML = HANGING_BAT;
       bat.style.animationDelay = `${-bats.length * 0.7}s`;
-      bat.addEventListener("pointerenter", () => scare(bat));
+      bat.addEventListener("click", () => scare(bat));
       layer.appendChild(bat);
       bats.push(bat);
     }
