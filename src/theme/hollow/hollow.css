@@ -1879,13 +1879,193 @@
   position: absolute;
   z-index: -1;
   right: 0;
-  /* Lined up with the cut's top, drawn inside the spotlight (CUT_IN in under.ts). */
-  top: calc(-1 * var(--rows-overlap) - 12px);
+  /* Right where the spotlight ends (it draws the top of the cut itself, see under.ts). */
+  top: calc(-1 * var(--rows-overlap));
   pointer-events: none;
 }
 
 .he-under__svg {
   display: block;
+}
+
+/* Who lives down there, and what they do when pointed at (under.ts, scenes.ts). The skeleton dozes,
+   then lifts its head, waves and chatters; the mushrooms glow and puff spores; the candy stash
+   glints; the coffin's lid slides open a crack and eyes look out; the crystals twinkle. */
+.he-under :is(.heu-skel__head, .heu-skel__arm, .heu-skel__jaw, .heu-skel__z, .heu-coffin__lid, .heu-stash__glints path) {
+  transform-box: fill-box;
+}
+
+.heu-skel__head {
+  transform-origin: 85% 100%;
+  transition: transform 0.45s var(--spring);
+}
+
+.heu-skel.is-poked .heu-skel__head {
+  transform: rotate(-30deg) translate(-1px, -4px);
+}
+
+/* Its arm comes up from its side and waves. */
+.heu-skel__arm {
+  transform-origin: 0% 0%;
+}
+
+.heu-skel.is-poked .heu-skel__arm {
+  animation: heu-wave 2.2s ease-in-out;
+}
+
+@keyframes heu-wave {
+  15% {
+    transform: rotate(-115deg);
+  }
+  30%,
+  60% {
+    transform: rotate(-140deg);
+  }
+  45%,
+  75% {
+    transform: rotate(-110deg);
+  }
+  90% {
+    transform: rotate(-120deg);
+  }
+}
+
+.heu-skel.is-poked .heu-skel__jaw {
+  animation: heu-chatter 0.14s steps(2) 0.3s 9;
+}
+
+@keyframes heu-chatter {
+  50% {
+    transform: translateY(1.8px);
+  }
+}
+
+.heu-skel__z {
+  animation: heu-z 3.2s ease-out infinite;
+}
+
+.heu-skel.is-poked .heu-skel__z {
+  visibility: hidden;
+}
+
+@keyframes heu-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(6px, -12px);
+  }
+}
+
+.heu-shrooms__glow,
+.heu-crystals__glow {
+  animation: heu-pulse 4s ease-in-out infinite alternate;
+}
+
+.heu-crystals__glow {
+  animation-duration: 6s;
+}
+
+@keyframes heu-pulse {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.heu-shrooms__spores circle {
+  opacity: 0;
+}
+
+.heu-shrooms.is-poked .heu-shrooms__spores circle {
+  animation: heu-spore 1.7s ease-out both;
+}
+
+@keyframes heu-spore {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(5px, -24px);
+  }
+}
+
+.heu-stash__glints path {
+  opacity: 0;
+  transform-origin: center;
+}
+
+.heu-stash.is-poked .heu-stash__glints path {
+  animation: heu-glint 0.6s ease-out 3;
+}
+
+@keyframes heu-glint {
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+}
+
+.heu-coffin__lid {
+  transition: transform 0.5s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+.heu-coffin.is-poked .heu-coffin__lid {
+  transform: translate(20px, -3px) rotate(3deg);
+}
+
+.heu-coffin__eyes {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.heu-coffin.is-poked .heu-coffin__eyes {
+  opacity: 1;
+  transition-delay: 0.4s;
+  animation: heu-blink 1.4s 0.9s;
+}
+
+@keyframes heu-blink {
+  45%,
+  55% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.1);
+  }
+}
+
+.heu-coffin__eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.heu-crystals__glints circle {
+  opacity: 0;
+  animation: heu-glint 2.7s ease-out infinite;
+}
+
+.heu-crystals.is-poked .heu-crystals__glow {
+  animation: none;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .he-under * {
+    animation: none !important;
+  }
 }
 
 /* The fog lying on the patch thins out before the cut, rather than stopping at it. */
