@@ -255,14 +255,14 @@ export function patchScene(width: number, spots?: Spot[]) {
   let hillD = `M0 ${SCENE_H}`;
   for (let x = 0; x <= w; x += 30) hillD += `L${x} ${(groundY(x, ...hill) + dip(x)).toFixed(1)}`;
   s += `<path d="${hillD}L${w} ${SCENE_H}Z" fill="#1b1026"/>`;
+  // The owl's tree, up on the house's hill: drawn before the hill, which hides the foot of its trunk
+  // (so it grows out of the ground, wherever the slope is).
+  const owlX = r + 1104;
+  s += owlTree(owlX, curveY(owlX, [r + 930, 330, r + 990, 236, r + 1076, 176, r + 1186, 172]) + 12, 128);
   s += `<path d="M${r + 930} ${SCENE_H}C${r + 990} 236 ${r + 1076} 176 ${r + 1186} 172C${r + 1296} 168 ${r + 1384} 204 ${w} 220L${w} ${SCENE_H}Z" fill="#140b1d"/>`;
   // The haunted house (house.ts).
   s += house(id, r + 1190, 178);
   // Three trees with a personality of their own, and distant ones along the hills on a wide window.
-  // (The owl's tree grows a little way up the house's hill, a rise of earth round its roots.)
-  const owlX = r + 1092;
-  const owlGround = curveY(owlX, [r + 930, 330, r + 990, 236, r + 1076, 176, r + 1186, 172]);
-  s += owlTree(owlX, owlGround + 7, 128) + `<ellipse cx="${owlX}" cy="${(owlGround + 6).toFixed(1)}" rx="24" ry="7" fill="#140b1d"/>`;
   s += spiralTree(r + 1380, 216, 100) + swingTree(r + 884, groundAt(r + 884, ...hill, 6), 90);
   // (Those out in the valley are smaller, far away on its hills.)
   for (let x = 760, n = 1; x < r + 760; x += 260 + rand() * 200, n++) {

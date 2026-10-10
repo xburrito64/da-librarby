@@ -27,6 +27,8 @@ interface Options {
   /** Trunk thickness, relative to its height. */
   girth?: number;
   color?: string;
+  /** A filled shape that's part of the tree too (a wide trunk), sharing its outline. */
+  shape?: string;
 }
 
 /** A spot where a branch bends off sideways: somewhere for an owl to sit or a swing to hang. */
@@ -41,7 +43,7 @@ interface Perch {
 /** A tree `size` tall standing at x, y, grown from `seed`. Also returns its perches. */
 export function growTree(x: number, y: number, size: number, seed: number, o: Options = {}) {
   const rand = random(seed);
-  const { lean = (rand() - 0.5) * 0.25, spread = 1.1, curl = 0.3, curlSize = 0.5, depth = 4, girth = 0.075, color = BARK } = o;
+  const { lean = (rand() - 0.5) * 0.25, spread = 1.1, curl = 0.3, curlSize = 0.5, depth = 4, girth = 0.075, color = BARK, shape } = o;
   let d = "";
   const strokes: { d: string; w: number }[] = [];
   const perches: Perch[] = [];
@@ -86,8 +88,12 @@ export function growTree(x: number, y: number, size: number, seed: number, o: Op
   strokes.push({ d: `M${x - width * 1.6} ${y + 2}Q${x - width * 0.4} ${y - 1} ${x} ${y - size * 0.06}Q${x + width * 0.4} ${y - 1} ${x + width * 1.7} ${y + 2}`, w: width * 0.55 });
   branch(x, y, up + lean, size * 0.36, width, depth);
   if (d) strokes.push({ d, w: Math.max(1.1, width * 0.26) });
+  // Drawn twice: a little wider in moonlight for its outline, then in bark on top, so the outline
+  // only shows round the outside (also of a `shape`).
   const pass = (stroke: string, extra: number) =>
-    `<g stroke="${stroke}" fill="none" stroke-linecap="round">${strokes.map((s) => `<path d="${s.d}" stroke-width="${(s.w + extra).toFixed(2)}"/>`).join("")}</g>`;
+    `<g stroke="${stroke}" fill="none" stroke-linecap="round" stroke-linejoin="round">${strokes.map((s) => `<path d="${s.d}" stroke-width="${(s.w + extra).toFixed(2)}"/>`).join("")}` +
+    (shape ? `<path d="${shape}" fill="${stroke}" stroke-width="${extra}"/>` : "") +
+    `</g>`;
   const svg = (color === BARK ? pass(RIM, RIM_W) : "") + pass(color, 0);
   return { svg, perches, width };
 }
@@ -127,19 +133,22 @@ export function owlTree(x: number, y: number, size: number) {
 
 /** The grumpy old tree: a thick, knobbly trunk with a face, its eyes glowing faintly. */
 export function faceTree(x: number, y: number, size: number) {
-  const tree = growTree(x, y, size, 77, { spread: 1.4, curl: 0.45, curlSize: 0.6, depth: 4, girth: 0.12, lean: -0.06 });
-  const w = tree.width;
+  const girth = 0.12;
+  const w = Math.max(2.2, size * girth);
   const fy = y - size * 0.2;
-  // A wider trunk at the bottom, with a knot.
-  const trunk = `<path d="M${x - w * 1.1} ${y}C${x - w * 0.9} ${fy} ${x - w * 0.7} ${fy - size * 0.1} ${x - w * 0.5} ${y - size * 0.36}L${x + w * 0.5} ${y - size * 0.36}C${x + w * 0.6} ${fy - size * 0.08} ${x + w * 1} ${fy} ${x + w * 1.2} ${y}Z" fill="${BARK}" stroke="${RIM}" stroke-width="1.5"/>`;
+  // A wider trunk at the bottom, narrowing up into the branches: part of the tree, one outline.
+  const top = y - size * 0.44;
+  const trunk = `M${x - w * 1.15} ${y + 1}C${x - w * 0.95} ${fy} ${x - w * 0.6} ${fy - size * 0.12} ${x - w * 0.42} ${top}Q${x} ${top - w * 0.4} ${x + w * 0.42} ${top}C${x + w * 0.62} ${fy - size * 0.1} ${x + w * 1} ${fy} ${x + w * 1.25} ${y + 1}Z`;
+  const tree = growTree(x, y, size, 77, { spread: 1.4, curl: 0.45, curlSize: 0.6, depth: 4, girth, lean: -0.06, shape: trunk });
   const e = w * 0.22;
   const face = `<g class="he-treeface">
     <path d="M${x - w * 0.55} ${fy - e * 0.2}q${e} ${-e * 1.3} ${e * 2} ${-e * 0.2}q${-e} ${e * 0.9} ${-e * 2} ${e * 0.2}z" fill="#ff8a2e"/>
     <path d="M${x + w * 0.55} ${fy - e * 0.2}q${-e} ${-e * 1.3} ${-e * 2} ${-e * 0.2}q${e} ${e * 0.9} ${e * 2} ${e * 0.2}z" fill="#ff8a2e"/>
     <path d="M${x - w * 0.4} ${fy + e * 2.2}q${w * 0.4} ${-e * 1.6} ${w * 0.8} ${e * 0.3}q${-w * 0.4} ${-e * 0.6} ${-w * 0.8} ${-e * 0.3}z" fill="#ff8a2e"/>
   </g>`;
+  // A knot in the bark.
   const knot = `<ellipse cx="${x + w * 0.35}" cy="${y - size * 0.07}" rx="${w * 0.14}" ry="${w * 0.2}" fill="#050208"/>`;
-  return tree.svg + trunk + face + knot;
+  return tree.svg + face + knot;
 }
 
 /** A tall, thin tree whose branch tips curl into spirals. */
