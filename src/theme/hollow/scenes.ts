@@ -118,10 +118,16 @@ export function startScenes({ surprises }: { surprises: boolean }) {
     }
     const house = target.closest?.(".he-house");
     if (house) {
-      if (house.classList.contains("is-open")) return;
-      house.classList.add("is-open");
-      playSound("creak");
-      later(() => house.classList.remove("is-open"), DOOR_OPEN_MS);
+      // The door swings open as slowly as its creak lasts, and the eyes appear once it's open.
+      if (house.classList.contains("is-opening") || house.classList.contains("is-open")) return;
+      house.classList.add("is-opening");
+      void playSound("creak").then((seconds) => {
+        const swing = Math.min(1.6, Math.max(0.35, (seconds ?? 0.6) * 0.85));
+        house.querySelector<SVGElement>(".he-door")?.style.setProperty("transition-duration", `${swing}s`);
+        house.querySelector<SVGElement>(".he-door-eyes")?.style.setProperty("transition-delay", `${swing * 0.75}s`);
+        house.classList.replace("is-opening", "is-open");
+        later(() => house.classList.remove("is-open"), Math.max(DOOR_OPEN_MS, swing * 1000 + 2200));
+      });
       return;
     }
     const ghost = target.closest?.(".he-ghost.is-peeking") as SVGGElement | null;

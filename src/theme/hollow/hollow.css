@@ -508,7 +508,7 @@
 .he-bat::after {
   content: "";
   position: absolute;
-  inset: -10px -16px -14px;
+  inset: -16px -24px -22px;
 }
 
 .he-bat.is-away {
@@ -2097,7 +2097,6 @@
 
 :root[data-theme="hollow"] .he-house.is-open .he-door {
   transform: scaleX(0.45);
-  transition-delay: 0.15s;
 }
 
 :root[data-theme="hollow"] .he-door-eyes {
@@ -2108,7 +2107,6 @@
 
 :root[data-theme="hollow"] .he-house.is-open .he-door-eyes {
   opacity: 1;
-  transition-delay: 0.7s;
   animation: heu-blink 1.6s 1.4s infinite;
 }
 

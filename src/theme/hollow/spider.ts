@@ -1,13 +1,15 @@
 // The spider in the top bar, hanging on its thread from the branch. Thread and spider swing together
 // like a pendulum, stirred by a gentle draught and by the pointer passing close by. The silk is a bit
 // springy, so it bobs when it stops. Now and then it lets itself down a little, climbs back up,
-// turns around or kicks its legs. Click it and it scurries up its thread, then lowers itself
-// again bit by bit. See hollow.css ("The top bar").
+// turns around or kicks its legs. Click it and it scurries up its thread (as fast as its scurrying
+// sound), then lowers itself again bit by bit, each time to a different height. See hollow.css ("The top bar").
 import { playSound } from "../sound";
 import { SPIDER } from "./art";
 
-/** How long its thread is when it's just hanging there (px). */
+/** How long its thread is when it's just hanging there (px): at first, and the range it picks a new
+ *  length from after each scare. */
 const REST = 40;
+const REST_RANGE = [22, 80];
 /** From the thread's end to the middle of the spider (px). */
 const BODY = 10;
 /** Pull of gravity on the swing, and how quickly a swing dies down. */
@@ -34,7 +36,10 @@ export function startSpider(layer: HTMLElement, still: boolean) {
   // Thread length, how fast it's changing, and where it's heading; the swing's angle and speed.
   let len = still ? REST : 1;
   let speed = 0;
+  let rest = REST;
   let target = REST;
+  /** How fast it climbs when scared (set from its sound's length). */
+  let scurry = SCURRY;
   let angle = 0;
   let spin = 0;
   let scared = false;
@@ -68,7 +73,7 @@ export function startSpider(layer: HTMLElement, still: boolean) {
     // The thread: a springy pull towards where it's going, no faster than a spider can climb.
     speed += (70 * (target - len) - 10 * speed) * dt;
     // (Letting itself down is slow and steady; bobbing back after overshooting isn't held back.)
-    speed = Math.max(-(scared ? SCURRY : CLIMB), Math.min(target > len ? LOWER : 140, speed));
+    speed = Math.max(-(scared ? scurry : CLIMB), Math.min(target > len ? LOWER : 140, speed));
     const before = len + BODY;
     len = Math.max(1, len + speed * dt);
     const reach = len + BODY;
@@ -82,20 +87,27 @@ export function startSpider(layer: HTMLElement, still: boolean) {
     frame = requestAnimationFrame(step);
   };
 
-  // Clicked: it scurries up, waits, then lets itself down again in stages.
+  // Clicked: it scurries up (taking as long as its scurrying sound lasts), waits, then lets itself
+  // down again in stages, to a new length (never close to the last one).
   const scare = () => {
     if (scared || still || !shown) return;
     scared = true;
     target = 1;
+    scurry = Math.max(60, len / 0.6);
     el.classList.add("is-scared");
-    playSound("skitter");
+    void playSound("skitter").then((seconds) => {
+      if (seconds) scurry = Math.max(60, len / (seconds * 0.85));
+    });
+    let next = rest;
+    while (Math.abs(next - rest) < 14) next = between(REST_RANGE);
+    rest = next;
     later(() => {
       el.classList.remove("is-scared");
-      target = 14;
+      target = rest * 0.35;
       later(() => {
-        target = 27;
+        target = rest * 0.7;
         later(() => {
-          target = REST;
+          target = rest;
           scared = false;
         }, 1300);
       }, 1300);
@@ -108,7 +120,7 @@ export function startSpider(layer: HTMLElement, still: boolean) {
   const stir = (e: PointerEvent) => {
     const dx = px == null ? 0 : e.clientX - px;
     px = e.clientX;
-    if (scared || !shown || e.clientY > 140) return;
+    if (scared || !shown || e.clientY > 180) return;
     const reach = len + BODY;
     const bx = x + Math.sin(angle) * reach;
     const by = 6 + Math.cos(angle) * reach;
@@ -124,12 +136,12 @@ export function startSpider(layer: HTMLElement, still: boolean) {
         const roll = Math.random();
         if (roll < 0.3) {
           // Lets itself down a little, then climbs back.
-          target = REST + 10 + Math.random() * 8;
-          later(() => !scared && (target = REST), between([2500, 4000]));
+          target = Math.min(REST_RANGE[1] + 10, rest + 10 + Math.random() * 8);
+          later(() => !scared && (target = rest), between([2500, 4000]));
         } else if (roll < 0.55) {
           // Climbs up a bit.
-          target = REST - 12 - Math.random() * 6;
-          later(() => !scared && (target = REST), between([2000, 3000]));
+          target = Math.max(8, rest - 12 - Math.random() * 6);
+          later(() => !scared && (target = rest), between([2000, 3000]));
         } else if (roll < 0.75) {
           flash("is-turning", 1400);
         } else {
