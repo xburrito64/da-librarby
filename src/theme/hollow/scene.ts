@@ -152,7 +152,7 @@ export function patchScene(width: number) {
   s += `<g ${tilt} fill="#ffb347" filter="url(#${id}glow)"><rect x="${r + 1162}" y="136" width="12" height="14" rx="1"/><rect class="he-flicker" x="${r + 1196}" y="136" width="12" height="14" rx="1"/><rect class="he-flicker he-flicker--slow" x="${r + 1215}" y="96" width="9" height="12" rx="1"/><rect x="${r + 1184}" y="156" width="14" height="22" rx="7" fill="#c9611a" opacity="0.8"/></g>`;
   s += `<g ${tilt} stroke="#0d0712" stroke-width="1.6"><path d="M${r + 1168} 136v14M${r + 1162} 143h12M${r + 1202} 136v14M${r + 1196} 143h12"/></g>`;
   // Three trees with a personality of their own, and distant ones along the hills on a wide window.
-  s += owlTree(r + 1084, 198, 128) + spiralTree(r + 1380, 216, 100) + swingTree(r + 884, 238, 90);
+  s += owlTree(r + 1084, 198, 128) + spiralTree(r + 1380, 216, 100) + swingTree(r + 884, groundAt(r + 884, ...hill, 6), 90);
   for (let x = 760, n = 1; x < r + 760; x += 260 + rand() * 200, n++) s += farTree(x, groundAt(x, ...hill, 3 + rand() * 6), 46 + rand() * 30, n * 5);
   // Tombstones, the ghost hiding behind the big one.
   s += ghost(r + 846, 228, 0.62);

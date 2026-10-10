@@ -295,7 +295,7 @@
   color: var(--he-pumpkin);
 }
 
-/* The chosen page: glowing orange slime under it, oozing down when you pick it. Every tab's slime is
+/* The chosen page: glowing orange slime under it, its drips stretching down when you pick it. Every tab's slime is
    its own (which drips, how long, how fast it sags), and now and then a drop falls off. */
 :root[data-theme="hollow"] :is(.nav__tab, .seasons__tab) {
   /* Where the slime sits under the tab. */
@@ -379,7 +379,7 @@
   filter: drop-shadow(0 0 4px rgba(255, 117, 24, 0.7));
   transform-origin: 50% 0;
   animation:
-    he-ooze 0.8s cubic-bezier(0.3, 0.7, 0.4, 1) both,
+    he-ooze 0.7s ease-out both,
     he-sag var(--he-goo-t) 0.8s ease-in-out infinite alternate;
   pointer-events: none;
 }
@@ -403,10 +403,18 @@
 
 @keyframes he-ooze {
   from {
-    clip-path: inset(-6px -6px 75% -6px);
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+  55% {
+    opacity: 1;
+    transform: scaleY(1.14);
+  }
+  80% {
+    transform: scaleY(0.96);
   }
   to {
-    clip-path: inset(-6px);
+    transform: scaleY(1);
   }
 }
 
