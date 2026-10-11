@@ -1,6 +1,7 @@
 // The family tomb at the end of the path on show pages: once grand, now neglected. Worn steps up
 // to a pointed doorway closed by an iron gate, darkness behind it (and now and then a pair of eyes);
-// stone columns either side, the family's name carved over the door, a round stained-glass window
+// stone columns either side, the family's name carved over the door (a different one now and then),
+// a round stained-glass window
 // glowing in the gable, stone urns on the corners and a little gargoyle crouching on the peak.
 // Candles left burning on the steps, ivy climbing one side, moss, a crack and a cobweb; the moon
 // catching its right-hand edges.
@@ -9,8 +10,17 @@
 // itself again a while later). Now and then a light passes behind the round window, as if someone
 // inside walked by with a candle. See scenes.ts and hollow.css ("The tomb").
 
-/** The family's name over the door (any length; long ones are set smaller). */
-export const TOMB_NAME = "RAVENWOOD";
+/** The family names over the door: one at random each time it's drawn, never the same one twice in
+ *  a row (any length; long ones are set smaller). */
+export const TOMB_NAMES = ["DREEMURR", "JOESTAR", "UCHIHA"];
+let lastName = -1;
+
+function pickName() {
+  let i = Math.floor(Math.random() * (TOMB_NAMES.length - 1));
+  if (TOMB_NAMES.length > 1 && i >= lastName) i++;
+  lastName = Math.min(i, TOMB_NAMES.length - 1);
+  return TOMB_NAMES[lastName];
+}
 
 const STONE = "#251b31";
 const STONE2 = "#2c2238";
@@ -76,7 +86,7 @@ function candle(id: string, x: number, y: number, h: number) {
 /** The tomb, standing at x, y (the middle of its bottom step), `scale` times its size (about 124
  *  wide and 186 tall at 1). */
 export function tomb(id: string, x: number, y: number, scale = 1) {
-  const name = TOMB_NAME.toUpperCase();
+  const name = pickName().toUpperCase();
   const nameSize = Math.min(7.6, 92 / Math.max(1, name.length * 0.86));
   const door = "M-14-18V-55Q-14-73 0-81Q14-73 14-55V-18Z";
   let s = `<defs>

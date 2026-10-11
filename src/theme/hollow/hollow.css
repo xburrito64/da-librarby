@@ -1998,7 +1998,7 @@
    they can be clicked (scenes.ts sets .he-can-poke). The skeleton dozes,
    then lifts its head, waves and chatters; the mushrooms glow and puff spores; the candy stash
    glints; the coffin's lid slides open a crack and eyes look out; the crystals twinkle. */
-:root.he-can-poke[data-theme="hollow"] .home__rows {
+:root.he-can-poke[data-theme="hollow"] :is(.home__rows, .tp, .tp *) {
   cursor: pointer;
 }
 

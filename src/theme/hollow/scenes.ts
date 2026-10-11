@@ -47,6 +47,11 @@ const STASH_FOUND = [
   "A secret stash! Leave one for the worms.",
 ];
 
+/** The tomb's parts that answer clicks (candles first: they stand in front of the rest). */
+const TOMB_PARTS = ".he-tomb__candle, .he-tomb__gargoyle, .he-tomb__door";
+/** Page controls, which a click is always for (never for the scenery behind them). */
+const CONTROLS = "a, button, input, textarea, select, .card, [role=button], [role=tab]";
+
 /** Whether the pointer is over an element (or near it). */
 const over = (el: Element, x: number, y: number, near = 6) => {
   const r = el.getBoundingClientRect();
@@ -99,6 +104,9 @@ export function startScenes({ surprises }: { surprises: boolean }) {
   window.addEventListener("resize", onResize);
   draw();
 
+  /** The part of a tomb in view under the pointer, if any. */
+  const tombPart = (x: number, y: number) => shown(TOMB_PARTS).find((p) => over(p, x, y, 1)) ?? null;
+
   const shown = <T extends Element>(selector: string) =>
     [...document.querySelectorAll<T>(selector)].filter((el) => {
       const r = el.getBoundingClientRect();
@@ -137,7 +145,9 @@ export function startScenes({ surprises }: { surprises: boolean }) {
     }
     // The tomb: its gate creaks open (as slowly as the creak lasts) and the eyes look out; the
     // gargoyle turns its head with a grind of stone; a candle goes out, and lights again later.
-    const gate = target.closest?.(".he-tomb__door");
+    // (The page's header lies over it, so where the click landed counts, unless it was on a control.)
+    const part = target.closest?.(CONTROLS) ? null : tombPart(e.clientX, e.clientY);
+    const gate = part?.matches(".he-tomb__door") ? part : null;
     const tomb = gate?.closest(".he-tomb");
     if (gate && tomb) {
       if (tomb.classList.contains("is-opening") || tomb.classList.contains("is-open")) return;
@@ -150,7 +160,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       });
       return;
     }
-    const gargoyle = target.closest?.(".he-tomb__gargoyle");
+    const gargoyle = part?.matches(".he-tomb__gargoyle") ? part : null;
     if (gargoyle) {
       if (gargoyle.classList.contains("is-looking")) return;
       gargoyle.classList.add("is-looking");
@@ -162,7 +172,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       });
       return;
     }
-    const flame = target.closest?.(".he-tomb__candle");
+    const flame = part?.matches(".he-tomb__candle") ? part : null;
     if (flame) {
       if (flame.classList.contains("is-out")) return;
       flame.classList.add("is-out");
@@ -187,7 +197,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       });
       return;
     }
-    if (!surprises || target.closest?.("a, button, input, textarea, select, .card, [role=button], [role=tab]")) return;
+    if (!surprises || target.closest?.(CONTROLS)) return;
     const stash = document.querySelector(".he-under .heu-stash");
     if (stash && over(stash, e.clientX, e.clientY, 2)) {
       stash.classList.remove("is-poked");
@@ -212,18 +222,19 @@ export function startScenes({ surprises }: { surprises: boolean }) {
   };
   document.addEventListener("click", onClick);
 
-  // The things under the patch sit behind the page, so the pointer shows they can be clicked.
+  // The things under the patch and the tomb sit behind the page, so the pointer shows they can be
+  // clicked.
   let pointing = 0;
   const onMove = (e: PointerEvent) => {
     if (pointing) return;
     pointing = requestAnimationFrame(() => {
       pointing = 0;
-      const hit = [...document.querySelectorAll(".he-under [data-poke]")].some((t) => over(t, e.clientX, e.clientY));
+      const hit = (surprises && [...document.querySelectorAll(".he-under [data-poke]")].some((t) => over(t, e.clientX, e.clientY))) || tombPart(e.clientX, e.clientY) !== null;
       const onPage = (e.target as Element).closest?.("a, button, input, .card, [role=button]");
       document.documentElement.classList.toggle("he-can-poke", hit && !onPage);
     });
   };
-  if (surprises) window.addEventListener("pointermove", onMove, { passive: true });
+  window.addEventListener("pointermove", onMove, { passive: true });
 
   const peek = () => {
     later(peek, between(PEEK_EVERY_MS));
