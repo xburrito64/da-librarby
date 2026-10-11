@@ -394,9 +394,14 @@ pub fn apply_scan(conn: &mut Connection, library_id: i64, titles: &[ScannedTitle
                         && old.extra_group == extra_group
                         && old.extra_movie == extra_movie;
                     if !same {
-                        // It became something else (a movie, part of another show or season):
-                        // what was looked up for it no longer fits, so look it up again.
-                        if old.title_id != title_id || old.season_id != season_id || old.role != role {
+                        // It became something else (a movie, part of another show or season, another
+                        // episode): what was looked up for it no longer fits, so look it up again.
+                        if old.title_id != title_id
+                            || old.season_id != season_id
+                            || old.role != role
+                            || old.episode != file.episode
+                            || old.episode_end != file.episode_end
+                        {
                             tx.execute("DELETE FROM file_meta WHERE file_id = ?1 AND locked = 0", [old.id])?;
                         }
                         tx.execute(
@@ -518,6 +523,9 @@ pub struct TitleSummary {
     pub parent_name: Option<String>,
     /// For movies: the TMDB movie, to tell which of a collection's movies are here.
     pub tmdb_movie_id: Option<i64>,
+    /// For movies: how far in it was stopped (0..1), when it can be picked up again there
+    /// (a movie only watched before has none: it isn't part-way through).
+    pub partway: Option<f64>,
 }
 
 /// Things count as new for two weeks after they show up...
@@ -557,7 +565,11 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                   WHERE f.title_id = t.id AND f.present = 1 AND f.role IN ('episode', 'movie')
                     AND w.watched = 0 AND w.position >= ?3),
                 m.studio, m.extra, (SELECT p.name FROM titles p WHERE p.id = t.parent_id),
-                CASE WHEN m.provider = 'tmdb' AND t.is_movie = 1 THEN m.provider_id END
+                CASE WHEN m.provider = 'tmdb' AND t.is_movie = 1 THEN m.provider_id END,
+                (SELECT w.position / w.duration FROM watch w JOIN files f ON f.id = w.file_id
+                  WHERE t.is_movie = 1 AND f.title_id = t.id AND f.present = 1 AND f.role = 'movie'
+                    AND w.duration > 0 AND w.position >= ?3 AND w.position < w.duration * ?4
+                  ORDER BY w.updated_at DESC LIMIT 1)
          FROM titles t JOIN libraries l ON l.id = t.library_id
          LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
@@ -567,7 +579,9 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
     for (_, title_id) in new_files(conn)? {
         *new_counts.entry(title_id).or_default() += 1;
     }
-    let rows = stmt.query_map(params![FIRST_SCAN_SECONDS, now() - NEW_FOR_SECONDS, super::watch::MIN_RESUME_SECONDS], |r| {
+    let rows = stmt.query_map(
+        params![FIRST_SCAN_SECONDS, now() - NEW_FOR_SECONDS, super::watch::MIN_RESUME_SECONDS, super::watch::WATCHED_AT],
+        |r| {
         let looked_up: bool = r.get(14)?;
         let id: i64 = r.get(0)?;
         let extra = r.get::<_, Option<String>>(25)?.and_then(|e| serde_json::from_str::<MovieExtra>(&e).ok());
@@ -604,8 +618,10 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                 .get::<_, Option<String>>(27)?
                 .and_then(|i| i.parse().ok())
                 .or(extra.as_ref().and_then(|e| e.tmdb_id)),
+            partway: r.get(28)?,
         })
-    })?;
+    },
+    )?;
     rows.collect()
 }
 

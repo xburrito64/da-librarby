@@ -204,10 +204,14 @@ fn find_root(input: &ShowInput, src: &mut dyn Source, seen: &mut Vec<Media>) -> 
     if input.is_movie || !is_series_format(root.format.as_deref(), root.episodes) {
         return Ok(Some(root));
     }
+    let fit = |titles: &[&str]| names.iter().map(|n| best_similarity(n, titles)).fold(0.0, f64::max);
+    let found_fit = fit(&root.all_titles());
 
     // The search may have found a later season ("Kaiji" finds Kaiji 2): go back to the start
-    // through entries that still carry the show's name. Movies/OVAs may be stepped through
-    // (a season's prequel can be a movie), but only a TV entry can become the start.
+    // through entries that still carry the show's name, at least as well as the one found
+    // ("Kaiji" fits "Kaiji" better than "Kaiji 2" does; but plain "Naruto" is the series before
+    // "Naruto Shippuden", not its start). Movies/OVAs may be stepped through (a season's prequel
+    // can be a movie), but only a TV entry can become the start.
     let mut cursor = root.clone();
     let mut visited = HashSet::from([root.id]);
     for _ in 0..10 {
@@ -216,7 +220,7 @@ fn find_root(input: &ShowInput, src: &mut dyn Source, seen: &mut Vec<Media>) -> 
             .filter(|e| e.relation_type.as_deref() == Some("PREQUEL"))
             .map(|e| &e.node)
             .filter(|n| !visited.contains(&n.id))
-            .filter(|n| best_similarity(&input.name, &n.all_titles()) >= MIN_SIMILARITY)
+            .filter(|n| fit(&n.all_titles()) >= MIN_SIMILARITY.max(found_fit - 1e-9))
             .collect();
         let latest = |nodes: Vec<&&RelationNode>| nodes.into_iter().max_by_key(|n| n.year().unwrap_or(0)).map(|n| n.id);
         let series: Vec<&&RelationNode> =
@@ -396,9 +400,27 @@ pub fn normalize(s: &str) -> String {
     let lowered: String = s
         .replace('×', " x ")
         .chars()
-        .map(|c| if c.is_alphanumeric() { c.to_lowercase().next().unwrap_or(c) } else { ' ' })
+        .map(|c| if c.is_alphanumeric() { plain_letter(c.to_lowercase().next().unwrap_or(c)) } else { ' ' })
         .collect();
     lowered.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// A letter without its accent or long mark: "Shippūden" is "Shippuden", "Pokémon" is "Pokemon"
+/// (one service writes them one way, another the other).
+fn plain_letter(c: char) -> char {
+    match c {
+        'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' | 'ā' | 'ă' | 'ą' => 'a',
+        'ç' | 'ć' | 'č' => 'c',
+        'è' | 'é' | 'ê' | 'ë' | 'ē' | 'ė' | 'ę' | 'ě' => 'e',
+        'ì' | 'í' | 'î' | 'ï' | 'ī' => 'i',
+        'ñ' | 'ń' => 'n',
+        'ò' | 'ó' | 'ô' | 'õ' | 'ö' | 'ō' | 'ø' | 'ő' => 'o',
+        'ù' | 'ú' | 'û' | 'ü' | 'ū' | 'ů' | 'ű' => 'u',
+        'ý' | 'ÿ' => 'y',
+        'š' | 'ś' => 's',
+        'ž' | 'ź' | 'ż' => 'z',
+        _ => c,
+    }
 }
 
 /// How alike two titles are, 0..1. Exact (ignoring case and punctuation) is 1.0;
@@ -547,6 +569,31 @@ mod tests {
     }
 
     #[test]
+    fn a_follow_up_series_is_not_walked_back_to_the_first() {
+        // "Naruto Shippuden" is found as "Naruto: Shippuden"; its prequel "Naruto" is another
+        // series (its name fits the folder less well), so episode 1 is Shippuden's episode 1.
+        let all = [
+            media(20, "TV", Some(220), "Naruto", &[("SEQUEL", 1735, "TV", 2007, "Naruto: Shippuden")]),
+            media(1735, "TV", Some(500), "Naruto: Shippuden", &[("PREQUEL", 20, "TV", 2002, "Naruto")]),
+        ];
+        let mut src = Fake(all.into_iter().map(|m| (m.id, m)).collect(), vec![1735, 20]);
+        let input = ShowInput {
+            name: "Naruto Shippuden".into(),
+            year: None,
+            is_movie: false,
+            parent: None,
+            locked_root: None,
+            seasons: vec![season(1, 1, 1..=32), season(2, 2, 33..=53)],
+            movies: vec![],
+        };
+        let m = match_show(&input, &mut src).unwrap();
+        assert_eq!(m.root.as_ref().map(|r| r.id), Some(1735));
+        let ep = |file: i64| m.episodes.iter().find(|e| e.file_id == file).map(|e| (e.media_id, e.episode)).unwrap();
+        assert_eq!(ep(1_001), (Some(1735), Some(1)));
+        assert_eq!(ep(2_053), (Some(1735), Some(53)));
+    }
+
+    #[test]
     fn year_picks_the_right_version() {
         // "Hunter x Hunter (2011)": the 1999 series is called just "Hunter x Hunter" in English.
         let mut old = media(1, "TV", Some(62), "HUNTER×HUNTER", &[]);
@@ -588,6 +635,8 @@ mod tests {
         assert!(similarity("One Pace", "One Piece") < MIN_SIMILARITY);
         assert_eq!(similarity("Reunion × and × Understanding", "Reunion x And x Understanding"), 1.0);
         assert_eq!(similarity("Hunter x Hunter 2011", "HUNTER×HUNTER (2011)"), 1.0);
+        assert_eq!(similarity("Naruto: Shippuden", "Naruto Shippūden"), 1.0);
+        assert_eq!(similarity("Pokemon", "Pokémon"), 1.0);
         assert!(similarity("Naruto", "Boruto: Naruto Next Generations") < MIN_SIMILARITY);
         let part = "South Park: The Streaming Wars Part";
         assert!(similarity(part, "South Park: The Streaming Wars") > similarity(part, "South Park the Streaming Wars Part 2"));

@@ -677,10 +677,20 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
           <span className="card__placeholder">{title.name}</span>
         )}
         {badge && <span className="card__badge">{badge}</span>}
-        {title.watched > 0 && (
-          <span className="progress card__progress" title={`${title.watched} of ${total} watched`}>
-            <span style={{ width: `${Math.min(100, (title.watched / total) * 100)}%` }} />
-          </span>
+        {/* A show: how many of its episodes are watched. A movie: how far into it you are (none
+            if it was only watched before). */}
+        {title.isMovie ? (
+          title.partway != null && (
+            <span className="progress card__progress" title={`${Math.round(title.partway * 100)}% watched`}>
+              <span style={{ width: `${Math.min(100, title.partway * 100)}%` }} />
+            </span>
+          )
+        ) : (
+          title.watched > 0 && (
+            <span className="progress card__progress" title={`${title.watched} of ${total} watched`}>
+              <span style={{ width: `${Math.min(100, (title.watched / total) * 100)}%` }} />
+            </span>
+          )
         )}
       </span>
       <span className="card__text">

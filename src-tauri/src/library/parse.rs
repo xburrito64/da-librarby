@@ -45,6 +45,8 @@ re!(OP_ED, r"(?i)(?:^|[\s\-_.(])(?:nc\s*)?(?:op|ed|opening|ending)\s*\d{0,3}(?:v
 re!(SPECIAL_NUMBER, r"(?i)(?:^|[\s\-_.])(?:OVA|OAD|ONA|SP|Special)\s*(\d{1,3}(?:\.\d+)?)(?:$|[\s\-_.])");
 // "Movie 01" in a movie's name says nothing about which movie it is.
 re!(MOVIE_NUMBER, r"(?i)(^|[\s\-–:])movie\s*0*\d{1,2}($|[\s\-–:])");
+// "The Movie 02": the number goes, "The Movie" stays (it's part of the name).
+re!(THE_MOVIE_NUMBER, r"(?i)\b(the movie)\s*0*\d{1,2}\b");
 re!(DOUBLE_DASH, r"\s*[-–]\s*[-–:]\s*");
 re!(LEADING_SEASON, r"(?i)^(season\s*\d{1,3}|s\d{1,3}(e\d{1,4})?)(\s*[-–:.]\s+|\s+)");
 re!(MOVIES_FOLDER,r"(?i)^(movies|films)$");
@@ -245,9 +247,11 @@ pub fn is_op_ed(stem: &str) -> bool {
 }
 
 /// A movie's name without "Movie 01" in it: "Fairy Tail - Movie 01 - The Phoenix Priestess" ->
-/// "Fairy Tail - The Phoenix Priestess" (what the movie is called everywhere else).
+/// "Fairy Tail - The Phoenix Priestess" (what the movie is called everywhere else), and
+/// "Naruto Shippuden The Movie 02 - Bonds" -> "Naruto Shippuden The Movie - Bonds".
 pub fn movie_name(name: &str) -> String {
-    let without = MOVIE_NUMBER.replace(name, "$1$2");
+    let without = THE_MOVIE_NUMBER.replace(name, "$1");
+    let without = MOVIE_NUMBER.replace(&without, "$1$2");
     let tidy = clean_text(&DOUBLE_DASH.replace_all(&without, " - "));
     if tidy.chars().any(char::is_alphabetic) { tidy } else { name.to_string() }
 }
@@ -310,7 +314,14 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
         };
     }
 
-    if let Some(c) = SPECIAL_NUMBER.captures(s) {
+    // "Naruto Shippuden - 290 - Power - Episode 1": the number counting from the start of the show
+    // comes first; the "Episode 1" after it is part of the episode's title.
+    let absolute_first = |other: Option<regex::Match>| match (ABSOLUTE.find(s), other) {
+        (Some(a), Some(o)) => a.start() < o.start(),
+        _ => false,
+    };
+
+    if let Some(c) = SPECIAL_NUMBER.captures(s).filter(|c| !absolute_first(c.get(0))) {
         let m = c.get(0).unwrap();
         let after = episode_title(&s[m.end()..]);
         return EpisodeName {
@@ -321,7 +332,7 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
         };
     }
 
-    if let Some(c) = EPISODE_ONLY.captures(s) {
+    if let Some(c) = EPISODE_ONLY.captures(s).filter(|c| !absolute_first(c.get(0))) {
         let m = c.get(0).unwrap();
         let after = episode_title(&s[m.end()..]);
         return EpisodeName {
@@ -549,6 +560,14 @@ mod tests {
     }
 
     #[test]
+    fn absolute_number_before_an_episode_word() {
+        let e = ep("[Anime Time] Naruto Shippuden - 290 - Power - Episode 1");
+        assert_eq!((e.episode, e.absolute, e.title.as_deref()), (Some(290.0), true, Some("Power - Episode 1")));
+        let e = ep("[Anime Time] Naruto Shippuden - 295 - Power - Final Episode");
+        assert_eq!((e.episode, e.title.as_deref()), (Some(295.0), Some("Power - Final Episode")));
+    }
+
+    #[test]
     fn release_words_are_not_titles() {
         let e = ep("Attack.on.Titan.2013.S03E01.GERMAN.Dubbed.DL.1080p.WEB.x264-TVS");
         assert_eq!((e.season, e.episode, e.title), (Some(3), Some(1.0), None));
@@ -583,6 +602,8 @@ mod tests {
         assert_eq!(movie_name("Hunter X Hunter - Movie 2 - The Last Mission"), "Hunter X Hunter - The Last Mission");
         assert_eq!(movie_name("Naruto The Movie - Legend Of The Stone Of Gelel"), "Naruto The Movie - Legend Of The Stone Of Gelel");
         assert_eq!(movie_name("Movie 2"), "Movie 2");
+        assert_eq!(movie_name("Naruto Shippuden The Movie 02 - Bonds"), "Naruto Shippuden The Movie - Bonds");
+        assert_eq!(movie_name("The Last - Naruto The Movie 07"), "The Last - Naruto The Movie");
     }
 
     #[test]

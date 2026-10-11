@@ -392,6 +392,65 @@ pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Resu
     tx.commit()
 }
 
+/// Bumped when automatic AniList matching improves, so earlier automatic matches are made again
+/// (version 2: "Naruto Shippuden" had been matched to the series before it, "Naruto"; version 3:
+/// episodes whose numbers were read wrongly before, "290 - Power - Episode 1"; version 4: shows
+/// matched by hand get their episodes lined up again too). Hand-made choices stay; the episodes'
+/// TMDB details are looked up again too, for the new match.
+const ANILIST_MATCH_VERSION: &str = "4";
+
+pub fn refresh_anilist_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
+    if setting(conn, "anilist_match_version")?.as_deref() == Some(ANILIST_MATCH_VERSION) {
+        return Ok(());
+    }
+    let tx = conn.transaction()?;
+    let ids: Vec<i64> = {
+        // (Shows matched by hand too: the show stays, its seasons and episodes are lined up again.)
+        let mut stmt = tx.prepare("SELECT title_id FROM title_meta WHERE provider = 'anilist'")?;
+        let ids = stmt.query_map([], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?;
+        ids
+    };
+    for id in ids {
+        clear_unlocked_children(&tx, id)?;
+        tx.execute("DELETE FROM title_meta WHERE title_id = ?1 AND locked = 0", [id])?;
+    }
+    set_setting(&tx, "anilist_match_version", Some(ANILIST_MATCH_VERSION))?;
+    tx.commit()
+}
+
+/// Bumped when finding matches improves, so what found nothing before is looked for again
+/// (version 1: names compared without accents, "Naruto Shippūden" on TMDB). Hand-made choices stay.
+const RETRY_VERSION: &str = "1";
+
+pub fn retry_unmatched_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
+    if setting(conn, "match_retry_version")?.as_deref() == Some(RETRY_VERSION) {
+        return Ok(());
+    }
+    let tx = conn.transaction()?;
+    // Shows, movies and anime nothing was found for.
+    let ids: Vec<i64> = {
+        let mut stmt = tx.prepare("SELECT title_id FROM title_meta WHERE provider_id IS NULL AND locked = 0")?;
+        let ids = stmt.query_map([], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?;
+        ids
+    };
+    for id in ids {
+        clear_unlocked_children(&tx, id)?;
+        tx.execute("DELETE FROM title_meta WHERE title_id = ?1 AND locked = 0", [id])?;
+    }
+    // Anime whose episodes found no TMDB show: their descriptions and pictures are looked for again.
+    tx.execute(
+        "UPDATE file_meta SET details_at = NULL
+         WHERE locked = 0 AND file_id IN (
+             SELECT f.id FROM files f JOIN titles t ON t.id = f.title_id JOIN libraries l ON l.id = t.library_id
+             JOIN title_meta m ON m.title_id = t.id
+             WHERE COALESCE(t.kind, l.kind) = 'anime' AND f.role = 'episode' AND m.provider = 'anilist'
+               AND m.provider_id IS NOT NULL AND m.tmdb_id IS NULL)",
+        [],
+    )?;
+    set_setting(&tx, "match_retry_version", Some(RETRY_VERSION))?;
+    tx.commit()
+}
+
 /// Shows and movies with something not yet looked up, and anime whose episodes have no
 /// descriptions/thumbnails yet (once AniList has been asked about them).
 pub fn titles_needing_tmdb(conn: &Connection) -> rusqlite::Result<Vec<i64>> {

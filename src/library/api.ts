@@ -49,6 +49,9 @@ export interface TitleSummary {
   listedAt: number | null;
   /** Episodes and movies stopped part-way (far enough in to resume, not finished). */
   started: number;
+  /** Movies: how far in it was stopped (0..1), when it can be picked up there; null otherwise
+   *  (a movie watched before isn't part-way through). */
+  partway: number | null;
   /** For "more like this": the studio, and the collection a movie belongs to. */
   studio: string | null;
   collectionId: number | null;

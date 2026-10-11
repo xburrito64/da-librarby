@@ -57,6 +57,12 @@ impl Metadata {
         if let Err(e) = library.with_db(|c| store::clean_saved_descriptions(c)) {
             eprintln!("cleaning saved descriptions failed: {e}");
         }
+        if let Err(e) = library.with_db(|c| store::refresh_anilist_matches_if_outdated(c)) {
+            eprintln!("refreshing AniList matches failed: {e}");
+        }
+        if let Err(e) = library.with_db(|c| store::retry_unmatched_if_outdated(c)) {
+            eprintln!("retrying unmatched titles failed: {e}");
+        }
         if let Err(e) = library.with_db(|c| store::refresh_tmdb_matches_if_outdated(c)) {
             eprintln!("refreshing TMDB matches failed: {e}");
         }

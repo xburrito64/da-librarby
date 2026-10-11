@@ -10,7 +10,7 @@ use serde::Serialize;
 use super::db::now;
 
 /// A file counts as watched once this much of it has been played (the rest is usually credits).
-const WATCHED_AT: f64 = 0.9;
+pub(crate) const WATCHED_AT: f64 = 0.9;
 /// Stopping earlier than this isn't worth resuming from.
 pub const MIN_RESUME_SECONDS: f64 = 30.0;
 const CONTINUE_LIMIT: usize = 20;
