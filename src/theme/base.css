@@ -1497,8 +1497,24 @@
 }
 
 .tp__markall {
-  margin-left: auto;
   font-size: 12.5px;
+}
+
+.tp__seasonactions {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+/* A season's summary and play button, an episode's big number, its facts line and "Up next": for
+   themes that show them (Hollow's Eve). */
+.tp__seasonsum,
+.tp__seasonplay,
+.ep__num,
+.ep__meta,
+.ep__upnext {
+  display: none;
 }
 
 .eps {

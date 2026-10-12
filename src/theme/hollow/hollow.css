@@ -736,7 +736,7 @@
 
 /* The description on a weathered stone tablet: chipped edges, moss along its foot, a little cobweb in
    its corner. Its font is a setting of its own (fonts.ts). A show's About is on tablets too (below). */
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group) {
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar) {
   position: relative;
   padding: 15px 20px 17px;
   border: 0;
@@ -1922,28 +1922,219 @@
   --he-goo-top: calc(100% - 4px);
 }
 
+:root[data-theme="hollow"] .tp__seasonbar {
+  position: relative;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+  margin-bottom: 18px;
+  padding: 14px 22px;
+}
+
+:root[data-theme="hollow"] .tp__seasonsum {
+  display: grid;
+  gap: 4px;
+}
+
+:root[data-theme="hollow"] .tp__seasonname {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1;
+  color: var(--he-bone);
+  text-shadow: 0 0 16px rgba(255, 140, 40, 0.35);
+}
+
+:root[data-theme="hollow"] .tp__seasonfacts {
+  font-family: var(--he-tablet-font, var(--font-body));
+  font-size: 15px;
+  color: #d8cbe8;
+}
+
+/* (The ember line of how much is watched.) */
+:root[data-theme="hollow"] .tp__seasonprogress {
+  position: relative;
+  inset: auto;
+  width: min(300px, 60vw);
+  margin-top: 4px;
+  border-radius: 9px;
+}
+
+:root[data-theme="hollow"] .tp__seasonnote {
+  flex-basis: 100%;
+  order: 3;
+  font-size: 12.5px;
+  color: #a99cc4;
+}
+
+:root[data-theme="hollow"] .tp__seasonactions {
+  align-items: center;
+  gap: 10px;
+}
+
+:root[data-theme="hollow"] .tp__seasonplay {
+  display: inline-flex;
+}
+
+/* "Mark season as watched": a button like the others. */
+:root[data-theme="hollow"] .tp__markall {
+  display: inline-flex;
+  align-items: center;
+  height: var(--btn-h, 40px);
+  padding: 0 18px;
+  border-radius: 999px;
+  background: rgba(107, 63, 160, 0.26);
+  color: #efe6ff;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(201, 182, 238, 0.42),
+    0 0 18px rgba(107, 63, 160, 0.22);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+:root[data-theme="hollow"] .tp__markall:hover {
+  background: rgba(107, 63, 160, 0.4);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(214, 198, 246, 0.7),
+    0 0 22px rgba(107, 63, 160, 0.4);
+  color: #fff;
+}
+
+/* The episodes: a big number like a chapter's in an old book, the name in the title font, a line of
+   facts (its code, length, how far you are), two lines of its story in the tablet font. */
 :root[data-theme="hollow"] .ep {
-  border-radius: 16px;
+  grid-template-columns: 44px 200px minmax(0, 1fr) auto;
+  gap: 16px;
+  padding: 16px 14px;
+  border-radius: 0;
+  box-shadow: inset 0 -1px 0 rgba(201, 182, 238, 0.08);
 }
 
 :root[data-theme="hollow"] .ep:hover {
   background: rgba(107, 63, 160, 0.16);
 }
 
+:root[data-theme="hollow"] .ep__num {
+  display: block;
+  padding-top: 4px;
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 1;
+  text-align: right;
+  color: rgba(243, 234, 216, 0.55);
+}
+
 :root[data-theme="hollow"] .ep__still {
   border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
 }
 
 :root[data-theme="hollow"] .ep__code {
-  color: var(--he-ember);
+  display: none;
 }
 
 :root[data-theme="hollow"] .ep__name {
-  font-size: 16px;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--he-bone);
 }
 
-:root[data-theme="hollow"] .ep.is-watched .ep__name {
-  color: var(--muted);
+:root[data-theme="hollow"] .ep__meta {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 4px 0 6px;
+  font: 700 12px var(--font-label);
+  letter-spacing: 0.06em;
+  color: #c9b6ee;
+}
+
+:root[data-theme="hollow"] .ep__meta > * + *::before {
+  content: "·";
+  margin: 0 6px;
+  color: var(--he-pumpkin);
+}
+
+:root[data-theme="hollow"] .ep__state {
+  color: var(--he-ember);
+}
+
+:root[data-theme="hollow"] .ep__desc {
+  -webkit-line-clamp: 2;
+  font-family: var(--he-tablet-font, var(--font-body));
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: rgba(226, 214, 196, 0.78);
+}
+
+/* Watched: faded, with a wax seal on its picture. */
+:root[data-theme="hollow"] .ep.is-watched .ep__still img.is-loaded {
+  opacity: 0.5;
+  filter: saturate(0.6);
+}
+
+:root[data-theme="hollow"] .ep.is-watched :is(.ep__name, .ep__num) {
+  color: rgba(243, 234, 216, 0.45);
+}
+
+:root[data-theme="hollow"] .ep .watched-badge {
+  top: auto;
+  bottom: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath d='M15 2l3 2.4 3.8-.6 1.4 3.6 3.6 1.4-.6 3.8L28.6 15l-2.4 3 .6 3.8-3.6 1.4-1.4 3.6-3.8-.6L15 28.6l-3-2.4-3.8.6-1.4-3.6-3.6-1.4.6-3.8L1.4 15l2.4-3-.6-3.8 3.6-1.4 1.4-3.6 3.8.6z' fill='%23c9530f' stroke='%237a2e06' stroke-width='.8'/%3E%3Ccircle cx='15' cy='15' r='8.4' fill='none' stroke='%23ffb35c' stroke-width='.9' opacity='.7'/%3E%3Cpath d='M10.8 15.4l2.9 2.8 5.6-6' stroke='%23ffe2b8' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+}
+
+:root[data-theme="hollow"] .ep .watched-badge .icon {
+  display: none;
+}
+
+/* The one to watch next: on a stone tablet, a candle lit beside "Up next", its number and picture
+   glowing. */
+:root[data-theme="hollow"] .ep.is-next,
+:root[data-theme="hollow"] .ep.is-next:hover {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg stroke='rgba(243,234,216,.4)' stroke-width='.7' fill='none'%3E%3Cpath d='M40 0L4 2M40 0L12 18M40 0L24 30M40 0L38 38'/%3E%3Cpath d='M31 .5Q32 6 34 7.5Q37 8 39.5 9'/%3E%3Cpath d='M22 1Q24 10 28 14Q33 17 39 19'/%3E%3Cpath d='M13 1.5Q16 14 22 22Q30 27 38.6 29'/%3E%3C/g%3E%3C/svg%3E") right top / 34px 34px no-repeat,
+    linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%);
+  clip-path: polygon(0 6px, 8px 0, 38% 0, 40% 3px, 43% 0, calc(100% - 4px) 0, 100% 5px, 100% calc(100% - 9px), calc(100% - 7px) 100%, 64% 100%, 61% calc(100% - 3px), 58% 100%, 6px 100%, 0 calc(100% - 5px));
+  box-shadow:
+    inset 0 0 0 1px #4a3d5e,
+    inset 0 -10px 24px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme="hollow"] .ep.is-next .ep__num {
+  color: var(--he-pumpkin);
+  text-shadow: 0 0 14px rgba(255, 117, 24, 0.55);
+}
+
+:root[data-theme="hollow"] .ep.is-next .ep__still {
+  box-shadow:
+    0 0 0 2px rgba(255, 140, 40, 0.6),
+    0 0 20px rgba(255, 117, 24, 0.35);
+}
+
+:root[data-theme="hollow"] .ep__upnext {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-bottom: 4px;
+  color: var(--he-ember);
+  font: 800 11px var(--font-label);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="hollow"] .ep__upnext::before {
+  content: "";
+  width: 14px;
+  height: 26px;
+  margin-bottom: -2px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-8 -28 16 30'%3E%3Cdefs%3E%3CradialGradient id='w'%3E%3Cstop offset='0' stop-color='%23ffb347' stop-opacity='.6'/%3E%3Cstop offset='1' stop-color='%23ff7518' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='0' cy='-18' r='9' fill='url(%23w)'/%3E%3Cpath d='M0 -25C2.4 -21 3.4 -18 0 -15C-3.4 -18 -2.4 -21 0 -25Z' fill='%23ffd36b'/%3E%3Crect x='-3.5' y='-12' width='7' height='12' rx='1' fill='%23efe3c6'/%3E%3Cpath d='M0 -12v-3' stroke='%232a1b2a'/%3E%3Cellipse cx='0' cy='0' rx='6' ry='1.6' fill='%23e6d9b9'/%3E%3C/svg%3E") center bottom / contain no-repeat;
 }
 
 :root[data-theme="hollow"] .extra:hover {

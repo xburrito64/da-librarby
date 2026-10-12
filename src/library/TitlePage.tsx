@@ -10,6 +10,7 @@ import {
   fileName,
   upNext,
   canResume,
+  fileInfo,
   watch,
   reveal,
   KIND_LABELS,
@@ -137,7 +138,6 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
         })
       : null;
   const description = checking && checkText ? checkText : meta?.description;
-  const seasonWatched = episodes.length > 0 && episodes.every((f) => f.progress?.watched);
   // Right-click menu of an episode or movie.
   const fileMenu = (e: React.MouseEvent, file: FileRow) => {
     const items: MenuEntry[] = [{ label: "Play", icon: <PlayIcon />, onSelect: () => playFile(file) }];
@@ -331,9 +331,14 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
               </div>
             ) : (
               season && (
-                <>
-                  <div className="tp__seasonbar">
-                    {anime && (
+                <SeasonEpisodes
+                  season={season}
+                  episodes={episodes}
+                  next={up?.file ?? null}
+                  onPlay={playFile}
+                  onMenu={fileMenu}
+                  note={
+                    anime && (
                       <p className="tp__seasonnote">
                         {season.meta?.providerIds.length
                           ? `AniList: ${season.meta.name ?? ""}${season.meta.providerIds.length > 1 ? ` + ${season.meta.providerIds.length - 1} more part${season.meta.providerIds.length > 2 ? "s" : ""}` : ""}`
@@ -345,27 +350,9 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
                           Change
                         </button>
                       </p>
-                    )}
-                    <button
-                      className="link tp__markall"
-                      onClick={() => watch.set(episodes.map((f) => f.id), !seasonWatched)}
-                      data-sfx={seasonWatched ? undefined : "save"}
-                    >
-                      {seasonWatched ? "Mark season as unwatched" : "Mark season as watched"}
-                    </button>
-                  </div>
-                  <div className="eps">
-                    {episodes.map((f) => (
-                      <Episode
-                        key={f.id}
-                        file={f}
-                        code={episodeCode(f, season.number)}
-                        onPlay={() => playFile(f)}
-                        onMenu={(e) => fileMenu(e, f)}
-                      />
-                    ))}
-                  </div>
-                </>
+                    )
+                  }
+                />
               )
             )}
           </section>
@@ -441,17 +428,145 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
   );
 }
 
-function Episode({ file, code, onPlay, onMenu }: { file: FileRow; code: string; onPlay: () => void; onMenu: (e: React.MouseEvent) => void }) {
+/** How long each of these files runs (seconds), as far as known: read from the files themselves
+ *  (once, then kept), or from playing them. */
+function useLengths(files: FileRow[]) {
+  const [lengths, setLengths] = useState<Record<string, number>>({});
+  const key = files.map((f) => f.path).join("\n");
+  useEffect(() => {
+    let alive = true;
+    const paths = new Set(key ? key.split("\n") : []);
+    const off = fileInfo.onReady((path, info) => {
+      if (alive && paths.has(path) && info?.duration) setLengths((l) => ({ ...l, [path]: info.duration }));
+    });
+    const found: Record<string, number> = {};
+    Promise.all(
+      [...paths].map((path) =>
+        fileInfo
+          .get(path)
+          .then((info) => {
+            if (info?.duration) found[path] = info.duration;
+          })
+          .catch(() => {}),
+      ),
+    ).then(() => alive && setLengths((l) => ({ ...l, ...found })));
+    return () => {
+      alive = false;
+      off.then((f) => f());
+    };
+  }, [key]);
+  return (f: FileRow) => lengths[f.path] || f.progress?.duration || 0;
+}
+
+/** A season's episodes, with where you are in it at the top: how many episodes, how many watched,
+ *  about how long is left, playing on from where you are, and marking it all watched. (Themes
+ *  show as much of the top as suits them; `note`: what it was matched to, for anime.) */
+function SeasonEpisodes({
+  season,
+  episodes,
+  next,
+  note,
+  onPlay,
+  onMenu,
+}: {
+  season: SeasonRow;
+  episodes: FileRow[];
+  next: FileRow | null;
+  note: React.ReactNode;
+  onPlay: (file: FileRow) => void;
+  onMenu: (e: React.MouseEvent, file: FileRow) => void;
+}) {
+  const length = useLengths(episodes);
+  const allWatched = episodes.length > 0 && episodes.every((f) => f.progress?.watched);
+  const watched = episodes.filter((f) => f.progress?.watched).length;
+  // What's left: the episodes not watched yet (less what's been seen of one stopped part-way),
+  // those whose length isn't known yet counted as long as the others.
+  const known = episodes.map(length).filter((s) => s > 60);
+  const typical = known.length > 0 ? known.reduce((a, b) => a + b, 0) / known.length : 0;
+  const left = episodes
+    .filter((f) => !f.progress?.watched || canResume(f.progress))
+    .reduce((sum, f) => sum + Math.max(0, (length(f) || typical) - (canResume(f.progress) ? f.progress!.position : 0)), 0);
+  // Playing on in this season: where you are, if it's here, else the first one not watched yet.
+  const here = next && episodes.includes(next) ? next : (episodes.find((f) => canResume(f.progress)) ?? episodes.find((f) => !f.progress?.watched));
+  const facts = [
+    `${episodes.length} episode${episodes.length === 1 ? "" : "s"}`,
+    allWatched ? "all watched" : watched > 0 ? `${watched} watched` : null,
+    !allWatched && left > 60 ? `about ${formatDuration(left)} left` : null,
+  ].filter(Boolean);
+  return (
+    <>
+      <div className="tp__seasonbar">
+        <div className="tp__seasonsum">
+          <span className="tp__seasonname">{season.label}</span>
+          <span className="tp__seasonfacts">{facts.join(" · ")}</span>
+          <span className="progress tp__seasonprogress">
+            <span style={{ width: `${(watched / Math.max(1, episodes.length)) * 100}%` }} />
+          </span>
+        </div>
+        {note}
+        <span className="tp__seasonactions">
+          {here && (
+            <button className="btn btn--primary tp__seasonplay" onClick={() => onPlay(here)}>
+              <PlayIcon />
+              {canResume(here.progress) ? "Resume" : "Play"} {episodeCode(here, season.number)}
+            </button>
+          )}
+          <button className="link tp__markall" onClick={() => watch.set(episodes.map((f) => f.id), !allWatched)} data-sfx={allWatched ? undefined : "save"}>
+            {allWatched ? "Mark season as unwatched" : "Mark season as watched"}
+          </button>
+        </span>
+      </div>
+      <div className="eps">
+        {episodes.map((f) => (
+          <Episode
+            key={f.id}
+            file={f}
+            code={episodeCode(f, season.number)}
+            next={f === next}
+            seconds={length(f)}
+            onPlay={() => onPlay(f)}
+            onMenu={(e) => onMenu(e, f)}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function Episode({
+  file,
+  code,
+  next,
+  seconds,
+  onPlay,
+  onMenu,
+}: {
+  file: FileRow;
+  code: string;
+  /** The one to watch next. */
+  next: boolean;
+  /** How long it runs (0: not known). */
+  seconds: number;
+  onPlay: () => void;
+  onMenu: (e: React.MouseEvent) => void;
+}) {
   const watched = !!file.progress?.watched;
+  const p = file.progress;
+  const left = canResume(p) && p!.duration > 0 ? Math.max(1, Math.round((p!.duration - p!.position) / 60)) : null;
+  // How far you are with it, for themes that show it.
+  const state = left ? `${left} min left` : watched ? "watched" : null;
   return (
     <div
-      className={`ep ${watched ? "is-watched" : ""}`}
+      className={`ep ${watched ? "is-watched" : ""} ${next ? "is-next" : ""}`}
       role="button"
       tabIndex={0}
       onClick={onPlay}
       onKeyDown={(e) => e.key === "Enter" && onPlay()}
       onContextMenu={onMenu}
     >
+      <span className="ep__num" aria-hidden="true">
+        {file.episode != null ? (file.episodeEnd != null ? `${file.episode}–${file.episodeEnd}` : file.episode) : ""}
+      </span>
       <span className="ep__still">
         {file.meta?.thumb && (
           <img src={img(file.meta.thumb)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add("is-loaded")} />
@@ -462,10 +577,18 @@ function Episode({ file, code, onPlay, onMenu }: { file: FileRow; code: string; 
         <WatchMarks file={file} />
       </span>
       <span className="ep__main">
+        {next && <span className="ep__upnext">Up next</span>}
         <span className="ep__top">
           {code && <span className="ep__code">{code}</span>}
           <span className="ep__name">{episodeName(file)}</span>
           {file.isNew && <span className="ep__new">New</span>}
+        </span>
+        {/* Its code, length and how far you are, for themes that show them (the code is shown on its
+            own otherwise). */}
+        <span className="ep__meta">
+          {code && <span>{code}</span>}
+          {seconds > 60 && <span>{Math.round(seconds / 60)} min</span>}
+          {state && <span className="ep__state">{state}</span>}
         </span>
         {file.meta?.description && <span className="ep__desc">{file.meta.description}</span>}
       </span>
