@@ -493,8 +493,8 @@
 }
 
 :root[data-theme="hollow"] .icon-btn:hover {
-  background: rgba(255, 117, 24, 0.14);
-  color: var(--he-pumpkin);
+  background: rgba(107, 63, 160, 0.32);
+  color: #efe6ff;
 }
 
 /* The branch, the bats asleep under it and the spider (topbar.ts). */
@@ -641,39 +641,48 @@
 
 /* ---------- Buttons, chips ---------- */
 
+/* Buttons: misty purple, brightening when pointed at; the main one (Play, Save...) glowing like a
+   lit pumpkin. */
 :root[data-theme="hollow"] .btn {
-  background: rgba(20, 13, 27, 0.72);
-  box-shadow: inset 0 0 0 1.5px rgba(243, 234, 216, 0.24);
+  background: rgba(107, 63, 160, 0.26);
+  color: #efe6ff;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(201, 182, 238, 0.42),
+    0 0 18px rgba(107, 63, 160, 0.22);
+  backdrop-filter: blur(6px);
   font-weight: 700;
 }
 
 :root[data-theme="hollow"] .btn:hover {
-  background: rgba(20, 13, 27, 0.85);
+  background: rgba(107, 63, 160, 0.4);
   box-shadow:
-    inset 0 0 0 1.5px var(--he-slime),
-    0 0 18px rgba(156, 255, 58, 0.25);
-  color: #eaffda;
+    inset 0 0 0 1.5px rgba(214, 198, 246, 0.7),
+    0 0 22px rgba(107, 63, 160, 0.4);
+  color: #fff;
 }
 
 :root[data-theme="hollow"] .btn--primary,
 :root[data-theme="hollow"] .btn--primary:hover {
-  background: linear-gradient(180deg, #ff8a2e, var(--he-pumpkin-dark));
-  color: var(--on-accent);
+  background: radial-gradient(120% 140% at 50% 0%, #ffad5c 0%, #ff8a2e 35%, #e25d0c 100%);
+  color: #2a1004;
   box-shadow:
-    0 6px 24px rgba(255, 117, 24, 0.35),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+    inset 0 0 0 1px rgba(255, 190, 110, 0.5),
+    0 0 22px rgba(255, 117, 24, 0.55),
+    0 0 60px rgba(255, 117, 24, 0.22);
 }
 
 :root[data-theme="hollow"] .btn--primary:hover {
   filter: none;
   transform: translateY(-2px) rotate(-1deg);
   box-shadow:
-    0 8px 34px rgba(255, 117, 24, 0.6),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+    inset 0 0 0 1px rgba(255, 210, 140, 0.7),
+    0 0 30px rgba(255, 117, 24, 0.75),
+    0 0 70px rgba(255, 117, 24, 0.3);
 }
 
 :root[data-theme="hollow"] .btn--ghost {
   background: transparent;
+  box-shadow: inset 0 0 0 1.5px rgba(201, 182, 238, 0.32);
 }
 
 :root[data-theme="hollow"] .chip {
@@ -727,7 +736,7 @@
 
 /* The description on a weathered stone tablet: chipped edges, moss along its foot, a little cobweb in
    its corner. Its font is a setting of its own (fonts.ts). A show's About is on tablets too (below). */
-:root[data-theme="hollow"] :is(.hero__desc-box, .mabout__group) {
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group) {
   position: relative;
   padding: 15px 20px 17px;
   border: 0;
@@ -740,15 +749,15 @@
     inset 0 -10px 24px rgba(0, 0, 0, 0.35);
 }
 
-:root[data-theme="hollow"] :is(.hero__desc-box, .mabout__group)::before,
-:root[data-theme="hollow"] :is(.hero__desc-box, .mabout__group)::after {
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group)::before,
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group)::after {
   content: "";
   position: absolute;
   pointer-events: none;
   background: center / contain no-repeat;
 }
 
-:root[data-theme="hollow"] :is(.hero__desc-box, .mabout__group)::before {
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group)::before {
   right: 0;
   top: 0;
   width: 40px;
@@ -756,7 +765,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg stroke='rgba(243,234,216,.45)' stroke-width='.7' fill='none'%3E%3Cpath d='M40 0L4 2M40 0L12 18M40 0L24 30M40 0L38 38'/%3E%3Cpath d='M31 .5Q32 6 34 7.5Q37 8 39.5 9'/%3E%3Cpath d='M22 1Q24 10 28 14Q33 17 39 19'/%3E%3Cpath d='M13 1.5Q16 14 22 22Q30 27 38.6 29'/%3E%3C/g%3E%3C/svg%3E");
 }
 
-:root[data-theme="hollow"] :is(.hero__desc-box, .mabout__group)::after {
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group)::after {
   left: 12px;
   bottom: -2px;
   width: 64px;
@@ -809,40 +818,6 @@
 :root[data-theme="hollow"] .mabout__rows {
   font-family: var(--he-tablet-font, var(--font-body));
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
-}
-
-/* Its buttons: Play glowing like a lit pumpkin, More info misty purple. */
-:root[data-theme="hollow"] .hero__actions .btn--primary {
-  background: radial-gradient(120% 140% at 50% 0%, #ffad5c 0%, #ff8a2e 35%, #e25d0c 100%);
-  color: #2a1004;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 190, 110, 0.5),
-    0 0 22px rgba(255, 117, 24, 0.55),
-    0 0 60px rgba(255, 117, 24, 0.22);
-}
-
-:root[data-theme="hollow"] .hero__actions .btn--primary:hover {
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 210, 140, 0.7),
-    0 0 30px rgba(255, 117, 24, 0.75),
-    0 0 70px rgba(255, 117, 24, 0.3);
-}
-
-:root[data-theme="hollow"] .hero__actions .btn:not(.btn--primary) {
-  background: rgba(107, 63, 160, 0.26);
-  color: #efe6ff;
-  box-shadow:
-    inset 0 0 0 1.5px rgba(201, 182, 238, 0.42),
-    0 0 18px rgba(107, 63, 160, 0.25);
-  backdrop-filter: blur(6px);
-}
-
-:root[data-theme="hollow"] .hero__actions .btn:not(.btn--primary):hover {
-  background: rgba(107, 63, 160, 0.4);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(214, 198, 246, 0.7),
-    0 0 22px rgba(107, 63, 160, 0.4);
-  color: #fff;
 }
 
 :root[data-theme="hollow"] .hero__dots {
@@ -1823,8 +1798,7 @@
 }
 
 :root[data-theme="hollow"] .ccard__show {
-  color: var(--he-slime);
-  opacity: 0.85;
+  color: #c9b6ee;
 }
 
 /* A closing line under the rows. */
@@ -1890,10 +1864,6 @@
 
 :root[data-theme="hollow"] .tp__desc-box {
   margin-top: 18px;
-  padding: 14px 18px;
-  border-radius: 16px;
-  background: rgba(14, 9, 20, 0.84);
-  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 :root[data-theme="hollow"] .tp__desc-box .tp__desc {
@@ -1901,13 +1871,15 @@
 }
 
 :root[data-theme="hollow"] .tp__desc {
-  color: #e8dccb;
+  color: #e2d6c4;
+  font-family: var(--he-tablet-font, var(--font-body));
   font-size: 15.5px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
 
 /* Season tabs: the spooky font, a glowing drip under the one you're on. */
 :root[data-theme="hollow"] .seasons {
-  gap: 6px 24px;
+  gap: 2px 20px;
   margin-bottom: 22px;
   padding-bottom: 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
@@ -1918,7 +1890,7 @@
   padding: 8px 4px 12px;
   background: none;
   color: var(--muted);
-  font: 400 23px var(--font-display);
+  font: 400 19px var(--font-display);
   letter-spacing: 0.03em;
 }
 
