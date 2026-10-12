@@ -639,10 +639,16 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
   const total = Math.max(1, title.episodes + title.movies);
   const finished = title.watched >= total;
   const badge = title.isNew ? "New" : title.newCount > 0 ? `${title.newCount} new` : null;
+  // Where you are with it, for themes that show it on the cover: just added, new episodes,
+  // partway through (and how far, in tenths), or finished.
+  const done = title.isMovie ? title.partway : title.watched > 0 && !finished ? title.watched / total : null;
+  const state = title.isNew ? "added" : badge ? "new" : done != null ? "partway" : finished ? "finished" : undefined;
   return (
     <button
       className={`card ${title.online ? "" : "card--offline"}`}
       data-id={title.id}
+      data-state={state}
+      data-progress={state === "partway" && done != null ? Math.min(9, Math.max(1, Math.round(done * 10))) : undefined}
       style={{ "--c": title.color ?? undefined } as React.CSSProperties}
       onClick={(e) => onOpen(title.id, e.currentTarget.querySelector<HTMLElement>(".card__art"))}
       onContextMenu={(e) =>

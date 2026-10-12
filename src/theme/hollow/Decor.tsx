@@ -1,11 +1,12 @@
 // Behind and around the library: embers floating up, autumn leaves drifting down, the top bar's
-// Jack, bats and spider, the scenes, and a trick's lights going out.
+// Jack, bats and spider, the scenes, the covers' little friends, and a trick's lights going out.
 import { useEffect, useRef } from "react";
 import { GHOST } from "./art";
 import { startLogo } from "./logo";
 import { startTitleFit } from "./titlefit";
 import { startTopBar } from "./topbar";
 import { startScenes } from "./scenes";
+import { startFriends } from "./friends";
 import { followScroll, startLeaves } from "./leaves";
 
 /** One ember per this many square pixels of window. */
@@ -48,6 +49,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
   useEffect(() => (active ? startTitleFit() : undefined), [active]);
   useEffect(() => (leaves && leavesCanvas.current && leavesTop.current ? startLeaves(leavesCanvas.current, leavesTop.current) : undefined), [leaves]);
   useEffect(() => (active ? startScenes({ surprises }) : undefined), [active, surprises]);
+  useEffect(() => (active ? startFriends({ surprises }) : undefined), [active, surprises]);
 
   useEffect(() => {
     const root = document.documentElement;

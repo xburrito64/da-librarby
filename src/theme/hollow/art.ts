@@ -80,31 +80,8 @@ export const SPIDER = svg(
 
 export const GHOST = svg(42, 46, ghostShape());
 
-// ----- Each cover's little friend (see hollow.css, "Covers")
-
-const TOPPER_PUMPKIN = pumpkinPicture(40, 36, { size: 30, face: "cute", stem: "curly", extras: ["leaf"], squat: 0.82 });
-const CANDY = (x: number, y: number, tilt: number, s: number) =>
-  `<g transform="translate(${x} ${y}) rotate(${tilt}) scale(${s})">` +
-  `<path d="M0 -10L8 10H-8Z" fill="#fff4dc"/><path d="M-4 0H4L6 5H-6Z" fill="#ff8a2e"/><path d="M-6.5 6H6.5L8 10H-8Z" fill="#ffd23a"/></g>`;
-const TOPPER_CANDY = svg(46, 26, CANDY(13, 14, -12, 1) + CANDY(32, 15, 16, 0.85));
-const TOPPER_GHOST = svg(42, 46, ghostShape());
-const TOPPER_SPIDER = svg(
-  20,
-  70,
-  `<path d="M10 0V50" stroke="rgba(243,234,216,0.6)" stroke-width="0.8"/>` +
-    `<g stroke="${C.coal}" stroke-width="1.6" fill="none" stroke-linecap="round"><path d="M7 55L1 51M7 57L0 58M8 60L3 65M13 55L19 51M13 57L20 58M12 60L17 65"/></g>` +
-    `<ellipse cx="10" cy="58" rx="4.2" ry="5" fill="${C.coal}" stroke="#4a3760" stroke-width="0.8"/><circle cx="10" cy="52.5" r="2.6" fill="${C.coal}"/>` +
-    `<circle cx="9" cy="52.4" r="0.7" fill="#ff5a3c"/><circle cx="11" cy="52.4" r="0.7" fill="#ff5a3c"/>`,
-);
-const WEB = svg(
-  64,
-  64,
-  `<g stroke="rgba(243,234,216,0.55)" stroke-width="0.9" fill="none">` +
-    `<path d="M0 0L62 4M0 0L52 30M0 0L30 52M0 0L4 62"/>` +
-    `<path d="M14 1Q11 7 12 12Q7 11 1 14"/><path d="M28 2Q22 13 24 23Q13 22 2 28"/><path d="M42 3Q33 19 36 34Q19 33 3 42"/><path d="M55 4Q44 26 46 44Q26 44 4 55"/></g>`,
-);
-const WEB_RIGHT = WEB.replace("<defs></defs>", `<defs></defs><g transform="translate(64 0) scale(-1 1)">`).replace("</svg>", "</g></svg>");
-const TOPPER_BAT = svg(26, 34, `<g transform="scale(1.3)">${HANGING_BAT.replace(/^<svg[^>]*><defs><\/defs>/, "").replace("</svg>", "")}</g>`);
+/** A little pumpkin (a few sit on the theme's preview in Settings, see hollow.css). */
+const LITTLE_PUMPKIN = pumpkinPicture(40, 36, { size: 30, face: "cute", stem: "curly", extras: ["leaf"], squat: 0.82 });
 
 /** Switch knobs: a pumpkin, lit when on. */
 const KNOB_ON = pumpkinPicture(40, 40, { size: 32, face: "classic", stem: "short", squat: 0.86 }, 4);
@@ -164,13 +141,7 @@ export function drawArt() {
   set("--he-img-jack", svgUrl(jack(true)));
   set("--he-img-jack-out", svgUrl(jack(false)));
   set("--he-img-ghost", svgUrl(GHOST));
-  set("--he-img-pumpkin", svgUrl(TOPPER_PUMPKIN));
-  set("--he-img-candy", svgUrl(TOPPER_CANDY));
-  set("--he-img-ghost-peek", svgUrl(TOPPER_GHOST));
-  set("--he-img-spider-thread", svgUrl(TOPPER_SPIDER));
-  set("--he-img-web", svgUrl(WEB));
-  set("--he-img-web-right", svgUrl(WEB_RIGHT));
-  set("--he-img-bat", svgUrl(TOPPER_BAT));
+  set("--he-img-pumpkin", svgUrl(LITTLE_PUMPKIN));
   set("--he-img-knob-on", svgUrl(KNOB_ON));
   set("--he-img-knob-off", svgUrl(KNOB_OFF));
   [1, 2, 3].forEach((n) => set(`--he-img-slime-band-${n}`, svgUrl(slimeBand(n * 2.3))));

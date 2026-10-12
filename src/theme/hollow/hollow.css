@@ -1219,11 +1219,26 @@
 
 :root[data-theme="hollow"] .row__track {
   /* Room above the covers for their little friends, and their glow when pointed at. */
-  padding-top: 44px;
+  padding-top: 66px;
 }
 
 :root[data-theme="hollow"] .row__head {
-  margin-bottom: -10px;
+  margin-bottom: -32px;
+}
+
+/* (The arrows stay halfway down the covers.) */
+:root[data-theme="hollow"] .row__arrow {
+  top: calc(66px + var(--row-card-w) * 0.75 + var(--card-frame));
+}
+
+:root[data-theme="hollow"] .row--wide .row__arrow {
+  top: calc(66px + var(--wide-card-w) * 0.28 + var(--card-frame));
+}
+
+/* Room above each line of covers on the full pages too, so the friends stay clear of the names. */
+:root[data-theme="hollow"] .grid {
+  row-gap: 66px;
+  padding-top: 32px;
 }
 
 :root[data-theme="hollow"] .row__arrow {
@@ -1233,7 +1248,7 @@
 
 :root[data-theme="hollow"] .card {
   position: relative;
-  overflow-clip-margin: 60px;
+  overflow-clip-margin: 72px;
 }
 
 :root[data-theme="hollow"] .card__art {
@@ -1256,114 +1271,81 @@
   background: radial-gradient(circle, rgba(255, 117, 24, 0.25), rgba(11, 7, 16, 0.55) 70%);
 }
 
-/* Each title's own little friend on its cover, picked by its id's last digit. */
-:root[data-theme="hollow"] :is(.card, .tp__cover)::after {
+/* Each cover's little friend (friends.ts: who sits where, their pictures, where they go): resting,
+   and what it does when the cover is pointed at, the two pictures crossing over as it moves. */
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend]::before,
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend]::after {
   content: "";
   position: absolute;
   z-index: 2;
+  left: var(--hf-left, auto);
+  right: var(--hf-right, auto);
+  top: var(--hf-top);
+  width: var(--hf-w);
+  height: var(--hf-h);
   pointer-events: none;
-  background: var(--he-topper, none) center / contain no-repeat;
-  transition: transform 0.35s var(--spring);
-}
-
-:root[data-theme="hollow"] :is(.card, .tp__cover):is([data-id$="0"], [data-id$="9"])::after {
-  --he-topper: var(--he-img-pumpkin);
-  right: 10px;
-  top: -24px;
-  width: 38px;
-  height: 32px;
-}
-
-:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="9"]::after {
-  right: auto;
-  left: 12px;
-  width: 30px;
-  height: 26px;
-  top: -20px;
-}
-
-:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="2"]::after {
-  --he-topper: var(--he-img-candy);
-  left: 12px;
-  top: -18px;
-  width: 46px;
-  height: 26px;
-}
-
-:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="4"]::after {
-  --he-topper: var(--he-img-ghost-peek);
-  right: 14px;
-  top: -26px;
-  width: 30px;
-  height: 33px;
-}
-
-:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="5"]::after {
-  --he-topper: var(--he-img-spider-thread);
-  left: 28%;
-  top: 0;
-  width: 18px;
-  height: 64px;
-  /* The spider sits at the bottom of its box; a shorter box pulls it up its thread. */
-  background-size: 18px 64px;
-  background-position: center bottom;
+  background: var(--hf-rest) center / 100% 100% no-repeat;
   transition:
-    transform 0.35s var(--spring),
-    height 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+    opacity 0.28s ease,
+    transform 0.4s var(--spring);
 }
 
-:root[data-theme="hollow"] :is(.card, .tp__cover):is([data-id$="1"], [data-id$="6"])::after {
-  --he-topper: var(--he-img-web);
-  left: 0;
-  top: 0;
-  width: 62px;
-  height: 62px;
-  border-radius: var(--radius-card) 0 0 0;
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend]::before {
+  animation: he-friend-in 0.5s ease both;
 }
 
-:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="6"]::after {
-  --he-topper: var(--he-img-web-right);
-  left: auto;
-  right: 0;
-  border-radius: 0 var(--radius-card) 0 0;
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend]::after {
+  background-image: var(--hf-up);
+  opacity: 0;
+  transform: translateY(var(--hf-rise));
 }
 
-:root[data-theme="hollow"] :is(.card, .tp__cover)[data-id$="7"]::after {
-  --he-topper: var(--he-img-bat);
-  right: 22%;
-  top: 0;
-  width: 20px;
-  height: 28px;
-  transform-origin: 50% 0;
+/* (They move along with the cover, which rises a little when pointed at.) */
+:root[data-theme="hollow"] .card[data-he-friend]:is(:hover, :focus-visible)::before {
+  opacity: 0;
+  transform: translateY(calc(-5px - var(--hf-rise)));
 }
 
-/* They move along with the cover, and do a little something when it's pointed at. */
-:root[data-theme="hollow"] .card:is(:hover, :focus-visible)::after {
+:root[data-theme="hollow"] .card[data-he-friend]:is(:hover, :focus-visible)::after {
+  opacity: 1;
   transform: translateY(-5px);
 }
 
-:root[data-theme="hollow"] .card:is([data-id$="0"], [data-id$="9"], [data-id$="2"]):is(:hover, :focus-visible)::after {
-  animation: he-hop 0.5s ease;
+/* The ghost holding up the badge: the badge sits right under the edge, in its hands. */
+:root[data-theme="hollow"] .card[data-he-friend="new"] .card__badge {
+  top: 5px;
 }
 
-:root[data-theme="hollow"] .card[data-id$="4"]:is(:hover, :focus-visible)::after {
-  transform: translateY(-14px);
-}
-
-:root[data-theme="hollow"] .card[data-id$="5"]:is(:hover, :focus-visible)::after {
-  height: 26px;
-}
-
-:root[data-theme="hollow"] .card[data-id$="7"]:is(:hover, :focus-visible)::after {
-  animation: he-sway 0.6s ease-in-out 2;
-}
-
-@keyframes he-hop {
-  40% {
-    transform: translateY(-12px) rotate(-6deg);
+@keyframes he-friend-in {
+  from {
+    opacity: 0;
   }
-  100% {
-    transform: translateY(-5px);
+}
+
+/* The spider moving house, walking along the covers' top edges. */
+.he-walker {
+  position: fixed;
+  z-index: 30;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  animation: he-friend-in 0.4s ease both;
+}
+
+.he-walker .he-step-a {
+  animation: he-step 0.32s ease-in-out infinite alternate;
+}
+
+.he-walker .he-step-b {
+  animation: he-step 0.32s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes he-step {
+  from {
+    transform: rotate(-7deg) translateY(-0.6px);
+  }
+  to {
+    transform: rotate(7deg) translateY(0.6px);
   }
 }
 
