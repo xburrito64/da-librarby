@@ -9,7 +9,8 @@ change and share, no credit required. Where they came from, gratefully:
 
 ## Picking something (`select`)
 
-- `select.ogg`: two plucked violin notes, going up. VSCO 2 Community Edition (CC0).
+- `select-1.ogg`: a wooden slit drum, two taps (tok-tok). VSCO 2 Community Edition (CC0).
+- `select-2.ogg`: a cartoon “plop”. Freesound #447910, “Plop!” by Breviceps (CC0).
 
 ## Going back (`back`)
 
