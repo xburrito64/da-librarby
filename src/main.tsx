@@ -5,13 +5,14 @@ import App from "./App";
 import "./index.css";
 import "./theme/themes";
 import { initTheme } from "./theme/theme";
-import { installInterfaceSounds } from "./theme/sound";
+import { installInterfaceSounds, installSoundFocus } from "./theme/sound";
 import { installMusic } from "./theme/music";
 import { initScale } from "./ui/scale";
 
 initTheme();
 initScale();
 installInterfaceSounds();
+installSoundFocus();
 installMusic();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(

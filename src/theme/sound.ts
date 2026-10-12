@@ -1,6 +1,7 @@
 // Interface sounds of the current theme (see `extras.sounds` in themes.ts): made up on the spot,
 // or recordings (several for one sound take turns at random). Themes without sounds are silent.
-// Sounds never play over a video. Sound files the owner added for the theme (see ownFiles.ts) play
+// Sounds never play over a video, nor while the app is in the background (another window in
+// front, or minimized): what's still playing then stops at once. Sound files the owner added for the theme (see ownFiles.ts) play
 // instead of the theme's own.
 import { findTheme } from "./themes";
 import { currentTheme } from "./theme";
@@ -102,10 +103,28 @@ export function setSoundsMuted(on: boolean) {
   muted = on;
 }
 
+/** Whether the app is the window in front (sounds are only heard then). */
+export function appInFront() {
+  return document.visibilityState === "visible" && document.hasFocus();
+}
+
+/** Call once at startup: going to the background cuts off what's playing; coming back, sounds
+ *  play again. */
+export function installSoundFocus() {
+  const update = () => {
+    if (!ctx) return;
+    if (appInFront()) ctx.resume().catch(() => {});
+    else ctx.suspend().catch(() => {});
+  };
+  window.addEventListener("focus", update);
+  window.addEventListener("blur", update);
+  document.addEventListener("visibilitychange", update);
+}
+
 /** Plays one of the theme's sounds. Resolves with how long it lasts (seconds) when that's known (a
  *  recording), else null (made-up sounds, or none played). */
 export function playSound(name: SoundName): Promise<number | null> {
-  if (muted) return Promise.resolve(null);
+  if (muted || !appInFront()) return Promise.resolve(null);
   const theme = findTheme(currentTheme());
   const sound = theme?.extras?.sounds?.[name];
   const file = own.get(name);

@@ -6,6 +6,7 @@
 // it to screw it back in), and rarely the dog sits on the sign chewing the cord's knot, and the
 // lights go out.
 import { useEffect, useRef } from "react";
+import { appInFront } from "../sound";
 import { tone } from "../synth";
 import { signAngle } from "./sign";
 import { makeCap, noise } from "./snowcap";
@@ -177,7 +178,7 @@ export function Lights({ active, sounds, volume }: { active: boolean; sounds: bo
     };
 
     const chime = (notes: number[], length = 0.55, gap = 0) => {
-      if (!audio.current.sounds) return;
+      if (!audio.current.sounds || !appInFront()) return;
       try {
         ctx ??= new AudioContext();
         if (ctx.state === "suspended") ctx.resume().catch(() => {});
