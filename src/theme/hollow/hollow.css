@@ -1837,6 +1837,20 @@
   bottom: auto;
 }
 
+/* On show pages the graveyard lies just below the title, text and buttons (however tall they are), so
+   its stones stand clear of them; the seasons come after it. */
+:root[data-theme="hollow"] .tp__head {
+  anchor-name: --he-tp-head;
+}
+
+:root[data-theme="hollow"] .tp:not(.tp--movie) .tp__decor--bottom.he-scene {
+  top: max(calc(var(--tp-art-h) - var(--he-scene-h) + 60px), calc(anchor(--he-tp-head bottom) - var(--he-scene-h) + 70px));
+}
+
+:root[data-theme="hollow"] .tp:not(.tp--movie) .tp__head {
+  margin-bottom: 70px;
+}
+
 :root[data-theme="hollow"] .tp--movie {
   --tp-art-h: 100vh;
 }
