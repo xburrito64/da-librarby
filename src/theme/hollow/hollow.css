@@ -2025,7 +2025,7 @@
 }
 
 .heu-skel.is-poked .heu-skel__arm {
-  animation: heu-wave 2.2s ease-in-out;
+  animation: heu-wave var(--poke-s, 2.2s) ease-in-out;
 }
 
 @keyframes heu-wave {
@@ -2046,7 +2046,7 @@
 }
 
 .heu-skel.is-poked .heu-skel__jaw {
-  animation: heu-chatter 0.14s steps(2) 0.3s 9;
+  animation: heu-chatter 0.14s steps(2) 0.15s var(--poke-chatters, 9);
 }
 
 @keyframes heu-chatter {

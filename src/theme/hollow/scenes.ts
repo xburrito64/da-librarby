@@ -31,9 +31,10 @@ const CANDLE_OUT_MS = [7000, 12000];
 const between = ([a, b]: number[]) => a + Math.random() * (b - a);
 
 /** The things under the patch that wake up when clicked: for how long, and the sounds they make
- *  (and when, ms). The coffin's lid scrapes open, then whoever's inside moans. */
-const POKES: Record<string, { ms: number; sounds?: ["rattle" | "scrape" | "moan", number][] }> = {
-  skeleton: { ms: 2600, sounds: [["rattle", 0]] },
+ *  (and when, ms). The coffin's lid scrapes open, then whoever's inside moans. `fit`: it's awake
+ *  just as long as its (first) sound lasts instead. */
+const POKES: Record<string, { ms: number; sounds?: ["rattle" | "scrape" | "moan", number][]; fit?: boolean }> = {
+  skeleton: { ms: 2600, sounds: [["rattle", 0]], fit: true },
   coffin: { ms: 2800, sounds: [["scrape", 0], ["moan", 650]] },
   stash: { ms: 1800 },
   mole: { ms: 2600 },
@@ -213,10 +214,23 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       const poke = POKES[(thing as HTMLElement).dataset.poke ?? ""];
       if (!poke) continue;
       resting.add(thing);
-      thing.classList.add("is-poked");
+      const el = thing as HTMLElement;
+      const wake = (seconds: number) => {
+        // (Its waving and chattering are timed to fit, see hollow.css.)
+        el.style.setProperty("--poke-s", `${seconds.toFixed(2)}s`);
+        el.style.setProperty("--poke-chatters", String(Math.max(2, Math.round((seconds - 0.25) / 0.14))));
+        thing.classList.add("is-poked");
+        later(() => thing.classList.remove("is-poked"), seconds * 1000);
+        later(() => resting.delete(thing), seconds * 1000 + 300);
+      };
+      const [first, ...rest] = poke.sounds ?? [];
+      if (poke.fit && first) {
+        void playSound(first[0]).then((seconds) => wake(seconds ?? poke.ms / 1000));
+        for (const [sound, at] of rest) later(() => playSound(sound), at);
+        return;
+      }
+      wake(poke.ms / 1000);
       for (const [sound, at] of poke.sounds ?? []) later(() => playSound(sound), at);
-      later(() => thing.classList.remove("is-poked"), poke.ms);
-      later(() => resting.delete(thing), poke.ms + 300);
       return;
     }
   };
