@@ -1,5 +1,6 @@
 // Hollow's Eve's fonts, picked in Settings → Appearance: the titles' (and headings') font, and the
-// font on the stone tablet under the home screen's big title. Each comes in at about the same size
+// font on the stone tablets (under the home screen's big title, a show's About). IM Fell English
+// for both unless another is picked. Each comes in at about the same size
 // as the one it replaces (scaled by how tall its letters are drawn), so switching doesn't make
 // titles jump bigger or smaller.
 import "@fontsource/germania-one/400.css";
@@ -84,8 +85,8 @@ function face(name: string, f: Font) {
 
 /** Puts the chosen fonts in place (while Hollow's Eve is the theme). */
 export function applyFonts(title: string, tablet: string) {
-  const t = TITLE_FONTS[title] ?? TITLE_FONTS.creepster;
-  const p = TABLET_FONTS[tablet] ?? TABLET_FONTS.baloo;
+  const t = TITLE_FONTS[title] ?? TITLE_FONTS.fell;
+  const p = TABLET_FONTS[tablet] ?? TABLET_FONTS.fell;
   let style = document.getElementById("he-fonts");
   if (!style) {
     style = document.createElement("style");

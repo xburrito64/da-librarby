@@ -726,10 +726,12 @@
 }
 
 /* The description on a weathered stone tablet: chipped edges, moss along its foot, a little cobweb in
-   its corner. Its font is a setting of its own (fonts.ts). */
-:root[data-theme="hollow"] .hero__desc-box {
+   its corner. Its font is a setting of its own (fonts.ts). A show's About is on tablets too (below). */
+:root[data-theme="hollow"] :is(.hero__desc-box, .mabout__group) {
   position: relative;
   padding: 15px 20px 17px;
+  border: 0;
+  border-radius: 0;
   background: linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%);
   clip-path: polygon(0 6px, 8px 0, 38% 0, 40% 3px, 43% 0, calc(100% - 4px) 0, 100% 5px, 100% calc(100% - 9px), calc(100% - 7px) 100%, 64% 100%, 61% calc(100% - 3px), 58% 100%, 6px 100%, 0 calc(100% - 5px));
   box-shadow:
@@ -738,15 +740,15 @@
     inset 0 -10px 24px rgba(0, 0, 0, 0.35);
 }
 
-:root[data-theme="hollow"] .hero__desc-box::before,
-:root[data-theme="hollow"] .hero__desc-box::after {
+:root[data-theme="hollow"] :is(.hero__desc-box, .mabout__group)::before,
+:root[data-theme="hollow"] :is(.hero__desc-box, .mabout__group)::after {
   content: "";
   position: absolute;
   pointer-events: none;
   background: center / contain no-repeat;
 }
 
-:root[data-theme="hollow"] .hero__desc-box::before {
+:root[data-theme="hollow"] :is(.hero__desc-box, .mabout__group)::before {
   right: 0;
   top: 0;
   width: 40px;
@@ -754,7 +756,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg stroke='rgba(243,234,216,.45)' stroke-width='.7' fill='none'%3E%3Cpath d='M40 0L4 2M40 0L12 18M40 0L24 30M40 0L38 38'/%3E%3Cpath d='M31 .5Q32 6 34 7.5Q37 8 39.5 9'/%3E%3Cpath d='M22 1Q24 10 28 14Q33 17 39 19'/%3E%3Cpath d='M13 1.5Q16 14 22 22Q30 27 38.6 29'/%3E%3C/g%3E%3C/svg%3E");
 }
 
-:root[data-theme="hollow"] .hero__desc-box::after {
+:root[data-theme="hollow"] :is(.hero__desc-box, .mabout__group)::after {
   left: 12px;
   bottom: -2px;
   width: 64px;
@@ -772,6 +774,41 @@
   font-family: var(--he-tablet-font, var(--font-body));
   font-size: 16.5px;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* A show's About, on tablets: roomier, a hairline crack in the stone, and each a little different
+   (the cobweb in another corner, the moss at the other end, or none). */
+:root[data-theme="hollow"] .mabout__group {
+  padding: 22px 24px 22px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 60'%3E%3Cpath d='M0 8L14 14L20 26L34 30L40 44L52 48L58 60M20 26L12 36M40 44L50 38' stroke='%23120c18' stroke-width='1' fill='none' stroke-linejoin='bevel' opacity='.8'/%3E%3C/svg%3E") right 0 bottom 26% / 90px 60px no-repeat,
+    linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%);
+}
+
+:root[data-theme="hollow"] .mabout__group:nth-child(3n + 2)::before {
+  right: auto;
+  left: 0;
+  transform: scaleX(-1);
+}
+
+:root[data-theme="hollow"] .mabout__group:nth-child(3n + 2)::after {
+  left: auto;
+  right: 16px;
+  transform: scaleX(-1);
+}
+
+:root[data-theme="hollow"] .mabout__group:nth-child(3n)::before {
+  display: none;
+}
+
+:root[data-theme="hollow"] .mabout__heading {
+  color: var(--he-pumpkin);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="hollow"] .mabout__rows {
+  font-family: var(--he-tablet-font, var(--font-body));
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
 }
 
 /* Its buttons: Play glowing like a lit pumpkin, More info misty purple. */
