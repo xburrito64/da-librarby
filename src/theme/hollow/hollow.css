@@ -1311,6 +1311,36 @@
   transform: translateY(-5px);
 }
 
+/* The spider climbs up its thread and lets itself down again: the thread is drawn here, getting
+   shorter and longer just as the spider moves. */
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend="spider"]::before {
+  left: 57.6px;
+  top: 0;
+  width: 0.8px;
+  height: 58px;
+  background: rgba(243, 234, 216, 0.7);
+  transition:
+    height 0.5s var(--spring),
+    transform 0.5s var(--spring);
+}
+
+:root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend="spider"]::after {
+  background-image: var(--hf-rest);
+  opacity: 1;
+  transform: none;
+  transition: transform 0.5s var(--spring);
+}
+
+:root[data-theme="hollow"] .card[data-he-friend="spider"]:is(:hover, :focus-visible)::before {
+  opacity: 1;
+  height: 18px;
+  transform: translateY(-5px);
+}
+
+:root[data-theme="hollow"] .card[data-he-friend="spider"]:is(:hover, :focus-visible)::after {
+  transform: translateY(-45px);
+}
+
 /* The ghost holding up the badge: the badge sits right under the edge, in its hands. */
 :root[data-theme="hollow"] .card[data-he-friend="new"] .card__badge {
   top: 5px;

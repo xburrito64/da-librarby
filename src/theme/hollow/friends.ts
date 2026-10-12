@@ -1,7 +1,8 @@
 // Each cover's little friend, sitting on (or hanging from, or peeking over) its top edge: a
 // pumpkin, candy corn, a ghost holding on, a spider on its thread, a cobweb in a corner, a bat
 // asleep, a black cat, a crow, a witch's hat with someone under it, slime oozing over, a mummy's
-// bandage. Not every cover gets one, and a show keeps the same friend everywhere. Some covers have
+// bandage. Not every cover gets one, and they are mixed along each row (no friend turns up again
+// close by, never three covers in a row with one or without). Some covers have
 // something to say instead: a show with new episodes has the ghost holding up its badge, one
 // you're partway through a candle that has burned down as far as you've watched, one you've
 // finished a little grave. Point at a cover and its friend does something (the pumpkin hops, the
@@ -12,8 +13,10 @@ import { drawPumpkin, pumpkinDefs } from "./pumpkins";
 
 /** The covers' width the friends are drawn for (they keep to their side of wider ones). */
 const W = 172;
-/** How many of the possible picks are "no friend" (against one each for the friends). */
-const NOBODY = 10;
+/** About how many covers in a hundred have a friend (never three in a row with, or without). */
+const SHARE = 55;
+/** A friend doesn't turn up again within this many covers along a row. */
+const APART = 5;
 /** Once a session, maybe: the first pumpkin to turn up is golden. */
 const GOLDEN_CHANCE = 0.15;
 /** How often the spider thinks about moving (ms), and how fast it walks (px a second). */
@@ -142,14 +145,12 @@ export function spider(x: number, y: number, climbing: boolean, scale = 1, bundl
   return g + "</g>";
 }
 
-function hanging(up: boolean) {
+/** The spider hanging on its thread (the thread is the stylesheet's, so it gets shorter and
+ *  longer exactly as the spider climbs up it and lets itself down, see hollow.css). */
+function hanging() {
   const x = 58;
-  const y = up ? 24 : 64;
-  return (
-    `<path d="M${x} 0V${y - 6}" stroke="rgba(243,234,216,0.7)" stroke-width="0.8"/><circle cx="${x}" cy="1" r="1.2" fill="rgba(243,234,216,0.6)"/>` +
-    onCover(shadow(x + 7, y + 10, 10, 9, 0.35)) +
-    spider(x, y, up)
-  );
+  const y = 64;
+  return onCover(shadow(x + 7, y + 10, 10, 9, 0.35)) + spider(x, y, false);
 }
 
 /** A cobweb in the top left corner (or the right, mirrored), with dew on it and a tiny spider. */
@@ -364,7 +365,7 @@ const FRIENDS: Record<string, Friend> = {
   golden: { box: [56, -60, 172, 62], side: "right", draw: (u) => pumpkin(u, true), rise: 10, pumpkin: "g" },
   candy: { box: [0, -46, 96, 12], side: "left", draw: candy, rise: 10 },
   ghost: { box: [110, -44, 174, 10], side: "right", draw: ghost, rise: 6 },
-  spider: { box: [36, -2, 80, 86], side: "left", draw: hanging, rise: 30 },
+  spider: { box: [36, -2, 80, 86], side: "left", draw: hanging },
   web: { box: [0, 0, 88, 88], side: "left", draw: (u) => web(u) },
   webRight: { box: [84, 0, 172, 88], side: "right", draw: (u) => web(u, true) },
   bat: { box: [94, -4, 162, 54], side: "right", draw: bat },
@@ -378,7 +379,7 @@ const FRIENDS: Record<string, Friend> = {
 };
 for (let tenths = 1; tenths <= 9; tenths++) FRIENDS[`candle${tenths}`] = { box: [0, -66, 96, 60], side: "left", draw: (u) => candle(u, tenths / 10) };
 
-/** Who may sit on a cover, picked by the show (with "nobody" too, so not every cover has one). */
+/** Who may sit on a cover. */
 const PICKS = ["pumpkin", "candy", "ghost", "spider", "web", "webRight", "bat", "cat", "crow", "hat", "slime", "mummy"];
 
 function picture(f: Friend, up: boolean) {
@@ -398,13 +399,18 @@ function rules() {
     .join("\n");
 }
 
-/** The same number for a show every time, spread well. */
+/** The same number for a show every time, well spread even for shows next to each other. */
 function hash(id: number) {
-  let h = Math.imul(id ^ 0x9e3779b9, 0x85ebca6b);
+  let h = Math.imul(id + 0x7f4a7c15, 0x9e3779b1);
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
   h ^= h >>> 13;
   h = Math.imul(h, 0xc2b2ae35);
   return (h ^ (h >>> 16)) >>> 0;
 }
+
+/** Friends that look alike, for keeping them apart. */
+const family = (friend: string | null) => (friend === "golden" ? "pumpkin" : friend === "webRight" ? "web" : friend?.startsWith("candle") ? "candle" : friend);
 
 /** The walking spider (the one moving house), drawn small enough to walk along a cover's edge. */
 const WALKER = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-24 -26 48 46" width="48" height="46"><defs>${DEFS}</defs>${spider(0, 0, false, 0.9, true)}</svg>`;
@@ -419,7 +425,8 @@ export function startFriends({ surprises }: { surprises: boolean }) {
   const moved = new Map<number, string | null>();
   let goldenDecided = !surprises;
 
-  const friendOf = (el: HTMLElement) => {
+  /** A cover's friend, given who sits on the covers before it in its row (or on its page). */
+  const friendOf = (el: HTMLElement, before: (string | null)[]) => {
     const id = Number(el.dataset.id);
     if (!Number.isFinite(id)) return null;
     const state = el.dataset.state;
@@ -427,8 +434,23 @@ export function startFriends({ surprises }: { surprises: boolean }) {
     if (state === "partway") return `candle${el.dataset.progress ?? 5}`;
     if (state === "finished") return "grave";
     if (moved.has(id)) return moved.get(id) ?? null;
-    const pick = hash(id) % (PICKS.length + NOBODY);
-    const friend = pick < PICKS.length ? PICKS[pick] : null;
+    // With a friend or not, as the show goes, but never three in a row either way.
+    const h = hash(id);
+    const [a, b] = before.slice(-2);
+    const has = before.length >= 2 && (a === null) === (b === null) ? a === null : h % 100 < SHARE;
+    if (!has) return null;
+    // Its own friend if none like it sits close by, otherwise the next of the show's picks that
+    // doesn't (going through all of them in an order of its own).
+    const near = new Set(before.slice(-APART).map(family));
+    const start = (h >>> 8) % PICKS.length;
+    let friend = PICKS[start];
+    for (let k = 0; k < PICKS.length; k++) {
+      const pick = PICKS[(start + k * 5) % PICKS.length];
+      if (!near.has(family(pick))) {
+        friend = pick;
+        break;
+      }
+    }
     if (friend === "pumpkin" && !goldenDecided) {
       goldenDecided = true;
       if (Math.random() < GOLDEN_CHANCE) {
@@ -439,13 +461,24 @@ export function startFriends({ surprises }: { surprises: boolean }) {
     return friend;
   };
 
+  // Going along each row (or page of covers) in order, so neighbours get different friends.
   const place = () => {
+    const rows = new Map<Element | null, HTMLElement[]>();
     document.querySelectorAll<HTMLElement>(".card[data-id], .tp__cover[data-id]").forEach((el) => {
-      const friend = friendOf(el);
-      if (friend) {
-        if (el.dataset.heFriend !== friend) el.dataset.heFriend = friend;
-      } else if (el.dataset.heFriend) delete el.dataset.heFriend;
+      const row = rows.get(el.parentElement) ?? [];
+      row.push(el);
+      rows.set(el.parentElement, row);
     });
+    for (const row of rows.values()) {
+      const before: (string | null)[] = [];
+      for (const el of row) {
+        const friend = friendOf(el, before);
+        before.push(friend);
+        if (friend) {
+          if (el.dataset.heFriend !== friend) el.dataset.heFriend = friend;
+        } else if (el.dataset.heFriend) delete el.dataset.heFriend;
+      }
+    }
   };
 
   let queued = 0;
