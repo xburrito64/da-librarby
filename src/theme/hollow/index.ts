@@ -176,6 +176,7 @@ export const HOLLOW: Theme = {
         { name: "rustle", label: "A leaf flicked away" },
         { name: "gust", label: "A gust of wind" },
         { name: "whirl", label: "A little whirlwind" },
+        { name: "mrrp", label: "The black cat" },
       ],
       music: true,
     },

@@ -99,6 +99,12 @@ change and share, no credit required. Where they came from, gratefully:
 
 - `whirl.ogg`: a soft, low whoosh. Freesound #423799, “Little Whoosh 2” by ch_ase (CC0).
 
+## The black cat on the gate (`mrrp`)
+
+- `mrrp-1.ogg`: a cat's trill. Freesound #668825, “Cat trill 4” by MBPL (CC0).
+- `mrrp-2.ogg`: a short, quiet trill. Freesound #850104, “Cat trills shortly (calm/quiet)” by CatPhony (CC0).
+- `mrrp-3.ogg`: a little whirr. Freesound #415107, “catwhirr.wav” by steffcaffrey (CC0).
+
 Sources: [VSCO 2 Community Edition](https://github.com/sgossner/VSCO-2-CE) by Versilian Studios (organ by
 Simon Dalzell of Ivy Audio), [Kenney](https://kenney.nl) and [Freesound](https://freesound.org) (each sound's
 page: https://freesound.org/s/<number>/).

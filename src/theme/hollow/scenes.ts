@@ -2,13 +2,14 @@
 // slice of earth under it, the graveyard on show pages) and keeps them alive. Everything reacts to
 // a click, never to the pointer just passing by (too many sounds otherwise): pumpkins wobble with
 // a knock, the house's door creaks open, the ghost (peeking out from behind its tombstone now and
-// then) gets a fright and ducks back down, and under the patch the skeleton wakes up, the coffin
+// then) gets a fright and ducks back down, the black cat on the gate trills, and under the patch the skeleton wakes up, the coffin
 // opens, the mole wakes and the candy stash is found. On show pages, the tomb's gate
 // creaks open (eyes looking out), its gargoyle turns its head, its candles can be blown out. Once
 // in a while a pair of eyes looks out of the tomb's door by itself.
 import { playSound } from "../sound";
 import { graveyardScene, patchScene } from "./scene";
 import { underScene, type Spot } from "./under";
+import { pokeCat } from "./cat";
 
 const HOSTS = [
   { selector: ".hero__decor--bottom", draw: patchScene },
@@ -107,6 +108,8 @@ export function startScenes({ surprises }: { surprises: boolean }) {
 
   /** The part of a tomb in view under the pointer, if any. */
   const tombPart = (x: number, y: number) => shown(TOMB_PARTS).find((p) => over(p, x, y, 1)) ?? null;
+  /** Whether the black cat on the gate is under the pointer (sitting there, not off on a stroll). */
+  const catThere = (x: number, y: number) => shown(".he-cat:not(.is-away) .he-cat__sit").some((c) => over(c, x, y, 1));
 
   const shown = <T extends Element>(selector: string) =>
     [...document.querySelectorAll<T>(selector)].filter((el) => {
@@ -147,6 +150,11 @@ export function startScenes({ surprises }: { surprises: boolean }) {
     // The tomb: its gate creaks open (as slowly as the creak lasts) and the eyes look out; the
     // gargoyle turns its head with a grind of stone; a candle goes out, and lights again later.
     // (The page's header lies over it, so where the click landed counts, unless it was on a control.)
+    // The black cat on the gate (cat.ts).
+    if (!target.closest?.(CONTROLS) && catThere(e.clientX, e.clientY)) {
+      pokeCat();
+      return;
+    }
     const part = target.closest?.(CONTROLS) ? null : tombPart(e.clientX, e.clientY);
     const gate = part?.matches(".he-tomb__door") ? part : null;
     const tomb = gate?.closest(".he-tomb");
@@ -243,7 +251,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
     if (pointing) return;
     pointing = requestAnimationFrame(() => {
       pointing = 0;
-      const hit = (surprises && [...document.querySelectorAll(".he-under [data-poke]")].some((t) => over(t, e.clientX, e.clientY))) || tombPart(e.clientX, e.clientY) !== null;
+      const hit = (surprises && [...document.querySelectorAll(".he-under [data-poke]")].some((t) => over(t, e.clientX, e.clientY))) || tombPart(e.clientX, e.clientY) !== null || catThere(e.clientX, e.clientY);
       const onPage = (e.target as Element).closest?.("a, button, input, .card, [role=button]");
       document.documentElement.classList.toggle("he-can-poke", hit && !onPage);
     });

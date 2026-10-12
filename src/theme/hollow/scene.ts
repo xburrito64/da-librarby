@@ -314,23 +314,27 @@ function cemetery(id: string, to: number) {
   s += `<path d="M${L} 278C${L + 2} 296 ${gate + 40} 312 ${to + 150} 314L${to + 150} 302C${gate + 60} 300 ${R + 4} 292 ${R} 278Z" fill="#221830" opacity="0.75"/>`;
   // The fence along the back, from beyond the window's left edge up to the gate.
   s += ironFence(-12, gate - G - 4, 276);
-  // The gate: two stone pillars with ball tops, an iron arch over the way in, the left door shut,
-  // the right one swung open.
-  const pillar = (x: number) =>
-    `<rect x="${x - 4}" y="244" width="8" height="34" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/><rect x="${x - 5.5}" y="241" width="11" height="4" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/><circle cx="${x}" cy="237.5" r="4" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/>`;
+  // The gate: two stone pillars with flat capstones (moss on them, ivy up the cat's), an iron arch
+  // over the way in, the left door shut, the right one swung open.
+  const pillar = (x: number, ivy: boolean) =>
+    `<rect x="${x - 4}" y="243" width="8" height="35" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/>` +
+    `<path d="M${x - 4} 252h8M${x - 4} 262h8M${x - 4} 271h8M${x} 243v9M${x - 2} 252v10M${x + 1.5} 262v9" stroke="#221a2c" stroke-width="0.6"/>` +
+    `<rect x="${x - 6}" y="240" width="12" height="3.4" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/>` +
+    `<path d="M${x - 9.5} 240.2V237.6Q${x - 9.5} 236.6 ${x - 8.5} 236.6H${x + 8.5}Q${x + 9.5} 236.6 ${x + 9.5} 237.6V240.2Z" fill="#2c2238" stroke="#4a3d5e" stroke-width="1"/>` +
+    `<path d="M${x - 9.5} 238.4Q${x - 7} 236.4 ${x - 4} 237Q${x - 6} 238.6 ${x - 9.5} 239.6Z" fill="#33402a"/><path d="M${x + 5} 236.8Q${x + 8} 236.4 ${x + 9.5} 237.8L${x + 9.5} 238.6Q${x + 7} 237.6 ${x + 5} 236.8Z" fill="#33402a"/>` +
+    (ivy
+      ? `<path d="M${x + 3} 278C${x + 5} 272 ${x + 1} 268 ${x + 3.4} 262C${x + 5} 258 ${x + 2} 254 ${x + 4} 249" stroke="#2f4a26" stroke-width="0.8" fill="none"/>` +
+        [[3.6, 274, 30], [1.8, 268, -30], [4.2, 261, 30], [2.6, 255, -30], [4.4, 250, 30]].map(([dx, ly, r]) => `<ellipse cx="${x + dx}" cy="${ly}" rx="1.8" ry="1.1" transform="rotate(${r} ${x + dx} ${ly})" fill="#3a5a2e"/>`).join("")
+      : "");
   s += `<path d="M${L} 248Q${gate} 224 ${R} 248" stroke="#1d1526" stroke-width="2.2" fill="none"/><path d="M${L + 5} 251Q${gate} 232 ${R - 5} 251" stroke="#1d1526" stroke-width="1" fill="none"/><path d="M${gate - 10} 240l0-5M${gate} 237l0-7M${gate + 10} 240l0-5" stroke="#1d1526" stroke-width="1.4"/>`;
   s +=
     `<g stroke="#1d1526" stroke-width="1.4" fill="none"><path d="M${L} 277V252L${gate - 1} 255V277M${L} 261H${gate - 1}M${L} 270H${gate - 1}M${L + 5} 252.6V277M${L + 10} 253.4V277M${L + 15} 254.2V277"/>` +
     `<path d="M${R} 277V252L${R + 11} 257V281M${R} 261L${R + 11} 265M${R} 270L${R + 11} 274M${R + 5.5} 254.5V279"/></g>`;
-  s += pillar(gate - G) + pillar(gate + G);
+  s += pillar(gate - G, true) + pillar(gate + G, false);
   // A lantern hanging from the right pillar.
   s += `<g transform="translate(${gate + G + 6} 246)"><circle cx="0" cy="6" r="18" fill="url(#${id}light)"/><path d="M-6-2H0V2" stroke="#1d1526" stroke-width="1.4" fill="none"/><rect x="-3" y="2" width="6" height="8" rx="1" fill="${C.candle}" class="he-flicker" filter="url(#${id}glow)"/><path d="M-4 2h8l-4-4z" fill="#1d1526"/></g>`;
-  // The black cat, sitting on the left pillar.
-  s += `<g transform="translate(${gate - G - 6.5} 234)" class="he-cat">
-    <path class="he-cat__tail" d="M11-3c10-2 14-10 10-18c-2-4 2-6 4-2c4 10-2 20-14 21z" fill="#07040a"/>
-    <path d="M0 0c-2-10 0-18 4-22c-3-4-4-10-2-14l4 4c2-1 5-1 7 0l4-4c2 4 1 10-2 14c4 4 6 12 4 22z" fill="#07040a"/>
-    <g class="he-cat__eyes"><g class="he-cat__glow" fill="${C.slime}" filter="url(#${id}glow)"><rect x="-1" y="-33" width="18" height="12" fill="none"/><ellipse cx="5" cy="-27" rx="1.6" ry="1.2"/><ellipse cx="11" cy="-27" rx="1.6" ry="1.2"/></g><g class="he-cat__look" fill="#07040a"><ellipse cx="5" cy="-27" rx="0.42" ry="0.95"/><ellipse cx="11" cy="-27" rx="0.42" ry="0.95"/></g></g>
-  </g>`;
+  // The black cat, sitting on the left pillar (cat.ts brings it to life).
+  s += blackCat(id, gate - G, 236.6);
   // The stones, by how far left of `to` they stand. Nearest the gate, the first seven (as before);
   // beyond them, more at the same spacing, alternating rows, as far as the window goes, each one
   // different from its neighbours.
@@ -366,6 +370,59 @@ function cemetery(id: string, to: number) {
       s += front ? stone : `<g opacity="0.88">${stone}</g>`;
     });
   return s;
+}
+
+/** The black cat on the gate's left pillar, sitting up on its capstone at x, y: a round haunch, its
+ *  chest, two front legs, its tail curled round in front of its paws, a thin edge of moonlight
+ *  (the moon is off to the right) and the lantern's warmth on its chest. In parts that can move
+ *  (cat.ts, hollow.css): it breathes, its head turns and tilts, an ear flicks, its eyes follow
+ *  things, it yawns, licks a paw (a front leg hidden in its chest comes up), flicks the tip of its
+ *  tail. And drawn walking, for when it hops down and strolls along the fence (`he-cat-walk`, with
+ *  where it sits and where the fence's top rail is). */
+function blackCat(id: string, x: number, y: number) {
+  const INK = "#07040a";
+  const S = 1.12;
+  const BODY = "M-11.5 0.3C-14 -5 -12.5 -12 -7 -15C-5.5 -17.5 -5.6 -20.6 -4.4 -22.8L5.4 -23C6.6 -19 7 -14 6.4 -8C6.1 -5 6.4 -2 7.4 -0.6C7.9 0.4 7.4 1.1 6 1.1L-11.5 0.6Z";
+  const HEAD = "M-4.8 -23.4C-6.6 -25.4 -6.9 -28.6 -5.8 -31.2C-4.4 -33.9 -1.6 -34.6 0.9 -34.6C3.4 -34.6 6 -33.9 7.2 -31.2C8 -28.8 7.6 -25.6 5.8 -23.6L6.6 -22.5L5.1 -22.1C3.4 -21 -2.6 -21 -4.8 -23.4Z";
+  const eye = (cx: number, r: number) => `<ellipse cx="${cx}" cy="-28.4" rx="1.55" ry="1.15" transform="rotate(${r} ${cx} -28.4)"/>`;
+  const defs =
+    `<defs><filter id="${id}catrim" x="-30%" y="-30%" width="160%" height="160%"><feOffset in="SourceAlpha" dx="0.7" dy="-0.45" result="o"/><feFlood flood-color="#6a5288"/><feComposite in2="o" operator="in" result="rim"/><feMerge><feMergeNode in="rim"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` +
+    `<clipPath id="${id}catchest"><path d="${BODY}"/></clipPath>` +
+    `<radialGradient id="${id}catwarm"><stop offset="0" stop-color="#ff9a3c" stop-opacity="0.32"/><stop offset="1" stop-color="#ff7518" stop-opacity="0"/></radialGradient></defs>`;
+  const head =
+    `<g class="he-cat__head"><g class="he-cat__turn">` +
+    `<g class="he-cat__ear he-cat__ear--l"><path d="M-5.9 -30.2L-6.4 -37.6L-1.6 -33.9Z" fill="${INK}"/><path d="M-5.3 -35.4L-2.9 -33.6L-4.9 -32.4Z" fill="#3a1f3c"/></g>` +
+    `<g class="he-cat__ear he-cat__ear--r"><path d="M3.4 -33.9L7 -37.9L7.1 -30.2Z" fill="${INK}"/><path d="M6.2 -35.8L4.2 -33.6L6 -32.4Z" fill="#3a1f3c"/></g>` +
+    `<path d="${HEAD}" fill="${INK}"/>` +
+    `<g class="he-cat__eyes"><g class="he-cat__glow" fill="${C.slime}" filter="url(#${id}glow)"><rect x="-4" y="-31" width="10.4" height="5.4" fill="none"/>${eye(-1.5, 10)}${eye(3.7, -10)}</g>` +
+    `<g class="he-cat__look" fill="${INK}"><ellipse cx="-1.5" cy="-28.4" rx="0.38" ry="0.95"/><ellipse cx="3.7" cy="-28.4" rx="0.38" ry="0.95"/></g></g>` +
+    `<path class="he-cat__happy" d="M-3 -28q1.5-1.8 3 0M2.2 -28q1.5-1.8 3 0" stroke="${C.slime}" stroke-width="0.7" fill="none" stroke-linecap="round" filter="url(#${id}glow)"/>` +
+    `<path d="M0.45 -26.3h1.3l-0.65 0.7z" fill="#5a2a4a"/>` +
+    `<g class="he-cat__mouth"><ellipse cx="1.1" cy="-24" rx="1.15" ry="1.45" fill="#2a0f1e"/><ellipse cx="1.1" cy="-23.3" rx="0.75" ry="0.55" fill="#d9708a"/></g>` +
+    `<ellipse class="he-cat__tongue" cx="1.1" cy="-24.4" rx="0.6" ry="0.45" fill="#d9708a"/>` +
+    `<g stroke="#8a74b8" stroke-width="0.28" opacity="0.6" fill="none"><path d="M-1.3 -25.6L-6.4 -26.4M-1.3 -24.9L-6.3 -24.4M3.5 -25.6L8.6 -26.4M3.5 -24.9L8.5 -24.4"/></g>` +
+    `</g></g>`;
+  const sitting =
+    `<g class="he-cat__sit"><g class="he-cat__breath">` +
+    `<path class="he-cat__body" d="${BODY}" fill="${INK}"/>` +
+    `<g clip-path="url(#${id}catchest)"><ellipse cx="14" cy="-12" rx="12" ry="16" fill="url(#${id}catwarm)"/></g>` +
+    `<path d="M2.4 -7.5C2.2 -4 2.6 -1.4 2.4 0.8M-7.5 -13.5C-10 -10 -10 -5 -7.6 -2" stroke="#1d1426" stroke-width="0.5" fill="none"/>` +
+    head +
+    // (In front of its face when it comes up, a faint edge so it shows against its chest.)
+    `<path class="he-cat__paw" d="M4 -8.6C5.4 -13.4 5.2 -18.4 3.2 -22C2.6 -23.6 0.4 -23.6 0.1 -22C0.6 -18 1.4 -13.4 0.6 -8.6Z" fill="${INK}" stroke="#3a2d4a" stroke-width="0.35"/>` +
+    `</g>` +
+    `<path d="M-10.6 0C-6 1.8 1 2 7.2 0.8" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>` +
+    `<path class="he-cat__tip" d="M7.2 0.8C9.6 0.3 10.6 -1.2 9.8 -2.6" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>` +
+    `</g>`;
+  // Walking (facing left), its legs in two sets that step in turn.
+  const walking =
+    `<g class="he-cat-walk" filter="url(#${id}catrim)" data-x="${x}" data-y="${y}" data-rail="258" transform="translate(${x} ${y}) scale(${S})">` +
+    `<path class="he-cat-walk__tail" d="M8.8 -9.6C12 -10 13.4 -13 12.6 -16.4C12.2 -18 13.6 -18.6 14 -17.4" stroke="${INK}" stroke-width="1.8" fill="none" stroke-linecap="round"/>` +
+    `<g stroke="${INK}" stroke-width="1.6" stroke-linecap="round"><path class="he-cat-walk__step-a" d="M-5 -5.5V0M7.2 -5.5V0"/><path class="he-cat-walk__step-b" d="M-3.2 -5.5V0M5.4 -5.5V0"/></g>` +
+    `<path d="M-14.2 -11.2C-14.6 -13.4 -13.6 -14.6 -13.4 -15L-13.8 -18.8L-11.4 -16C-10.6 -16.3 -9.6 -16.2 -8.9 -15.8L-8.2 -19L-7.3 -14.4C-6.6 -13.2 -6.6 -12.2 -6.4 -11.2C-2 -12.6 5 -12.4 8.6 -10.4C10.8 -9 10.8 -6 9.2 -4.6C6 -3.6 -3 -3.6 -6.2 -4.8C-8.4 -5.8 -9.6 -7.2 -10.2 -8.6C-12.2 -8.8 -13.8 -9.6 -14.2 -11.2Z" fill="${INK}"/>` +
+    `<ellipse cx="-12" cy="-12.4" rx="0.95" ry="0.7" fill="${C.slime}" filter="url(#${id}glow)"/>` +
+    `</g>`;
+  return `${defs}<g class="he-cat" filter="url(#${id}catrim)" transform="translate(${x} ${y}) scale(${S})">${sitting}</g>${walking}`;
 }
 
 /** An iron fence with spiky posts. */

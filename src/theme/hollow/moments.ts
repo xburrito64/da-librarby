@@ -11,6 +11,7 @@
 import { playSound } from "../sound";
 import type { Depth, Leaf, Look } from "./leaves";
 import { spiderNow } from "./spider";
+import { catWatches } from "./cat";
 
 /** A rare moment every so often (s); the first one a little sooner. */
 const EVERY = [45, 100];
@@ -166,7 +167,7 @@ export function startMoments() {
   let whirl: { at: () => [number, number] | null; t: number; dur: number; drift: number; dir: number } | null = null;
   let sparks: Spark[] = [];
   let critters: Critter[] = [];
-  let cat: { leaf: Leaf; el: Element; eyes: Element; look: SVGGElement } | null = null;
+  let cat: { leaf: Leaf; eyes: Element } | null = null;
   let jack: { leaf: Leaf; blown: boolean } | null = null;
   const later: { at: number; fn: () => void }[] = [];
   const jackSays = (detail: { watch?: [number, number] | null; blow?: boolean }) => window.dispatchEvent(new CustomEvent("he:jack-leaf", { detail }));
@@ -366,7 +367,7 @@ export function startMoments() {
       run: (f) => {
         const found = catHere(f);
         if (!found) return;
-        const { el, eyes, look } = found;
+        const { eyes } = found;
         const k = side();
         const at = (): [number, number] | null => {
           if (!eyes.isConnected) return null;
@@ -378,7 +379,7 @@ export function startMoments() {
         // Falls right past its nose, and on down.
         l.aim = { at, then: () => {} };
         f.extra.push(l);
-        cat = { leaf: l, el, eyes, look };
+        cat = { leaf: l, eyes };
       },
     },
     jack: {
@@ -563,9 +564,9 @@ export function startMoments() {
       }
       sparks = sparks.filter((s) => s.life > 0);
 
-      // The cat watching its leaf go by: wide eyes, pupils following it.
+      // The cat watching its leaf go by: wide eyes, following it (cat.ts).
       if (cat) {
-        const { leaf, el, eyes, look } = cat;
+        const { leaf, eyes } = cat;
         const r = eyes.getBoundingClientRect();
         const ex = r.left + r.width / 2;
         const ey = r.top + r.height / 2;
@@ -573,9 +574,7 @@ export function startMoments() {
         const dx = leaf.x - ex;
         const dy = leaf.y - ey;
         const d = Math.hypot(dx, dy) || 1;
-        const watching = !gone && d < 330;
-        el.classList.toggle("is-watching", watching);
-        look.style.transform = watching ? `translate(${((dx / d) * 0.95).toFixed(2)}px, ${((dy / d) * 0.6).toFixed(2)}px)` : "";
+        catWatches(!gone && d < 330 ? [leaf.x, leaf.y] : null);
         if (gone) cat = null;
       }
       // A leaf on Jack's head clicked away before he could blow: he stops looking at it.
@@ -658,10 +657,7 @@ export function startMoments() {
     },
     run,
     stop() {
-      if (cat) {
-        cat.el.classList.remove("is-watching");
-        cat.look.style.transform = "";
-      }
+      if (cat) catWatches(null);
       if (jack) jackSays({ watch: null });
     },
   };
