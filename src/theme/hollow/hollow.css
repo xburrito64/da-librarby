@@ -995,7 +995,8 @@
 }
 
 :root[data-theme="hollow"] .he-ghost.is-peeking {
-  transform: translateY(-22px);
+  /* (How far it rises depends on how tall its stone is, see scene.ts.) */
+  transform: translateY(var(--he-peek, -22px));
   pointer-events: visiblePainted;
   cursor: pointer;
 }

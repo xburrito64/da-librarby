@@ -120,9 +120,16 @@ function moonBats(x: number, y: number) {
   return bat(x - 34, y - 18, 1, "he-mb--near") + bat(x - 44, y + 34, 0.55, "he-mb--far");
 }
 
-/** The ghost hiding behind a tombstone (it peeks out now and then, see Decor.tsx). */
-function ghost(x: number, y: number, s: number) {
-  return `<g class="he-ghost"><g transform="translate(${x} ${y}) scale(${s})">${ghostShape()}</g></g>`;
+/** The ghost hiding behind the big gothic tombstone standing at x, foot (`h` tall, as tombstones.ts
+ *  draws it): tucked away just under the stone's point, and rising far enough to show most of itself
+ *  above it when it peeks out (see scenes.ts). */
+function ghostBehind(x: number, foot: number, h: number) {
+  const s = 0.7;
+  // The gothic stone's point is 45 of its 36 units up; the ghost's body is 40 tall, 2 down its box.
+  const k = h / 36;
+  const top = foot - 36 * k;
+  const rise = 9 * k + 0.65 * 40 * s;
+  return `<g class="he-ghost" style="--he-peek: ${(-rise).toFixed(1)}px"><g transform="translate(${(x - 21 * s).toFixed(1)} ${(top - 2 * s).toFixed(1)}) scale(${s})">${ghostShape()}</g></g>`;
 }
 
 /** The ground's top edge, gently rolling: its height at one point... */
@@ -189,12 +196,10 @@ function valleyFog(id: string, to: number, y: number, slow: boolean) {
 }
 
 /** Left of the patch, past the edge of the hill it's on, the land falls away into a misty valley:
- *  hills behind hills, a village with a church and a few lit windows, and a path winding down to
+ *  a low hill under the open sky, a village with a church and a few lit windows, and a path winding down to
  *  it from the patch, lanterns along the way. `to`: where the patch's hill begins. */
 function valley(id: string, rand: () => number, to: number) {
-  let s = "";
-  const far = ridge(to + 160, 204, 7, 0.4, "#251a35");
-  s += far.svg + valleyFog(id, to, 220, true);
+  let s = valleyFog(id, to, 220, true);
   const mid = ridge(to + 60, 226, 6, 2.1, "#1d1429");
   s += mid.svg;
   s += village(rand, to * 0.4, 7, true, mid.at);
@@ -356,7 +361,7 @@ function cemetery(id: string, to: number) {
     .forEach(({ d, front, kind, h, tilt }, i) => {
       const x = to - d;
       if (x < -20) return;
-      if (kind === "gothic") s += ghost(x - 13, 268, 0.62);
+      if (kind === "gothic") s += ghostBehind(x, front ? 303 : 285, front ? h : h * 0.88);
       const stone = tombstone(kind, x, front ? 303 : 285, front ? h : h * 0.88, tilt, id, i);
       s += front ? stone : `<g opacity="0.88">${stone}</g>`;
     });
@@ -399,7 +404,7 @@ export function graveyardScene(width: number) {
     [0.56, 300, "moon", 34, 2], [0.69, 318, "slab", 33, -1], [0.83, 301, "wooden", 34, -7], [0.97, 314, "heart", 28, 5],
   ];
   const at = (t: number) => from + (to - from) * t;
-  s += ghost(at(0.42) - 13, 282, 0.62);
+  s += ghostBehind(at(0.42), 317, 48);
   stones.forEach(([t, y, kind, h, tilt], i) => (s += tombstone(kind, at(t), y, h, tilt, id, i)));
   // (A few small pumpkins further left, on a wide window.)
   s += scattered(id, rand, 720, from - 40, 300);
