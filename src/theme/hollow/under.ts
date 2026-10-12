@@ -1,10 +1,13 @@
 // Under the pumpkin patch: the ground is cut away like a slice of earth lifted out with a spade, so
 // you can see into it under the library's rows. The cut has a ragged edge with grass hanging over
-// it, warm where the jack-o'-lanterns' light spills over. Below are layers, darker as they go
-// down: topsoil with the patch's roots and worms going about their business; red clay with a
-// sleeping skeleton, glowing mushrooms, someone's candy stash, old bones and a worm asleep in its
-// burrow; then stones with an old coffin, purple crystals and fossils. Some of them do something
-// when pointed at (scenes.ts). As wide as the window, lined up with the patch above (scene.ts).
+// it, warm where the jack-o'-lanterns' light spills over. Below are layers of drawn earth, each
+// shading darker towards its bottom, with broken lines where it settled and specks here and there:
+// topsoil with the patch's roots and worms going about their business; red clay with a skeleton
+// asleep in its grave, a mole asleep in its den, someone's candy stash in an old tin, a worm asleep
+// in its chamber, old bones, a lost key and little lost things; then stones with an old coffin,
+// purple crystals and fossils. What's buried lies in hollows in the earth, partly covered. Some of
+// them do something when clicked (scenes.ts). As wide as the window, lined up with the patch above
+// (scene.ts).
 // See hollow.css ("Under the patch").
 
 /** One of the patch's pumpkins: where it stands (from the scene's left), how big, and lit or not. */
@@ -21,12 +24,27 @@ const STONES = 150;
 const DEEP = 262;
 
 const f = (n: number) => n.toFixed(1);
-const BONE = "#3d3550";
+/** The earth's layers, top to bottom. */
+const TOPSOIL_C = "#24161f";
+const CLAY_C = "#2c1519";
+const STONES_C = "#1b1323";
+const DEEP_C = "#130d1a";
+/** Old bone (lit a little from above, shadowed below), and the dark of a hole. */
+const BONE = "#8c8190";
+const BONE_HI = "#b2a8b6";
+const BONE_LO = "#5d5263";
+const HOLE = "#0d070b";
+/** Bone deep down in the stones, darker. */
+const DEEP_BONE = "#3d3550";
 
 function random(seed: number) {
   let s = seed;
   return () => (s = (s * 16807) % 2147483647) / 2147483647;
 }
+
+/** How far down a gently wavy line (see `wavy`) is at x. */
+const waveY = (x: number, y: number, amp: number, k: number, phase: number) =>
+  y + Math.sin(x / k + phase) * amp + Math.sin(x / (k * 0.37) + phase * 3) * amp * 0.35;
 
 /** A gently wavy line across the slice, for where one layer meets the next. */
 function wavy(w: number, y: number, amp: number, k: number, phase: number) {
@@ -65,64 +83,187 @@ function worm(x: number, y: number, d: string, o: { width: number; color: string
   return `${s}${extra}</g>`;
 }
 
-const bone = (x: number, y: number, a: number, len: number) =>
-  `<g transform="translate(${f(x)} ${f(y)}) rotate(${f(a)})" fill="${BONE}"><rect x="${-len / 2}" y="-2.2" width="${len}" height="4.4" rx="2"/><circle cx="${-len / 2}" cy="-2.6" r="3.2"/><circle cx="${-len / 2}" cy="2.6" r="3.2"/><circle cx="${len / 2}" cy="-2.6" r="3.2"/><circle cx="${len / 2}" cy="2.6" r="3.2"/></g>`;
-const key = (x: number, y: number, a: number) =>
-  `<g transform="translate(${f(x)} ${f(y)}) rotate(${a})" stroke="#5b3d2a" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.85"><circle r="4.6"/><path d="M4.6 0H22M17 0v4M21 0v3.4"/><circle r="1.6" fill="#120a17" stroke="none"/></g>`;
 const beetle = (x: number, y: number, a: number) =>
   `<g transform="translate(${f(x)} ${f(y)}) rotate(${a})"><path d="M-3-3l-2-3M0-3.4v-3M3-3l2-3M-3 3l-2 3M0 3.4v3M3 3l2 3" stroke="#23193a" stroke-width="0.9" stroke-linecap="round"/><ellipse rx="5.2" ry="3.7" fill="#23193a"/><circle cx="6" r="2" fill="#23193a"/><path d="M-5 0H5" stroke="#120a17" stroke-width="0.6"/><ellipse cx="-1.6" cy="-1.8" rx="2" ry="0.8" fill="#4d3f70" opacity="0.8"/></g>`;
 const snail = (x: number, y: number) =>
   `<g transform="translate(${f(x)} ${f(y)})"><path d="M-12 4c2-3 18-4 22-1c2-2 3-6 2-9M10 3c1-3 0-6-1-8" stroke="#56475f" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="12" cy="-6" r="0.9" fill="#56475f"/><circle cx="9" cy="-5" r="0.9" fill="#56475f"/><circle cx="-2" cy="-3" r="7" fill="#4a3550"/><path d="M-2-3m-1.5 0a1.5 1.5 0 1 1 3 0a3.2 3.2 0 1 1-6.4 0a5 5 0 1 1 10 0" stroke="#2c2038" stroke-width="1.2" fill="none"/></g>`;
-const BONE_LIT = "#4b4263";
+/** A hollow in the earth that something lies buried in: darker inside, its lower lip catching a
+ *  little light, its top in shadow, crumbs round it. */
+function pocket(cx: number, cy: number, rx: number, ry: number, rand: () => number) {
+  let s = `<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(rx + 3)}" ry="${f(ry + 2.5)}" fill="url(#heu-pocket)" filter="url(#heu-soft)"/>`;
+  s += `<path d="M${f(cx - rx * 0.85)} ${f(cy + ry * 0.35)}Q${f(cx)} ${f(cy + ry * 1.25)} ${f(cx + rx * 0.85)} ${f(cy + ry * 0.35)}" stroke="#7a4632" stroke-width="1.3" fill="none" opacity="0.35"/>`;
+  s += `<path d="M${f(cx - rx * 0.8)} ${f(cy - ry * 0.55)}Q${f(cx)} ${f(cy - ry * 1.2)} ${f(cx + rx * 0.8)} ${f(cy - ry * 0.55)}" stroke="#05020a" stroke-width="2" fill="none" opacity="0.5" filter="url(#heu-soft)"/>`;
+  for (let i = 0; i < 9; i++) {
+    const a = rand() * Math.PI * 2;
+    const k = 1.05 + rand() * 0.2;
+    s += `<circle cx="${f(cx + Math.cos(a) * rx * k)}" cy="${f(cy + Math.sin(a) * ry * k)}" r="${f(0.5 + rand() * 0.9)}" fill="#4a2a26" opacity="0.8"/>`;
+  }
+  return s;
+}
 
-/** A little skeleton asleep on its side, curled up, its hand for a pillow. Pointed at, it lifts
- *  its head, waves and chatters (hollow.css, scenes.ts). */
-const skeleton = (x: number, y: number) =>
-  `<g class="heu-skel" data-poke="skeleton" transform="translate(${f(x)} ${f(y)}) scale(1.3)" fill="none" stroke="${BONE_LIT}" stroke-linecap="round" stroke-linejoin="round">` +
-  // Legs, drawn up (knees forward), and the feet.
-  `<path d="M16 2L6 10L14 17M19 3L10 12L17 19" stroke-width="2.6"/><path d="M14 17h-5M17 19h-5" stroke-width="2"/>` +
-  // Spine and hips.
-  `<path d="M-14 0Q0 -4 16 1" stroke-width="2.4" stroke-dasharray="2.4 1.2"/><ellipse cx="17" cy="2" rx="4" ry="3.4" fill="${BONE_LIT}" stroke="none"/>` +
-  // Ribs.
-  `<path d="M-12-1q2 7 6 8M-8-2q2 7 6 8M-4-3q2 7 6 8M0-3q2 6 5 7" stroke-width="1.6"/>` +
-  // The arm tucked in (it waves when pointed at), and the one under its head.
-  `<g class="heu-skel__arm"><path d="M-12 -1L-5 7L3 8" stroke-width="2.2"/><path d="M3 8l2.4-1M3 8l2.6 1M3 8l1.6 2.2" stroke-width="1.2"/></g>` +
-  `<path d="M-13 1L-22 6L-30 3" stroke-width="2.2"/>` +
-  // The skull, its jaw apart so it can chatter.
-  `<g class="heu-skel__head"><path d="M-37-9a8 8 0 1 1 15 2v3h-12z" fill="${BONE_LIT}" stroke="none"/><circle cx="-29" cy="-8" r="2.4" fill="#120a17" stroke="none"/><circle cx="-24" cy="-7" r="2" fill="#120a17" stroke="none"/>` +
-  `<g class="heu-skel__jaw"><path d="M-33-3.5h10v2.6q-5 2-10 0z" fill="${BONE_LIT}" stroke="none"/><path d="M-31-3.4v2M-28-3.4v2.4M-25-3.4v2" stroke="#120a17" stroke-width="0.7"/></g></g>` +
-  `<text class="heu-skel__z" x="-26" y="-20" font-size="8" font-weight="800" fill="#8d7fb0" stroke="none" font-family="Baloo 2 Variable, sans-serif">z</text></g>`;
+/** Earth lying over the edge of something, so it's half buried: lumps in the clay's colour. */
+const earthOver = (lumps: [number, number, number][]) =>
+  lumps.map(([x, y, r]) => `<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(r)}" ry="${f(r * 0.6)}" fill="${CLAY_C}"/><ellipse cx="${f(x)}" cy="${f(y - r * 0.35)}" rx="${f(r * 0.7)}" ry="${f(r * 0.2)}" fill="#4a2a26" opacity="0.5"/>`).join("");
 
-/** Mushrooms growing off a root, glowing softly; they puff spores when you come near. */
-const mushrooms = (x: number, y: number) => {
-  const cap = (cx: number, cy: number, r: number, tilt: number) =>
-    `<g transform="rotate(${tilt} ${f(cx)} ${f(cy + r * 1.6)})"><path d="M${f(cx - r * 0.18)} ${f(cy + r * 1.7)}Q${f(cx)} ${f(cy + r * 0.8)} ${f(cx - r * 0.1)} ${f(cy)}h${f(r * 0.36)}Q${f(cx + r * 0.1)} ${f(cy + r * 0.8)} ${f(cx + r * 0.2)} ${f(cy + r * 1.7)}z" fill="#c9c2d9"/>` +
-    `<path d="M${f(cx - r)} ${f(cy)}Q${f(cx - r)} ${f(cy - r * 0.9)} ${f(cx)} ${f(cy - r * 0.9)}Q${f(cx + r)} ${f(cy - r * 0.9)} ${f(cx + r)} ${f(cy)}Q${f(cx)} ${f(cy + r * 0.25)} ${f(cx - r)} ${f(cy)}z" fill="url(#heu-shroom)"/>` +
-    `<circle cx="${f(cx - r * 0.35)}" cy="${f(cy - r * 0.45)}" r="${f(r * 0.14)}" fill="#e9fff6" opacity="0.8"/><circle cx="${f(cx + r * 0.3)}" cy="${f(cy - r * 0.3)}" r="${f(r * 0.1)}" fill="#e9fff6" opacity="0.7"/></g>`;
+/** A long bone, old and real-looking: a slightly bent shaft, knobbly ends. */
+function longBone(x: number, y: number, a: number, len: number, w = 2.6) {
+  const h = len / 2;
   return (
-    `<g class="heu-shrooms" data-poke="mushrooms" transform="translate(${f(x)} ${f(y)})">` +
-    `<ellipse class="heu-shrooms__glow" cx="0" cy="-2" rx="26" ry="18" fill="url(#heu-shroom-glow)"/>` +
-    `<path d="M-30 6Q-10 2 0 8T30 6" stroke="#3d2822" stroke-width="2.4" fill="none" stroke-linecap="round"/>` +
-    cap(-9, -4, 6, -12) + cap(1, -10, 8, 4) + cap(10, -1, 4.5, 18) +
-    `<g class="heu-shrooms__spores" fill="#9fffd8">${[-6, 1, 7, -2, 4].map((sx, i) => `<circle cx="${sx}" cy="-12" r="${0.8 + (i % 2) * 0.4}" style="animation-delay:${i * 0.18}s"/>`).join("")}</g></g>`
+    `<g transform="translate(${f(x)} ${f(y)}) rotate(${f(a)})">` +
+    `<path d="M${f(-h + 2)} 0Q0 ${f(-w * 0.5)} ${f(h - 2)} 0" stroke="${BONE_LO}" stroke-width="${f(w + 1)}" stroke-linecap="round" fill="none"/>` +
+    `<path d="M${f(-h + 2)} 0Q0 ${f(-w * 0.5)} ${f(h - 2)} 0" stroke="${BONE}" stroke-width="${f(w)}" stroke-linecap="round" fill="none"/>` +
+    `<path d="M${f(-h + 3)} ${f(-w * 0.35)}Q0 ${f(-w * 0.85)} ${f(h - 3)} ${f(-w * 0.35)}" stroke="${BONE_HI}" stroke-width="0.7" fill="none" opacity="0.7"/>` +
+    [-1, 1]
+      .map(
+        (e) =>
+          `<circle cx="${f(e * h)}" cy="${f(-w * 0.45)}" r="${f(w * 0.8)}" fill="${BONE}"/><circle cx="${f(e * h)}" cy="${f(w * 0.45)}" r="${f(w * 0.75)}" fill="${BONE}"/><circle cx="${f(e * h - e * 0.3)}" cy="${f(-w * 0.7)}" r="${f(w * 0.3)}" fill="${BONE_HI}" opacity="0.6"/>`,
+      )
+      .join("") +
+    `</g>`
+  );
+}
+
+/** A small animal's skull (a bird's: round, with a long beak). */
+const birdSkull = (x: number, y: number, a: number) =>
+  `<g transform="translate(${f(x)} ${f(y)}) rotate(${a})"><path d="M-4-4C1-6 5-3 5 0C5 2 3 3.6 0 3.6C-3 3.6-6 2-6 -0.6C-6-2.4-5.4-3.4-4-4Z" fill="${BONE}" stroke="${BONE_LO}" stroke-width="0.6"/><path d="M4-1L14 0.6L4 2Z" fill="${BONE}" stroke="${BONE_LO}" stroke-width="0.5"/><circle cx="1" cy="-0.6" r="1.7" fill="${HOLE}"/><path d="M-4-3.2Q0-5 3.5-2.4" stroke="${BONE_HI}" stroke-width="0.6" fill="none" opacity="0.7"/></g>`;
+
+/** Little things lost down here: an old coin, a marble, a bit of a pot, a button. */
+const coin = (x: number, y: number) =>
+  `<g transform="translate(${f(x)} ${f(y)}) rotate(-20)"><ellipse rx="4" ry="2.4" fill="#5e4a20"/><ellipse rx="3.4" ry="1.9" fill="#a08440"/><ellipse cx="-0.4" cy="-0.3" rx="2" ry="1" fill="none" stroke="#c9ac5a" stroke-width="0.5"/><path d="M-1.6-1.2l0.6 0.3" stroke="#fff6d0" stroke-width="0.6"/></g>`;
+const marble = (x: number, y: number) =>
+  `<g transform="translate(${f(x)} ${f(y)})"><circle r="3.4" fill="url(#heu-marble)"/><path d="M-1.8 1.4C-0.4-0.6 1.2 0.6 2.2-1" stroke="#e85aa0" stroke-width="0.9" fill="none" opacity="0.8"/><circle cx="-1.2" cy="-1.3" r="0.8" fill="#fff" opacity="0.8"/></g>`;
+const shard = (x: number, y: number, a: number) =>
+  `<g transform="translate(${f(x)} ${f(y)}) rotate(${a})"><path d="M-6-3L5-4L7 2L-3 4Z" fill="#7a3b26" stroke="#4a2216" stroke-width="0.6"/><path d="M-4-1.4L5-2.2M-3 0.8L5.6 0.2" stroke="#c98a5a" stroke-width="0.6" opacity="0.7"/></g>`;
+const button = (x: number, y: number) =>
+  `<g transform="translate(${f(x)} ${f(y)})"><circle r="2.6" fill="#3a2a4a" stroke="#6a5480" stroke-width="0.6"/>${[[-0.7, -0.6], [0.7, -0.6], [-0.7, 0.7], [0.7, 0.7]].map(([hx, hy]) => `<circle cx="${hx}" cy="${hy}" r="0.45" fill="${HOLE}"/>`).join("")}</g>`;
+
+/** An old iron key, ornate and rusty, half sunk in the clay (the coffin's, perhaps). */
+const key = (x: number, y: number, a: number) => {
+  const bow = (stroke: string, wd: number) =>
+    `<g fill="none" stroke="${stroke}" stroke-width="${wd}"><circle cx="-14" cy="-3" r="2.6"/><circle cx="-14" cy="3" r="2.6"/><circle cx="-19" cy="0" r="2.6"/></g>`;
+  return (
+    `<g transform="translate(${f(x)} ${f(y)}) rotate(${a})">` +
+    bow("#3d2418", 2.6) +
+    bow("#8a5a36", 1.6) +
+    `<path d="M-11 0H14" stroke="#3d2418" stroke-width="3"/><path d="M-11 0H14" stroke="#8a5a36" stroke-width="1.8"/><path d="M-10-0.6H13" stroke="#b07a4a" stroke-width="0.5" opacity="0.7"/>` +
+    `<path d="M-8-1.5v3M-6-1.5v3" stroke="#3d2418" stroke-width="0.9"/><path d="M10 0v6h2v-3h2v3h1V0" fill="#8a5a36" stroke="#3d2418" stroke-width="0.7"/>` +
+    `<circle cx="2" cy="0.4" r="0.9" fill="#4a2a1a"/><circle cx="-16" cy="2" r="0.8" fill="#4a2a1a"/></g>` +
+    earthOver([[x + 13, y + 5, 5.5], [x + 18, y + 2, 4]])
   );
 };
 
-/** Someone's secret candy stash in a little burrow: candy corn, sweets in twisted wrappers and a
- *  lollipop. It glints when pointed at; click it and you've found it (scenes.ts). */
-const stash = (x: number, y: number) => {
+/** The skeleton, asleep on its side in its grave hollow, curled up with a hand under its skull, its
+ *  old top hat fallen off beside it; a root from the patch has wound round its skull. Clicked, it
+ *  lifts its head, waves and chatters (hollow.css, scenes.ts). */
+function skeleton(x: number, y: number, rand: () => number) {
+  const line = (d: string, wd: number, c = BONE) =>
+    `<path d="${d}" stroke="${c}" stroke-width="${wd}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
+  let s = pocket(x - 6, y + 2, 56, 14, rand);
+  s += `<g class="heu-skel" data-poke="skeleton" transform="translate(${f(x)} ${f(y)})">`;
+  // The far leg and arm, in shadow.
+  s += line("M17 4L5 13L15 18", 3, BONE_LO) + line("M15 18L9 20", 2, BONE_LO) + line("M-22 3L-29 11L-38 7", 2.2, BONE_LO);
+  // The spine: little bones along a gentle curve.
+  for (let i = 0; i <= 12; i++) {
+    const t = i / 12;
+    const vx = -27 + t * 44;
+    const vy = -1 - Math.sin(t * Math.PI) * 4 + t * 3;
+    s += `<rect x="${f(vx - 1.5)}" y="${f(vy - 1.6)}" width="3" height="3.2" rx="1.1" fill="${i % 2 ? BONE : BONE_HI}" transform="rotate(${f(-10 + t * 25)} ${f(vx)} ${f(vy)})"/>`;
+  }
+  // The ribs, curving down and forward, the lowest shortest.
+  for (let i = 0; i < 6; i++) {
+    const rx = -22 + i * 3.6;
+    const ry = -3 - Math.sin(((rx + 27) / 44) * Math.PI) * 1.5;
+    const len = 9 - i * 0.8;
+    s += line(`M${f(rx)} ${f(ry)}q-5 ${f(len * 0.4)} -3 ${f(len)}`, 1.4) + line(`M${f(rx - 0.6)} ${f(ry + 0.4)}q-4 ${f(len * 0.35)} -2.6 ${f(len * 0.85)}`, 0.5, BONE_HI);
+  }
+  // The pelvis.
+  s += `<path d="M12 -2Q19 -6 23 -1Q24 5 19 7Q15 8 13 5Q11 2 12 -2Z" fill="${BONE}" stroke="${BONE_LO}" stroke-width="0.8"/><ellipse cx="18" cy="2" rx="2.2" ry="1.6" fill="${HOLE}"/>`;
+  // The near leg, drawn up: thigh, shin, the bones of the foot.
+  s += longBone(10, 9, -142, 15, 2.8) + longBone(8, 16.5, 32, 14, 2.4) + line("M14 20L8 22M14 20l-5 2.8M14 20l-4 3.6", 1);
+  // The near arm, tucked in (it waves when clicked), its fingers curled.
+  s += `<g class="heu-skel__arm">${longBone(-17, 7, 60, 11, 2)}${longBone(-12, 12.5, -10, 10, 1.6)}${line("M-7 12.5l2.4 -1M-7 12.5l2.6 0.8M-7 12.5l1.8 2", 0.9)}</g>`;
+  // The arm under its head: the hand for a pillow.
+  s += longBone(-29, 6, 160, 11, 2) + line("M-37 7l-3 -1.2M-37 7l-3 0.4M-37 7l-2.6 1.6", 0.9);
+  // The skull: a rounded cranium, a deep eye socket, the nose, the cheekbone, its upper teeth; the
+  // jaw its own piece, so it can chatter.
+  s += `<g class="heu-skel__head"><g transform="translate(-37 -3) rotate(-12) scale(0.86)">`;
+  s += `<path d="M-1-8C6-11 13-6 12 1C11.5 4 10 5.5 7 6L-1 6C-6 5-9 1-8.5-3C-8-6.5-5-8.5-1-8Z" fill="${BONE}" stroke="${BONE_LO}" stroke-width="0.8"/>`;
+  s += `<path d="M-1-7.4C5-9.6 10-6 11-1" stroke="${BONE_HI}" stroke-width="1" fill="none" opacity="0.7"/>`;
+  s += `<ellipse cx="-3" cy="-1.5" rx="2.6" ry="3" fill="${HOLE}"/><path d="M-6.4 3l1.2-2.4 1.1 2.4z" fill="${HOLE}"/><path d="M-1.5 2.2Q1 1.4 3 3" stroke="${BONE_LO}" stroke-width="0.8" fill="none"/>`;
+  s += `<path d="M-8 4.8h8" stroke="${BONE_LO}" stroke-width="0.6"/><path d="M-7 4.8v1.6M-5 4.8v1.8M-3 4.8v1.8M-1 4.8v1.6" stroke="${HOLE}" stroke-width="0.6"/>`;
+  s += `<g class="heu-skel__jaw"><path d="M-8 7.5Q-3 10.5 3 8L4 6.5H-7.5Z" fill="${BONE}" stroke="${BONE_LO}" stroke-width="0.7"/><path d="M-6.5 6.8v1.4M-4.5 6.8v1.6M-2.5 6.8v1.6M-0.5 6.8v1.4" stroke="${HOLE}" stroke-width="0.6"/></g>`;
+  s += `</g></g>`;
+  // A root from the patch, wound round the skull.
+  s += `<path d="M-30 -42C-31 -30 -36 -24 -32 -16C-29 -11 -36 -10 -42 -12C-48 -14 -47 -6 -41 -5" stroke="#3b2620" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M-33 -20l4 -3M-44 -12l-3 -3" stroke="#3b2620" stroke-width="0.7"/>`;
+  // Its old top hat, fallen off, lying by its head.
+  s += `<g transform="translate(-60 3) rotate(-78)"><path d="M-6 0V-11Q-6-13 -4-13H4Q6-13 6-11V0Z" fill="#20171f" stroke="#3d3346" stroke-width="0.9"/><path d="M-6-3H6" stroke="#5a2b35" stroke-width="1.6"/><path d="M-9.5 0.5Q0 3 9.5 0.5" stroke="#2a1f29" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M2-13L4-9" stroke="#120c12" stroke-width="0.8"/></g>`;
+  s += `<text class="heu-skel__z" x="-46" y="-18" font-size="8" font-weight="800" fill="#8d7fb0" font-family="Baloo 2 Variable, sans-serif">z</text>`;
+  s += `</g>`;
+  // Earth over its feet and the end of the hollow.
+  return s + earthOver([[x + 30, y + 15, 5], [x + 24, y + 18, 4], [x - 62, y + 12, 4]]);
+}
+
+/** The mole, asleep in its den at the end of its tunnel: curled up on a nest of dry grass and leaves,
+ *  big pink paws by its pointy nose. Clicked, it wakes: opens an eye, wiggles its nose, stretches
+ *  its paws (hollow.css, scenes.ts). */
+function moleDen(x: number, y: number, rand: () => number) {
+  const tunnel = `M${f(x - 70)} ${f(y - 58)}C${f(x - 64)} ${f(y - 40)} ${f(x - 40)} ${f(y - 28)} ${f(x - 22)} ${f(y - 10)}`;
+  let s = `<path d="${tunnel}" stroke="#4a2a26" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.35"/><path d="${tunnel}" stroke="#140a0e" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.75" filter="url(#heu-soft)"/>`;
+  s += pocket(x, y, 28, 15, rand);
+  // The nest.
+  let grass = "";
+  for (let i = 0; i < 22; i++) {
+    const gx = x - 24 + rand() * 48;
+    const gy = y + 5 + rand() * 7;
+    const a = (rand() - 0.5) * 0.9;
+    const l = 6 + rand() * 9;
+    grass += `<path d="M${f(gx)} ${f(gy)}q${f(Math.cos(a) * l * 0.5)} ${f(-2 - rand() * 2)} ${f(Math.cos(a) * l)} ${f(Math.sin(a) * l)}" stroke="${rand() < 0.5 ? "#6b5538" : "#54432e"}" stroke-width="0.9" fill="none" stroke-linecap="round"/>`;
+  }
+  s += grass;
+  s += `<path transform="translate(${f(x + 16)} ${f(y + 8)}) rotate(-20)" d="M0 0Q4-4 9-1Q5 3 0 0Z" fill="#7a3f14" opacity="0.85"/><path transform="translate(${f(x - 22)} ${f(y + 9)}) rotate(14)" d="M0 0Q4-4 9-1Q5 3 0 0Z" fill="#8a4a12" opacity="0.8"/>`;
+  // The mole: a round velvety body, a little tail, a pointy snout with a pink tip, paws.
+  s += `<g class="heu-mole" data-poke="mole" transform="translate(${f(x)} ${f(y + 1)})">`;
+  s += `<g class="heu-mole__body"><path d="M-14 4C-17-4-10-11 0-11C9-11 15-6 15 1C15 6 10 8 2 8C-6 8-12 7-14 4Z" fill="url(#heu-fur)"/>`;
+  s += `<path d="M-15 3q-3 1-4 -1" stroke="#c98a95" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M-8-8Q0-12 8-8" stroke="#7a6c78" stroke-width="1" fill="none" opacity="0.6"/></g>`;
+  s += `<g class="heu-mole__head"><path d="M12-2Q20-2 22 1Q20 3.5 13 4Z" fill="#3e333c"/><ellipse class="heu-mole__nose" cx="22.4" cy="1" rx="1.8" ry="1.4" fill="#e79aa8"/>`;
+  s += `<path class="heu-mole__shut" d="M10.5-1q1.2 0.9 2.4 0" stroke="#120c12" stroke-width="0.7" fill="none"/><circle class="heu-mole__eye" cx="11.7" cy="-0.6" r="0.8" fill="#120c12"/><circle class="heu-mole__eye" cx="11.4" cy="-0.9" r="0.25" fill="#fff"/></g>`;
+  s += `<g class="heu-mole__paws" fill="#e8a2ae"><path d="M8 4c3-1 7 0 8 3c-2 1.5-6 1.6-8 0.4z"/><path d="M3 5c3 0 6 1.5 6 4c-2 1-5 0.6-6.6-0.8z"/><path d="M10 6.2l3 0.6M5 7l3 1" stroke="#b56d7a" stroke-width="0.5"/></g>`;
+  s += `<text class="heu-mole__z" x="-8" y="-17" font-size="7" font-weight="800" fill="#8d7fb0" font-family="Baloo 2 Variable, sans-serif">z</text>`;
+  s += `</g>`;
+  return s;
+}
+
+/** Someone's secret candy stash: an old dented cookie tin on its side, its lid off, sweets and a
+ *  lollipop spilling out. It glints when clicked, and you've found it (scenes.ts). */
+function stash(x: number, y: number, rand: () => number) {
   const corn = (cx: number, cy: number, a: number) =>
-    `<g transform="translate(${cx} ${cy}) rotate(${a})"><path d="M-3.4 3.2L0-4.6L3.4 3.2Q0 4.4-3.4 3.2Z" fill="#ffd23f"/><path d="M-2.1 0.2L-1 -2.2H1L2.1 0.2Z" fill="#ff8a1f"/><path d="M-0.95 -2.2L0-4.6L0.95-2.2Z" fill="#fff6e6"/></g>`;
+    `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${a})"><path d="M-3.4 3.2L0-4.6L3.4 3.2Q0 4.4-3.4 3.2Z" fill="#ffd23f"/><path d="M-2.1 0.2L-1 -2.2H1L2.1 0.2Z" fill="#ff8a1f"/><path d="M-0.95 -2.2L0-4.6L0.95-2.2Z" fill="#fff6e6"/></g>`;
   const sweet = (cx: number, cy: number, a: number, c: string) =>
-    `<g transform="translate(${cx} ${cy}) rotate(${a})"><path d="M-7-2.6L-4 0-7 2.6ZM7-2.6L4 0 7 2.6Z" fill="${c}" opacity="0.85"/><ellipse rx="4.2" ry="3" fill="${c}"/><path d="M-2.4-1.2q2.4-1.2 4.8 0" stroke="#fff" stroke-width="0.7" fill="none" opacity="0.6"/></g>`;
-  return (
-    `<g class="heu-stash" data-poke="stash" transform="translate(${f(x)} ${f(y)})">` +
-    `<path d="M-26 6C-28-6-14-14 0-14S27-6 26 5S12 15 0 15S-24 15-26 6Z" fill="#08050c" stroke="#2c1f3d" stroke-width="2.2"/>` +
-    `<path d="M-2 3L-9-4" stroke="#f3ead8" stroke-width="1.4" stroke-linecap="round"/><circle cx="-11" cy="-6" r="3.6" fill="#9b5de5"/><path d="M-13-7.4a2.2 2.2 0 0 1 3.6 0.8" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.7"/>` +
-    sweet(-12, 6, 10, "#e94f64") + sweet(10, 7, -14, "#58c46d") + corn(-2, 4, -8) + corn(4, 9, 22) + corn(-17, 8, 40) + sweet(0, 10, 4, "#4aa3ff") + corn(13, 2, -30) +
-    `<g class="heu-stash__glints" fill="#fff6dc">${[[-10, 0], [6, 2], [16, -6], [-2, 8]].map(([gx, gy], i) => `<path d="M${gx} ${gy - 3}L${gx + 0.8} ${gy}L${gx} ${gy + 3}L${gx - 0.8} ${gy}ZM${gx - 3} ${gy}L${gx} ${gy + 0.8}L${gx + 3} ${gy}L${gx} ${gy - 0.8}Z" style="animation-delay:${i * 0.15}s"/>`).join("")}</g></g>`
-  );
-};
+    `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${a})"><path d="M-6-2.2L-3.4 0-6 2.2ZM6-2.2L3.4 0 6 2.2Z" fill="${c}" opacity="0.85"/><ellipse rx="3.6" ry="2.6" fill="${c}"/><path d="M-2-1q2-1 4 0" stroke="#fff" stroke-width="0.6" fill="none" opacity="0.6"/></g>`;
+  let s = pocket(x, y, 26, 13, rand);
+  s += `<g class="heu-stash" data-poke="stash">`;
+  // The tin: its side showing, a faded band, rust spots, the open end.
+  s += `<g transform="translate(${f(x - 6)} ${f(y)}) rotate(-14)"><rect x="-14" y="-9" width="22" height="16" rx="2" fill="url(#heu-tin)" stroke="#1d2a35" stroke-width="0.8"/>`;
+  s += `<path d="M-14-2H8M-14 2H8" stroke="#8a6a3a" stroke-width="1.4" opacity="0.6"/><circle cx="-8" cy="4" r="1.8" fill="#6b3f2a" opacity="0.8"/><circle cx="2" cy="-6" r="1.2" fill="#6b3f2a" opacity="0.7"/>`;
+  s += `<ellipse cx="8" cy="-1" rx="3.4" ry="8" fill="#101820" stroke="#7a9aa8" stroke-width="0.9"/></g>`;
+  // Its lid, leaning against it.
+  s += `<ellipse cx="${f(x - 24)}" cy="${f(y + 1)}" rx="3" ry="8.4" transform="rotate(16 ${f(x - 24)} ${f(y + 1)})" fill="#4a6676" stroke="#7a9aa8" stroke-width="0.8"/>`;
+  s += sweet(x + 10, y + 3, 12, "#e94f64") + corn(x + 16, y - 1, 30) + sweet(x + 19, y + 6, -10, "#58c46d") + corn(x + 7, y + 8, -20);
+  s += `<path d="M${f(x + 4)} ${f(y - 2)}L${f(x + 12)} ${f(y - 9)}" stroke="#f3ead8" stroke-width="1.2" stroke-linecap="round"/><circle cx="${f(x + 13.5)}" cy="${f(y - 10.5)}" r="3.2" fill="#9b5de5"/><path d="M${f(x + 12)} ${f(y - 11.6)}a2 2 0 0 1 3 0.6" stroke="#fff" stroke-width="0.7" fill="none" opacity="0.7"/>`;
+  s += `<g class="heu-stash__glints" fill="#fff6dc">${[[x + 10, y], [x + 16, y - 5], [x + 13, y - 13], [x + 20, y + 6]].map(([gx, gy], i) => `<path d="M${f(gx)} ${f(gy - 3)}L${f(gx + 0.8)} ${f(gy)}L${f(gx)} ${f(gy + 3)}L${f(gx - 0.8)} ${f(gy)}ZM${f(gx - 3)} ${f(gy)}L${f(gx)} ${f(gy + 0.8)}L${f(gx + 3)} ${f(gy)}L${f(gx)} ${f(gy - 0.8)}Z" style="animation-delay:${i * 0.15}s"/>`).join("")}</g>`;
+  s += `</g>`;
+  return s + earthOver([[x - 18, y + 9, 4], [x + 22, y + 10, 3.4]]);
+}
+
+/** A worm asleep in its chamber at the end of its tunnel, tucked under a dry leaf. */
+function wormChamber(x: number, y: number, rand: () => number) {
+  const tunnel = `M${f(x + 40)} ${f(y - 56)}C${f(x + 34)} ${f(y - 36)} ${f(x + 20)} ${f(y - 16)} ${f(x + 8)} ${f(y - 6)}`;
+  let s = `<path d="${tunnel}" stroke="#4a2a26" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.35"/><path d="${tunnel}" stroke="#140a0e" stroke-width="4.6" fill="none" stroke-linecap="round" opacity="0.75" filter="url(#heu-soft)"/>`;
+  s += pocket(x, y, 15, 9, rand);
+  s += worm(x - 2, y + 1, "M-8 2C-9-5-1-8 5-6S8 4 1 4S-4-1 1-2", { width: 4, color: "#8c5068", dark: "#552a3a", saddle: 8, head: [1, -2], eyes: "shut" });
+  s += `<path transform="translate(${f(x - 2)} ${f(y + 1)}) rotate(-8)" d="M0 0Q6-6 13-1Q6 4 0 0Z" fill="#8a4a12" opacity="0.9"/><path transform="translate(${f(x - 2)} ${f(y + 1)}) rotate(-8)" d="M0 0L12-1" stroke="#4a2408" stroke-width="0.5"/>`;
+  return s;
+}
 
 /** An old wooden coffin, lying a little crooked: planks, a long cross on the lid, and nails. Pointed at, the lid slides open a crack and a pair of eyes looks out. */
 const coffin = (x: number, y: number, a: number) => {
@@ -207,8 +348,13 @@ export function underArt(w: number, spots: Spot[]) {
     <linearGradient id="heu-tunnel-rim"><stop offset="0" stop-color="#33244a" stop-opacity="0"/><stop offset="0.4" stop-color="#33244a"/></linearGradient>
     <radialGradient id="heu-warm"><stop offset="0" stop-color="#ff8a2e" stop-opacity="0.42"/><stop offset="0.5" stop-color="#ff7518" stop-opacity="0.13"/><stop offset="1" stop-color="#ff7518" stop-opacity="0"/></radialGradient>
     <linearGradient id="heu-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0710" stop-opacity="0"/><stop offset="1" stop-color="#0b0710"/></linearGradient>
-    <linearGradient id="heu-shroom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7dffc9"/><stop offset="1" stop-color="#2fb592"/></linearGradient>
-    <radialGradient id="heu-shroom-glow"><stop offset="0" stop-color="#5dffc0" stop-opacity="0.35"/><stop offset="1" stop-color="#5dffc0" stop-opacity="0"/></radialGradient>
+    <radialGradient id="heu-glow-deep"><stop offset="0" stop-color="#ff8a2e" stop-opacity="0.1"/><stop offset="0.55" stop-color="#ff7518" stop-opacity="0.04"/><stop offset="1" stop-color="#ff7518" stop-opacity="0"/></radialGradient>
+    <radialGradient id="heu-pocket" cx="0.5" cy="0.42" r="0.55"><stop offset="0" stop-color="${HOLE}" stop-opacity="0.75"/><stop offset="0.7" stop-color="${HOLE}" stop-opacity="0.55"/><stop offset="1" stop-color="${HOLE}" stop-opacity="0"/></radialGradient>
+    <radialGradient id="heu-fur" cx="0.45" cy="0.3" r="0.8"><stop offset="0" stop-color="#5a4d57"/><stop offset="0.6" stop-color="#3a2f37"/><stop offset="1" stop-color="#261e25"/></radialGradient>
+    <linearGradient id="heu-tin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#58798a"/><stop offset="0.5" stop-color="#3c5666"/><stop offset="1" stop-color="#26394a"/></linearGradient>
+    <radialGradient id="heu-marble" cx="0.35" cy="0.35" r="0.7"><stop offset="0" stop-color="#b8f0ff"/><stop offset="0.5" stop-color="#3a8fb0"/><stop offset="1" stop-color="#173b52"/></radialGradient>
+    <filter id="heu-soft" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="1.2"/></filter>
+    <filter id="heu-softer" x="-5%" y="-200%" width="110%" height="500%"><feGaussianBlur stdDeviation="3"/></filter>
     <radialGradient id="heu-crystal-glow"><stop offset="0" stop-color="#a77bff" stop-opacity="0.4"/><stop offset="1" stop-color="#a77bff" stop-opacity="0"/></radialGradient>`;
   let s = "";
 
@@ -224,11 +370,41 @@ export function underArt(w: number, spots: Spot[]) {
     return bx === ax ? ay : ay + ((by - ay) * (x - ax)) / (bx - ax);
   };
 
-  // The cut face, and its layers of earth, darker as they go down, each edge catching a little light.
-  s += `<path d="${edgeD}L${w + 30} ${UNDER_H}L-10 ${UNDER_H}Z" fill="#21141f"/>`;
-  const layer = (y: number, amp: number, k: number, ph: number, fill: string, edge: string) =>
-    `<path d="${wavy(w, y, amp, k, ph)}L${w + 40} ${UNDER_H}L0 ${UNDER_H}Z" fill="${fill}"/><path d="${wavy(w, y, amp, k, ph)}" stroke="${edge}" stroke-width="2" fill="none" opacity="0.55"/>`;
-  s += layer(CLAY, 7, 140, 1, "#25131a", "#3a2230") + layer(STONES, 9, 190, 2, "#1a1222", "#2e2340") + layer(DEEP, 8, 160, 3, "#130d1a", "#251b33");
+  // The cut face and its layers of earth, drawn: each a flat colour shading darker towards its
+  // bottom, a couple of broken lines through it where it settled, specks in little clusters; each
+  // edge catching a little light, a soft shadow under it.
+  s += `<path d="${edgeD}L${w + 30} ${UNDER_H}L-10 ${UNDER_H}Z" fill="${TOPSOIL_C}"/>`;
+  const bands: [number, number, number, number, string, string, number][] = [
+    [0, 0, 1, 0, TOPSOIL_C, "", CLAY],
+    [CLAY, 7, 140, 1, CLAY_C, "#3a2230", STONES],
+    [STONES, 9, 190, 2, STONES_C, "#2e2340", DEEP],
+    [DEEP, 8, 160, 3, DEEP_C, "#251b33", UNDER_H - 40],
+  ];
+  for (const [i, [y, amp, k, ph, fill, , next]] of bands.entries()) {
+    if (i > 0) s += `<path d="${wavy(w, y, amp, k, ph)}L${w + 40} ${UNDER_H}L0 ${UNDER_H}Z" fill="${fill}"/>`;
+    s += `<linearGradient id="heu-band${i}" gradientUnits="userSpaceOnUse" x1="0" y1="${y}" x2="0" y2="${next + 6}"><stop offset="0" stop-color="#ffd2b0" stop-opacity="0.045"/><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#05020a" stop-opacity="0.3"/></linearGradient>`;
+    s += `<rect x="0" y="${y - 12}" width="${w}" height="${next - y + 30}" fill="url(#heu-band${i})"/>`;
+    for (const t of [0.35, 0.68]) {
+      const ly = y + (next - y) * t;
+      let d = "";
+      for (let x = rand() * 80; x < w; x += 60 + rand() * 140) {
+        const len = 40 + rand() * 120;
+        d += `M${f(x)} ${f(waveY(x, ly, amp * 0.8 + 1, k, ph))}`;
+        for (let xx = x + 10; xx < x + len; xx += 10) d += `L${f(xx)} ${f(waveY(xx, ly, amp * 0.8 + 1, k, ph))}`;
+      }
+      s += `<path d="${d}" stroke="${i >= 2 ? "#2a2236" : "#3a2228"}" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.55"/>`;
+    }
+    for (let c = 0; c < w / 128; c++) {
+      const cx = rand() * w;
+      const cy = y + 8 + rand() * (next - y - 14);
+      for (let j = 0; j < 4; j++)
+        s += `<circle cx="${f(cx + (rand() - 0.5) * 16)}" cy="${f(cy + (rand() - 0.5) * 7)}" r="${f(0.5 + rand() * 0.8)}" fill="${i >= 2 ? "#352b45" : "#4a2e30"}" opacity="0.8"/>`;
+    }
+  }
+  for (const [y, amp, k, ph, , edge] of bands.slice(1)) {
+    s += `<path d="${wavy(w, y + 4, amp, k, ph)}" stroke="#05020a" stroke-width="7" fill="none" opacity="0.4" filter="url(#heu-softer)"/>`;
+    s += `<path d="${wavy(w, y, amp, k, ph)}" stroke="${edge}" stroke-width="1.6" fill="none" opacity="0.6"/>`;
+  }
 
   // The patch's roots, from under every pumpkin (and the odd weed), branching down.
   const root = (x: number, y: number, a: number, len: number, wd: number, depth: number): string => {
@@ -263,8 +439,6 @@ export function underArt(w: number, spots: Spot[]) {
     [at(0.8), 194, 40],
     [at(0.93), 186, 22],
   ];
-  // Faint lines of sediment through the stony layer.
-  for (const [y, ph] of [[STONES + 34, 0.7], [STONES + 70, 2.4], [STONES + 104, 4.1]]) s += `<path d="${wavy(w, y, 4, 120, ph)}" stroke="#221a2e" stroke-width="1.2" fill="none" stroke-dasharray="90 30 40 60" opacity="0.7"/>`;
   // Stones in a few loose heaps (one big stone, smaller ones round it) and a couple of boulders
   // sitting across where the clay meets the stones; none on top of another, or of the things.
   const placed: [number, number, number][] = [...things];
@@ -291,20 +465,25 @@ export function underArt(w: number, spots: Spot[]) {
   s += worm(at(0.36), 40, "M0 0c8-8 14 6 22-2s14 6 22-2s12 4 16-2", { width: 5, color: "#7a4256", dark: "#4a2333", saddle: 34, head: [60, -6], eyes: "open", tunnel: "M-70 24C-50 22-30 6 0 0" });
   s += worm(at(0.53), 48, "M0 0c4-3 8-2 10-8s6-8 10-6", { width: 4.6, color: "#6b3a4a", dark: "#3f1d2b", saddle: 6, head: [20, -14], eyes: "up", tunnel: "M-90 6c20 6 40-14 60-8S-14 8 0 0" });
   s += beetle(at(0.08), 56, 20) + snail(at(0.94), 44) + beetle(at(0.72), 58, -30);
-  // In the clay: a skeleton asleep, glowing mushrooms, someone's candy stash, a worm asleep in its
-  // burrow, old bones and a lost key.
-  s += bone(at(0.05), 104, 18, 28) + skeleton(at(0.17), 110) + mushrooms(at(0.33), 102) + stash(at(0.46), 108);
-  s += bone(at(0.565), 104, -24, 22) + bone(at(0.575), 110, 36, 18);
-  s += `<path transform="translate(${f(at(0.67))} 112)" d="M-16 2C-17-7-7-11 1-10S15-8 16 0S9 10 0 10S-15 9-16 2Z" fill="#08050c" stroke="#2c1f3d" stroke-width="2.2" stroke-linejoin="round"/>`;
-  s += worm(at(0.67), 113, "M-8 2C-9-5-1-8 5-6S8 4 1 4S-4-1 1-2", { width: 4, color: "#8c5068", dark: "#552a3a", saddle: 8, head: [1, -2], eyes: "shut" });
-  s += key(at(0.78), 104, -18) + bone(at(0.9), 120, 8, 30);
+  // In the clay, in a few groups with plain earth between them: an old bone; the skeleton asleep in
+  // its grave; a coin and a button; the mole in its den; a marble and a bird's skull; the candy
+  // stash; the worm in its chamber and a bit of an old pot; the key.
+  s += longBone(at(0.11), 128, 12, 20) + earthOver([[at(0.11) + 10, 132, 4.5]]);
+  s += skeleton(at(0.195), 112, rand);
+  s += coin(at(0.275), 98) + button(at(0.31), 133);
+  s += moleDen(at(0.47), 118, rand);
+  s += marble(at(0.54), 101) + birdSkull(at(0.565), 133, -8);
+  s += stash(at(0.67), 115, rand);
+  s += wormChamber(at(0.805), 108, rand) + shard(at(0.865), 99, 18);
+  s += key(at(0.92), 128, -16);
   // In the stones: a fossil shell, the coffin, purple crystals, a fossil fish, and a little skull.
   const [shell, box, gems, fishy, head] = things;
-  s += fossil(shell[0], shell[1], -8, "shell") + coffin(box[0], box[1], -4) + crystals(gems[0], gems[1]) + fossil(fishy[0], fishy[1], 6, "fish");
-  s += `<g transform="translate(${f(head[0])} ${head[1]}) rotate(14)" fill="${BONE}"><path d="M-8 0a8 8 0 1 1 16 0v5h-3v3h-10v-3h-3z"/><circle cx="-3.2" cy="0" r="2.1" fill="#120a17"/><circle cx="3.2" cy="0" r="2.1" fill="#120a17"/><path d="M-0.8 3.4l0.8-1.6 0.8 1.6z" fill="#120a17"/></g>`;
+  s += pocket(box[0], box[1] + 1, 46, 16, rand) + fossil(shell[0], shell[1], -8, "shell") + coffin(box[0], box[1], -4) + crystals(gems[0], gems[1]) + fossil(fishy[0], fishy[1], 6, "fish");
+  s += `<g transform="translate(${f(head[0])} ${head[1]}) rotate(14)" fill="${DEEP_BONE}"><path d="M-8 0a8 8 0 1 1 16 0v5h-3v3h-10v-3h-3z"/><circle cx="-3.2" cy="0" r="2.1" fill="#120a17"/><circle cx="3.2" cy="0" r="2.1" fill="#120a17"/><path d="M-0.8 3.4l0.8-1.6 0.8 1.6z" fill="#120a17"/></g>`;
 
   // Candlelight from the lit pumpkins spilling over the edge onto the cut face.
-  for (const p of spots.filter((p) => p.lit)) s += `<ellipse cx="${f(p.x)}" cy="0" rx="${f(p.size * 1.9)}" ry="${f(40 + p.size)}" fill="url(#heu-warm)"/>`;
+  for (const p of spots.filter((p) => p.lit))
+    s += `<ellipse cx="${f(p.x)}" cy="0" rx="${f(p.size * 1.9)}" ry="${f(40 + p.size)}" fill="url(#heu-warm)"/><ellipse cx="${f(p.x)}" cy="20" rx="${f(150 + p.size * 2)}" ry="150" fill="url(#heu-glow-deep)"/>`;
 
   // The lip: a shadow under it, a pale rim where it's cut, crumbs falling, fine roots poking out
   // of the cut and dangling, and the odd fallen leaf lying on the edge. (The grass growing along

@@ -3,7 +3,7 @@
 // a click, never to the pointer just passing by (too many sounds otherwise): pumpkins wobble with
 // a knock, the house's door creaks open, the ghost (peeking out from behind its tombstone now and
 // then) gets a fright and ducks back down, and under the patch the skeleton wakes up, the coffin
-// opens, the mushrooms puff spores and the candy stash is found. On show pages, the tomb's gate
+// opens, the mole wakes and the candy stash is found. On show pages, the tomb's gate
 // creaks open (eyes looking out), its gargoyle turns its head, its candles can be blown out. Once
 // in a while a pair of eyes looks out of the tomb's door by itself.
 import { playSound } from "../sound";
@@ -36,7 +36,7 @@ const POKES: Record<string, { ms: number; sounds?: ["rattle" | "scrape" | "moan"
   skeleton: { ms: 2600, sounds: [["rattle", 0]] },
   coffin: { ms: 2800, sounds: [["scrape", 0], ["moan", 650]] },
   stash: { ms: 1800 },
-  mushrooms: { ms: 1900 },
+  mole: { ms: 2600 },
   crystals: { ms: 1600 },
 };
 /** What you're told when you find the candy stash. */

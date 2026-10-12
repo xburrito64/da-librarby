@@ -1999,13 +1999,14 @@
 
 /* Who lives down there, and what they do when clicked (under.ts, scenes.ts). The pointer shows
    they can be clicked (scenes.ts sets .he-can-poke). The skeleton dozes,
-   then lifts its head, waves and chatters; the mushrooms glow and puff spores; the candy stash
-   glints; the coffin's lid slides open a crack and eyes look out; the crystals twinkle. */
+   then lifts its head, waves and chatters; the mole wakes, blinks, wiggles its nose and stretches
+   its paws; the candy stash glints; the coffin's lid slides open a crack and eyes look out; the
+   crystals twinkle. */
 :root.he-can-poke[data-theme="hollow"] :is(.home__rows, .tp, .tp *) {
   cursor: pointer;
 }
 
-.he-under :is(.heu-skel__head, .heu-skel__arm, .heu-skel__jaw, .heu-skel__z, .heu-coffin__lid, .heu-stash__glints path) {
+.he-under :is(.heu-skel__head, .heu-skel__arm, .heu-skel__jaw, .heu-skel__z, .heu-coffin__lid, .heu-stash__glints path, .heu-mole__body, .heu-mole__head, .heu-mole__nose, .heu-mole__paws, .heu-mole__z) {
   transform-box: fill-box;
 }
 
@@ -2076,13 +2077,8 @@
   }
 }
 
-.heu-shrooms__glow,
 .heu-crystals__glow {
-  animation: heu-pulse 4s ease-in-out infinite alternate;
-}
-
-.heu-crystals__glow {
-  animation-duration: 6s;
+  animation: heu-pulse 6s ease-in-out infinite alternate;
 }
 
 @keyframes heu-pulse {
@@ -2094,25 +2090,87 @@
   }
 }
 
-.heu-shrooms__spores circle {
+/* The mole: asleep, breathing slowly; clicked, it opens an eye, wiggles its nose, stretches its
+   paws and lifts its head a little, then dozes off again. */
+.heu-mole__body {
+  transform-origin: 50% 100%;
+  animation: heu-breathe 3.4s ease-in-out infinite;
+}
+
+@keyframes heu-breathe {
+  50% {
+    transform: scale(1.03, 1.06);
+  }
+}
+
+.heu-mole__z {
+  animation: heu-z 3.6s ease-out infinite 1.2s;
+}
+
+.heu-mole__eye {
   opacity: 0;
 }
 
-.heu-shrooms.is-poked .heu-shrooms__spores circle {
-  animation: heu-spore 1.7s ease-out both;
+.heu-mole.is-poked .heu-mole__eye {
+  opacity: 1;
+  animation: heu-mole-eye 2.4s steps(1);
 }
 
-@keyframes heu-spore {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0);
-  }
-  20% {
+.heu-mole.is-poked .heu-mole__shut,
+.heu-mole.is-poked .heu-mole__z {
+  visibility: hidden;
+}
+
+@keyframes heu-mole-eye {
+  0%,
+  42%,
+  52%,
+  100% {
     opacity: 1;
   }
-  100% {
+  45% {
     opacity: 0;
-    transform: translate(5px, -24px);
+  }
+}
+
+.heu-mole__head {
+  transform-origin: 0% 60%;
+  transition: transform 0.4s var(--spring);
+}
+
+.heu-mole.is-poked .heu-mole__head {
+  transform: rotate(-12deg) translate(0.5px, -1px);
+}
+
+.heu-mole__nose {
+  transform-origin: center;
+}
+
+.heu-mole.is-poked .heu-mole__nose {
+  animation: heu-sniff 0.18s ease-in-out 0.3s 8;
+}
+
+@keyframes heu-sniff {
+  50% {
+    transform: translate(0.6px, -0.5px) scale(1.15);
+  }
+}
+
+.heu-mole__paws {
+  transform-origin: 0% 50%;
+}
+
+.heu-mole.is-poked .heu-mole__paws {
+  animation: heu-stretch 2.2s ease-in-out;
+}
+
+@keyframes heu-stretch {
+  20%,
+  60% {
+    transform: translate(2.5px, -1px) rotate(-14deg);
+  }
+  40% {
+    transform: translate(3px, -1.5px) rotate(-20deg);
   }
 }
 
