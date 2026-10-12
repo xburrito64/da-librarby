@@ -9,6 +9,7 @@ import { SOUNDS } from "./sounds";
 import Decor from "./Decor";
 import Candle from "./Candle";
 import { drawArt } from "./art";
+import { applyFonts, fontChoices, TABLET_FONTS, TITLE_FONTS } from "./fonts";
 
 drawArt();
 
@@ -105,6 +106,20 @@ export const HOLLOW: Theme = {
         default: "normal",
       },
       {
+        id: "titleFont",
+        label: "Title font",
+        hint: "For titles and headings.",
+        choices: fontChoices(TITLE_FONTS),
+        default: "creepster",
+      },
+      {
+        id: "tabletFont",
+        label: "Tablet font",
+        hint: "For the description on the stone tablet on the home screen.",
+        choices: fontChoices(TABLET_FONTS),
+        default: "baloo",
+      },
+      {
         id: "volume",
         label: "Sound volume",
         choices: [
@@ -180,6 +195,7 @@ export const HOLLOW: Theme = {
       ],
       music: true,
     },
+    apply: (options) => applyFonts(String(options.titleFont ?? "creepster"), String(options.tabletFont ?? "baloo")),
     Decor,
     PlayIntro: Candle,
     brandClick: trickOrTreat,

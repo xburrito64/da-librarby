@@ -44,13 +44,19 @@ export function startTitleFit() {
   const changes = new MutationObserver(later);
   changes.observe(document.body, { childList: true, subtree: true, characterData: true });
   window.addEventListener("resize", later);
-  // Once the spooky font has arrived, measure again (it's wider than the one shown before it).
-  document.fonts?.ready.then(() => {
+  // Once the spooky font has arrived, measure again (it's wider than the one shown before it); and
+  // again whenever another title font is picked (fonts.ts) or a font finishes loading.
+  const again = () => {
     document.querySelectorAll<HTMLElement>(".hero__title").forEach((t) => done.delete(t));
     later();
-  });
+  };
+  document.fonts?.ready.then(again);
+  document.fonts?.addEventListener("loadingdone", again);
+  window.addEventListener("he:fonts", again);
   check();
   return () => {
+    document.fonts?.removeEventListener("loadingdone", again);
+    window.removeEventListener("he:fonts", again);
     changes.disconnect();
     cancelAnimationFrame(queued);
     window.removeEventListener("resize", later);

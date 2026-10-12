@@ -74,11 +74,12 @@
   color: var(--he-bone);
 }
 
-/* Small labels: toxic green, glowing a little. */
+/* Small labels over the artwork: soft lilac, spaced out. */
 :root[data-theme="hollow"] :is(.hero__eyebrow, .tp__eyebrow) {
-  color: var(--he-slime);
+  color: #c9b6ee;
   font-size: 12.5px;
-  text-shadow: 0 0 10px rgba(156, 255, 58, 0.35);
+  letter-spacing: 0.16em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
 }
 
 /* ---------- Embers floating up, behind the pages (Decor.tsx) ---------- */
@@ -692,10 +693,12 @@
 
 /* ---------- Spotlight: over the pumpkin patch ---------- */
 
+/* The artwork darkens behind the words, so they read on it without a box round them. */
 :root[data-theme="hollow"] .hero__shade {
   background:
     linear-gradient(to top, var(--bg) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 26%, transparent 55%),
-    linear-gradient(to right, rgba(11, 7, 16, 0.92) 0%, rgba(11, 7, 16, 0.5) 40%, transparent 70%),
+    radial-gradient(ellipse 60% 75% at 14% 70%, rgba(11, 7, 16, 0.9) 0%, rgba(11, 7, 16, 0.72) 45%, transparent 80%),
+    linear-gradient(to right, rgba(11, 7, 16, 0.75) 0%, rgba(11, 7, 16, 0.35) 40%, transparent 70%),
     linear-gradient(rgba(61, 31, 92, 0.25), transparent 40%);
 }
 
@@ -709,19 +712,54 @@
      the letters (and the margins take that back), so their glow isn't cut off at its edges. */
   margin: -26px -40px -12px;
   padding: 34px 40px 26px;
-  font-size: clamp(40px, 4.4vw, 72px);
-  line-height: 0.95;
+  font-size: clamp(36px, 3.7vw, 60px);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(255, 140, 40, 0.45),
+    0 0 46px rgba(255, 117, 24, 0.3);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
+/* The description on a weathered stone tablet: chipped edges, moss along its foot, a little cobweb in
+   its corner. Its font is a setting of its own (fonts.ts). */
 :root[data-theme="hollow"] .hero__desc-box {
-  padding: 14px 18px;
-  border-radius: 16px;
-  background: rgba(14, 9, 20, 0.84);
-  box-shadow: inset 0 0 0 1px var(--line);
+  position: relative;
+  padding: 15px 20px 17px;
+  background: linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%);
+  clip-path: polygon(0 6px, 8px 0, 38% 0, 40% 3px, 43% 0, calc(100% - 4px) 0, 100% 5px, 100% calc(100% - 9px), calc(100% - 7px) 100%, 64% 100%, 61% calc(100% - 3px), 58% 100%, 6px 100%, 0 calc(100% - 5px));
+  box-shadow:
+    inset 0 0 0 1px #4a3d5e,
+    inset 0 2px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -10px 24px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme="hollow"] .hero__desc-box::before,
+:root[data-theme="hollow"] .hero__desc-box::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  background: center / contain no-repeat;
+}
+
+:root[data-theme="hollow"] .hero__desc-box::before {
+  right: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg stroke='rgba(243,234,216,.45)' stroke-width='.7' fill='none'%3E%3Cpath d='M40 0L4 2M40 0L12 18M40 0L24 30M40 0L38 38'/%3E%3Cpath d='M31 .5Q32 6 34 7.5Q37 8 39.5 9'/%3E%3Cpath d='M22 1Q24 10 28 14Q33 17 39 19'/%3E%3Cpath d='M13 1.5Q16 14 22 22Q30 27 38.6 29'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+:root[data-theme="hollow"] .hero__desc-box::after {
+  left: 12px;
+  bottom: -2px;
+  width: 64px;
+  height: 15px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 14'%3E%3Cpath d='M0 14C4 6 10 4 16 7C22 2 30 3 34 8C40 5 48 6 52 11L60 14Z' fill='%2333402a'/%3E%3Cpath d='M6 12c2-3 5-4 8-3M24 9c3-2 6-2 9 0' stroke='%234a5e36' stroke-width='1' fill='none'/%3E%3C/svg%3E");
 }
 
 :root[data-theme="hollow"] .hero__desc-box:has(.hero__desc:empty) {
@@ -730,8 +768,44 @@
 
 :root[data-theme="hollow"] .hero__desc {
   min-height: 0;
-  color: #e8dccb;
+  color: #e2d6c4;
+  font-family: var(--he-tablet-font, var(--font-body));
   font-size: 16.5px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* Its buttons: Play glowing like a lit pumpkin, More info misty purple. */
+:root[data-theme="hollow"] .hero__actions .btn--primary {
+  background: radial-gradient(120% 140% at 50% 0%, #ffad5c 0%, #ff8a2e 35%, #e25d0c 100%);
+  color: #2a1004;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 190, 110, 0.5),
+    0 0 22px rgba(255, 117, 24, 0.55),
+    0 0 60px rgba(255, 117, 24, 0.22);
+}
+
+:root[data-theme="hollow"] .hero__actions .btn--primary:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 210, 140, 0.7),
+    0 0 30px rgba(255, 117, 24, 0.75),
+    0 0 70px rgba(255, 117, 24, 0.3);
+}
+
+:root[data-theme="hollow"] .hero__actions .btn:not(.btn--primary) {
+  background: rgba(107, 63, 160, 0.26);
+  color: #efe6ff;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(201, 182, 238, 0.42),
+    0 0 18px rgba(107, 63, 160, 0.25);
+  backdrop-filter: blur(6px);
+}
+
+:root[data-theme="hollow"] .hero__actions .btn:not(.btn--primary):hover {
+  background: rgba(107, 63, 160, 0.4);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(214, 198, 246, 0.7),
+    0 0 22px rgba(107, 63, 160, 0.4);
+  color: #fff;
 }
 
 :root[data-theme="hollow"] .hero__dots {

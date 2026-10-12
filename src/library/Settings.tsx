@@ -209,6 +209,7 @@ function ThemeOptions() {
                   role="radio"
                   aria-checked={values[o.id] === c.value}
                   className={`choice ${values[o.id] === c.value ? "is-on" : ""}`}
+                  style={c.font ? { fontFamily: c.font } : undefined}
                   onClick={() => setThemeOption(theme.id, o.id, c.value)}
                 >
                   {c.label}
