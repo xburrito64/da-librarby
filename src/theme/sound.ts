@@ -1,7 +1,7 @@
 // Interface sounds of the current theme (see `extras.sounds` in themes.ts): made up on the spot,
 // or recordings (several for one sound take turns at random). Themes without sounds are silent.
 // Sounds never play over a video, nor while the app is in the background (another window in
-// front, or minimized): what's still playing then stops at once. Sound files the owner added for the theme (see ownFiles.ts) play
+// front, or minimized): what's still playing then fades out quickly. Sound files the owner added for the theme (see ownFiles.ts) play
 // instead of the theme's own.
 import { findTheme } from "./themes";
 import { currentTheme } from "./theme";
@@ -48,6 +48,13 @@ const RECORDING_VOLUMES: Record<string, number> = { quiet: 0.5, normal: 1, loud:
 const MOVE_GAP_MS = 70;
 
 let ctx: AudioContext | null = null;
+/** Everything plays through this, so it can all be faded out at once. */
+let master: GainNode | null = null;
+/** How quickly sounds fade out when the app goes to the background (s), and when the audio is
+ *  paused after that. */
+const AWAY_FADE = 0.12;
+const AWAY_PAUSE_MS = 700;
+let awayTimer = 0;
 let muted = false;
 let lastMove = 0;
 /** The owner's sound files, decoded the first time they play. */
@@ -108,13 +115,25 @@ export function appInFront() {
   return document.visibilityState === "visible" && document.hasFocus();
 }
 
-/** Call once at startup: going to the background cuts off what's playing; coming back, sounds
- *  play again. */
+/** Call once at startup: going to the background fades out what's playing (and then pauses the
+ *  audio); coming back, sounds play again. */
 export function installSoundFocus() {
   const update = () => {
-    if (!ctx) return;
-    if (appInFront()) ctx.resume().catch(() => {});
-    else ctx.suspend().catch(() => {});
+    if (!ctx || !master) return;
+    window.clearTimeout(awayTimer);
+    const now = ctx.currentTime;
+    master.gain.cancelScheduledValues(now);
+    master.gain.setValueAtTime(master.gain.value, now);
+    if (appInFront()) {
+      ctx.resume().catch(() => {});
+      master.gain.setTargetAtTime(1, now, 0.02);
+    } else {
+      master.gain.setTargetAtTime(0, now, AWAY_FADE);
+      const audio = ctx;
+      awayTimer = window.setTimeout(() => {
+        if (!appInFront()) audio.suspend().catch(() => {});
+      }, AWAY_PAUSE_MS);
+    }
   };
   window.addEventListener("focus", update);
   window.addEventListener("blur", update);
@@ -135,14 +154,18 @@ export function playSound(name: SoundName): Promise<number | null> {
     lastMove = now;
   }
   try {
-    ctx ??= new AudioContext();
+    if (!ctx) {
+      ctx = new AudioContext();
+      master = ctx.createGain();
+      master.connect(ctx.destination);
+    }
     if (ctx.state === "suspended") ctx.resume().catch(() => {});
     const audio = ctx;
     const out = audio.createGain();
     const recorded = !file && Array.isArray(sound);
     const levels = file ? FILE_VOLUMES : recorded ? RECORDING_VOLUMES : VOLUMES;
     out.gain.value = levels[String(themeOption(theme.id, "volume") ?? "normal")] ?? levels.normal;
-    out.connect(audio.destination);
+    out.connect(master ?? audio.destination);
     if (file) {
       file.buffer ??= audio.decodeAudioData(file.data.slice(0));
       return playBuffer(audio, out, file.buffer, () => own.delete(name));

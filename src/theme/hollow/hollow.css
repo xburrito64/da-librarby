@@ -1990,8 +1990,11 @@
   pointer-events: none;
 }
 
+/* It fades out at the bottom into whatever is behind it (not into a colour of its own, which made a
+   hard line where the page's background is a little lighter). */
 .he-under__svg {
   display: block;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 240px), transparent);
 }
 
 /* Who lives down there, and what they do when clicked (under.ts, scenes.ts). The pointer shows
