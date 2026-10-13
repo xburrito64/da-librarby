@@ -734,43 +734,49 @@
   overflow: hidden;
 }
 
-/* The description on a weathered stone tablet: chipped edges, moss along its foot, a little cobweb in
-   its corner. Its font is a setting of its own (fonts.ts). A show's About is on tablets too (below). */
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar) {
+/* The stone tablets (the home banner's description, a show's description and About, a season's header,
+   the episode up next): each carved on its own by tablets.ts, which hands over its outline, the stone
+   and what sits on it (a web, moss, ivy, a candle stub, ...) as --he-stone-clip, --he-stone-tint,
+   --he-stone and --he-tablet-bits. The stone is drawn under the tablet, the things on it over it, and
+   reach up to 28px past its edges. Their font is a setting of its own (fonts.ts). */
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar),
+:root[data-theme="hollow"] .ep.is-next {
   position: relative;
+  isolation: isolate;
   padding: 15px 20px 17px;
   border: 0;
   border-radius: 0;
-  background: linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%);
-  clip-path: polygon(0 6px, 8px 0, 38% 0, 40% 3px, 43% 0, calc(100% - 4px) 0, 100% 5px, 100% calc(100% - 9px), calc(100% - 7px) 100%, 64% 100%, 61% calc(100% - 3px), 58% 100%, 6px 100%, 0 calc(100% - 5px));
+  background: none;
+  box-shadow: none;
+}
+
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar)::before,
+:root[data-theme="hollow"] .ep.is-next::before,
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar)::after,
+:root[data-theme="hollow"] .ep.is-next::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar)::before,
+:root[data-theme="hollow"] .ep.is-next::before {
+  inset: 0;
+  z-index: -1;
+  clip-path: var(--he-stone-clip, polygon(0 6px, 8px 0, 38% 0, 40% 3px, 43% 0, calc(100% - 4px) 0, 100% 5px, 100% calc(100% - 9px), calc(100% - 7px) 100%, 64% 100%, 61% calc(100% - 3px), 58% 100%, 6px 100%, 0 calc(100% - 5px)));
+  background:
+    var(--he-stone, none) 0 0 / 100% 100% no-repeat,
+    var(--he-stone-tint, linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%));
   box-shadow:
-    inset 0 0 0 1px #4a3d5e,
     inset 0 2px 0 rgba(255, 255, 255, 0.06),
     inset 0 -10px 24px rgba(0, 0, 0, 0.35);
 }
 
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group)::before,
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group)::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  background: center / contain no-repeat;
-}
-
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group)::before {
-  right: 0;
-  top: 0;
-  width: 40px;
-  height: 40px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg stroke='rgba(243,234,216,.45)' stroke-width='.7' fill='none'%3E%3Cpath d='M40 0L4 2M40 0L12 18M40 0L24 30M40 0L38 38'/%3E%3Cpath d='M31 .5Q32 6 34 7.5Q37 8 39.5 9'/%3E%3Cpath d='M22 1Q24 10 28 14Q33 17 39 19'/%3E%3Cpath d='M13 1.5Q16 14 22 22Q30 27 38.6 29'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group)::after {
-  left: 12px;
-  bottom: -2px;
-  width: 64px;
-  height: 15px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 14'%3E%3Cpath d='M0 14C4 6 10 4 16 7C22 2 30 3 34 8C40 5 48 6 52 11L60 14Z' fill='%2333402a'/%3E%3Cpath d='M6 12c2-3 5-4 8-3M24 9c3-2 6-2 9 0' stroke='%234a5e36' stroke-width='1' fill='none'/%3E%3C/svg%3E");
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar)::after,
+:root[data-theme="hollow"] .ep.is-next::after {
+  inset: -28px;
+  z-index: 1;
+  background: var(--he-tablet-bits, none) 0 0 / 100% 100% no-repeat;
 }
 
 :root[data-theme="hollow"] .hero__desc-box:has(.hero__desc:empty) {
@@ -785,29 +791,9 @@
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
 
-/* A show's About, on tablets: roomier, a hairline crack in the stone, and each a little different
-   (the cobweb in another corner, the moss at the other end, or none). */
+/* A show's About, on tablets: roomier. */
 :root[data-theme="hollow"] .mabout__group {
   padding: 22px 24px 22px;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 60'%3E%3Cpath d='M0 8L14 14L20 26L34 30L40 44L52 48L58 60M20 26L12 36M40 44L50 38' stroke='%23120c18' stroke-width='1' fill='none' stroke-linejoin='bevel' opacity='.8'/%3E%3C/svg%3E") right 0 bottom 26% / 90px 60px no-repeat,
-    linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%);
-}
-
-:root[data-theme="hollow"] .mabout__group:nth-child(3n + 2)::before {
-  right: auto;
-  left: 0;
-  transform: scaleX(-1);
-}
-
-:root[data-theme="hollow"] .mabout__group:nth-child(3n + 2)::after {
-  left: auto;
-  right: 16px;
-  transform: scaleX(-1);
-}
-
-:root[data-theme="hollow"] .mabout__group:nth-child(3n)::before {
-  display: none;
 }
 
 :root[data-theme="hollow"] .mabout__heading {
@@ -2094,17 +2080,12 @@
   display: none;
 }
 
-/* The one to watch next: on a stone tablet, a candle lit beside "Up next", its number and picture
-   glowing. */
+/* The one to watch next: on a stone tablet (carved like the others, see above), a candle lit beside
+   "Up next", its number and picture glowing. */
 :root[data-theme="hollow"] .ep.is-next,
 :root[data-theme="hollow"] .ep.is-next:hover {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg stroke='rgba(243,234,216,.4)' stroke-width='.7' fill='none'%3E%3Cpath d='M40 0L4 2M40 0L12 18M40 0L24 30M40 0L38 38'/%3E%3Cpath d='M31 .5Q32 6 34 7.5Q37 8 39.5 9'/%3E%3Cpath d='M22 1Q24 10 28 14Q33 17 39 19'/%3E%3Cpath d='M13 1.5Q16 14 22 22Q30 27 38.6 29'/%3E%3C/g%3E%3C/svg%3E") right top / 34px 34px no-repeat,
-    linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%);
-  clip-path: polygon(0 6px, 8px 0, 38% 0, 40% 3px, 43% 0, calc(100% - 4px) 0, 100% 5px, 100% calc(100% - 9px), calc(100% - 7px) 100%, 64% 100%, 61% calc(100% - 3px), 58% 100%, 6px 100%, 0 calc(100% - 5px));
-  box-shadow:
-    inset 0 0 0 1px #4a3d5e,
-    inset 0 -10px 24px rgba(0, 0, 0, 0.35);
+  padding: 16px 14px;
+  background: none;
 }
 
 :root[data-theme="hollow"] .ep.is-next .ep__num {
