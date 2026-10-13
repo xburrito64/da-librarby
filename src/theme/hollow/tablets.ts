@@ -162,6 +162,7 @@ function carve(w: number, h: number, seed: string, beside: Used | null): Carved 
     starts.push({ x: c.d, y: c.p + c.cw * c.m, nx: 1, ny: 0 });
   }
   const clip = `polygon(${pts.map(([x, y]) => `${n1(x)}px ${n1(y)}px`).join(",")})`;
+  const outline = pts.map(([x, y]) => `${n1(x)},${n1(y)}`).join(" ");
 
   // The stone: a tint (mostly the usual one), soft weathering and a fine grain.
   const tintAt = Number(weighted({ 0: 3, 1: 1, 2: 1, 3: 1, ...(beside ? { [beside.tint]: 0.4 } : {}) }));
@@ -173,7 +174,7 @@ function carve(w: number, h: number, seed: string, beside: Used | null): Carved 
 <linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a060e" stop-opacity=".34"/><stop offset="1" stop-color="#0a060e" stop-opacity="0"/></linearGradient>
 <filter id="b"><feGaussianBlur stdDeviation="4"/></filter>
 </defs><rect width="${w}" height="${h}" filter="url(#m)" opacity=".3"/><rect width="${w}" height="${h}" filter="url(#g)" opacity=".055"/>`;
-  let bits = `<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.4"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="sh" x="-1" y="-1" width="3" height="3"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000" flood-opacity=".6"/></filter></defs>`;
+  let bits = `<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.4"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><clipPath id="st"><polygon points="${outline}"/></clipPath><filter id="sh" x="-1" y="-1" width="3" height="3"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000" flood-opacity=".6"/></filter></defs>`;
 
   // Where rain ran down.
   if (things.has("stain")) {
@@ -231,6 +232,8 @@ function carve(w: number, h: number, seed: string, beside: Used | null): Carved 
     take(right ? w - 20 : 0, 0, right ? w : 20, length + 6);
     take(right ? w - run - 8 : 0, 0, right ? w : run + 8, 12);
   } else if (growth) {
+    // (Cut off where the stone ends, so it sits on the tablet's broken foot, and a touch above it.)
+    let grow = "";
     const W = growth === "moss" ? R(small ? 44 : 54, small ? 72 : 104) : growth === "grass" ? 34 : 44;
     let x: number | null = null;
     for (let i = 0; i < 12 && x == null; i++) {
@@ -238,29 +241,30 @@ function carve(w: number, h: number, seed: string, beside: Used | null): Carved 
       if (free(c - 4, h - 34, c + W + 4, h + 2)) x = c;
     }
     if (x != null) {
-      if (growth === "moss") bits += moss(x, W, R(small ? 10 : 12, small ? 14 : 19));
+      if (growth === "moss") grow += moss(x, W, R(small ? 10 : 12, small ? 14 : 19));
       if (growth === "grass") {
-        bits += moss(x + 3, 28, 7);
+        grow += moss(x + 3, 28, 7);
         for (let i = 0, n = Math.round(R(6, 10)); i < n; i++) {
           const bx = x + R(6, 28);
           const H = R(9, small ? 15 : 19);
           const lean = R(-9, 9);
-          bits += `<path d="M${n1(bx)} ${h + 1}Q${n1(bx + lean * 0.25)} ${n1(h - H * 0.6)} ${n1(bx + lean)} ${n1(h - H)}" stroke="${pick(["#4a5e36", "#5d7a3e", "#3c5a30", "#6b8a45"])}" stroke-width="${n1(R(1, 1.7))}" fill="none" stroke-linecap="round"/>`;
+          grow += `<path d="M${n1(bx)} ${h + 1}Q${n1(bx + lean * 0.25)} ${n1(h - H * 0.6)} ${n1(bx + lean)} ${n1(h - H)}" stroke="${pick(["#4a5e36", "#5d7a3e", "#3c5a30", "#6b8a45"])}" stroke-width="${n1(R(1, 1.7))}" fill="none" stroke-linecap="round"/>`;
         }
       }
       if (growth === "mushrooms") {
         const glow = chance(0.55);
         const cap = glow ? pick(["#c9a2ff", "#9ff0d0", "#ffb35c"]) : pick(["#d9c7a6", "#b9774a"]);
-        bits += moss(x, W, 7);
+        grow += moss(x, W, 7);
         let sx = x + R(7, 12);
         for (let i = 0, n = 2 + (chance(0.5) ? 1 : 0); i < n; i++) {
           const H = R(7, 13);
           const cw = R(8, 13);
-          bits += `<path d="M${n1(sx - 1.7)} ${h - 2}L${n1(sx - 1.1)} ${n1(h - H)}H${n1(sx + 1.1)}L${n1(sx + 1.7)} ${h - 2}Z" fill="#e3d6bb"/><path d="M${n1(sx - cw / 2)} ${n1(h - H + 1)}Q${n1(sx)} ${n1(h - H - cw * 0.95)} ${n1(sx + cw / 2)} ${n1(h - H + 1)}Z" fill="${cap}"${glow ? ` filter="url(#glow)"` : ""}/>`;
-          if (!glow) bits += `<circle cx="${n1(sx - cw * 0.15)}" cy="${n1(h - H - cw * 0.25)}" r="1.1" fill="#f3ead8" opacity=".8"/>`;
+          grow += `<path d="M${n1(sx - 1.7)} ${h - 2}L${n1(sx - 1.1)} ${n1(h - H)}H${n1(sx + 1.1)}L${n1(sx + 1.7)} ${h - 2}Z" fill="#e3d6bb"/><path d="M${n1(sx - cw / 2)} ${n1(h - H + 1)}Q${n1(sx)} ${n1(h - H - cw * 0.95)} ${n1(sx + cw / 2)} ${n1(h - H + 1)}Z" fill="${cap}"${glow ? ` filter="url(#glow)"` : ""}/>`;
+          if (!glow) grow += `<circle cx="${n1(sx - cw * 0.15)}" cy="${n1(h - H - cw * 0.25)}" r="1.1" fill="#f3ead8" opacity=".8"/>`;
           sx += R(8, 13);
         }
       }
+      bits += `<g clip-path="url(#st)"><g transform="translate(0 -2)">${grow}</g></g>`;
       take(x, h - 22, x + W, h + 2);
     }
   }
@@ -272,6 +276,7 @@ function carve(w: number, h: number, seed: string, beside: Used | null): Carved 
     const weights: Record<Corner, number> = { tl: 1, tr: 2.2, bl: 0, br: 0.35 };
     if (beside?.web) weights[beside.web] = 0;
     if (ivyCorner) weights[ivyCorner] = 0;
+    if (chunkAt) weights[chunkAt] = 0;
     for (const c of corners) {
       const [x, y] = at[c](0, 0);
       const x1 = x + (c[1] === "r" ? -40 : 40);
@@ -290,6 +295,8 @@ function carve(w: number, h: number, seed: string, beside: Used | null): Carved 
       const nr = Math.round(R(3, 4.4));
       const rings = Array.from({ length: nr }, (_, j) => (j + 1) / (nr + 0.25) + R(-0.04, 0.04));
       const gap = torn ? [rings.length - 1 - Math.floor(R(0, 2)), Math.floor(R(0, k - 1))] : null;
+      // (The web and a loose strand never reach past the stone, even where its corner broke off.)
+      let strands = "";
       let d = "";
       for (let i = 0; i < k; i++) {
         const [x, y] = P(i, 1);
@@ -303,15 +310,16 @@ function carve(w: number, h: number, seed: string, beside: Used | null): Carved 
           d += `M${n1(x1)} ${n1(y1)}Q${n1(ox + ((x1 + x2) / 2 - ox) * 0.86)} ${n1(oy + ((y1 + y2) / 2 - oy) * 0.86)} ${n1(x2)} ${n1(y2)}`;
         }
       });
-      bits += `<path d="${d}" stroke="rgba(243,234,216,.42)" stroke-width=".7" fill="none"/>`;
+      strands += `<path d="${d}" stroke="rgba(243,234,216,.42)" stroke-width=".7" fill="none"/>`;
       let spider: number[] | null = null;
       if (gap && web === "tr") {
         const [x, y] = P(clamp(gap[1], 0, k - 1), rings[rings.length - 1]);
         const L = R(10, 24);
         const sw = R(-6, 6);
-        bits += `<path d="M${n1(x)} ${n1(y)}q${n1(sw)} ${n1(L * 0.5)} ${n1(sw * 0.4)} ${n1(L)}q${n1(-sw * 0.3)} 2 ${n1(sw * 0.2)} 3.5" stroke="rgba(243,234,216,.4)" stroke-width=".6" fill="none"/>`;
+        strands += `<path d="M${n1(x)} ${n1(y)}q${n1(sw)} ${n1(L * 0.5)} ${n1(sw * 0.4)} ${n1(L)}q${n1(-sw * 0.3)} 2 ${n1(sw * 0.2)} 3.5" stroke="rgba(243,234,216,.4)" stroke-width=".6" fill="none"/>`;
         if (chance(0.5)) spider = [x + sw * 0.4, y + L + 6];
       }
+      bits += `<g clip-path="url(#st)">${strands}</g>`;
       if (web === "tr" && !spider && chance(0.25)) spider = P(Math.floor(k / 2), rings[Math.min(1, rings.length - 1)] + 0.08);
       if (spider) {
         let legs = "";
@@ -449,7 +457,7 @@ function carve(w: number, h: number, seed: string, beside: Used | null): Carved 
     }
   }
 
-  stone += `<polygon points="${pts.map(([x, y]) => `${n1(x)},${n1(y)}`).join(" ")}" fill="none" stroke="#4a3d5e" stroke-width="2.2"/>`;
+  stone += `<polygon points="${outline}" fill="none" stroke="#4a3d5e" stroke-width="2.2"/>`;
   return { clip, tint, stone, bits, used: { web, growth, extra, tint: tintAt } };
 }
 
