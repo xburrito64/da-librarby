@@ -36,8 +36,10 @@ Windows only for now.
   (a cozy snowy pixel town, after the game this app's name comes from, with falling snow, a heart
   pointer in the colour of your choice, little sounds, a battle start when you press Play and a
   few secrets; you can give it your own font, sound files and background music) and **Hollow's Eve**
-  (a pumpkin patch on Halloween night: glowing jack-o'-lanterns, bats, a spider, fog, a ghost behind
-  the tombstones and trick or treat). Hollow's Eve takes over by itself in October, if you like.
+  (a pumpkin patch on Halloween night: glowing jack-o'-lanterns, a haunted house, bats, a black cat,
+  falling leaves, a graveyard with a ghost, little friends on the covers, descriptions on carved
+  stone tablets and trick or treat; you can pick its fonts). Hollow's Eve takes over by itself in
+  October, if you like.
 
 ## Getting started
 
@@ -131,7 +133,11 @@ Da Librarby is free software under the [GNU GPL v3](LICENSE) (or later).
 - One Pace episode titles and descriptions from the One Pace team's episode guide, gathered by
   [one-pace-metadata](https://github.com/ladyisatis/one-pace-metadata).
 - Fonts (SIL Open Font License): Manrope, Fraunces, Inter, Chakra Petch, JetBrains Mono, Fredoka,
-  Nunito and Pixelify Sans, via [Fontsource](https://fontsource.org).
+  Nunito, Pixelify Sans, Creepster, Baloo 2, Germania One, Cinzel Decorative, Metamorphous,
+  IM Fell English, Jolly Lodger, Pirata One, EB Garamond, Spectral, Almendra and Fondamento, via
+  [Fontsource](https://fontsource.org).
+- Hollow's Eve's sounds are free (CC0) recordings; where each one comes from is listed in
+  [its credits](src/theme/hollow/sounds/CREDITS.md).
 - Snowdin is a fan theme inspired by Undertale (by Toby Fox). Its pixel art, sounds and wording were
   made for Da Librarby; nothing is taken from the game.
 - Built with [Tauri](https://tauri.app) and [React](https://react.dev).
