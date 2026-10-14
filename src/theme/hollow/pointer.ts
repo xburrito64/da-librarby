@@ -294,10 +294,39 @@ export const THINGS: Record<string, Pointer> = {
       `<linearGradient id="iron" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c6c0d2"/><stop offset=".55" stop-color="#8e879e"/><stop offset="1" stop-color="#5e576c"/></linearGradient>`,
     ),
   },
-  match: {
+  blow: {
     label: "The tomb's candles",
-    hot: [11, 3],
-    svg: fromSmall(`<g transform="rotate(30 10 10)"><path d="M9 7.5H11V19H9Z" fill="#d9b27a" stroke="${INK}" stroke-width=".9"/><ellipse cx="10" cy="7" rx="1.9" ry="2.3" fill="#b33a2a" stroke="${INK}" stroke-width=".9"/><path d="M10 .5C12.6 3 12.4 5 10 5.6C7.6 5 7.4 3 10 .5Z" fill="#ffd36b"/><path d="M10 2.4C11 3.6 10.9 4.6 10 4.9C9.1 4.6 9 3.6 10 2.4Z" fill="#fff3c4"/></g>`),
+    hot: [2, 4],
+    svg: svg(
+      // The little ghost, eyes squeezed shut and cheeks puffed, blowing the flame out.
+      `<g transform="translate(20.4 13.4) rotate(-12)">` +
+        glow(`<path d="${SHEET}" fill="x"/>`, "#b99bff") +
+        `<path d="${SHEET}" fill="url(#gh)" stroke="${INK}" stroke-width="1.1" stroke-linejoin="round"/>` +
+        `<path d="M-4.4 -2.2C-4.2 -4.4 -3 -5.3 -1.6 -5.6" stroke="#fff" stroke-width="1" stroke-linecap="round" fill="none" opacity=".9"/>` +
+        `<path d="M-4.2 -1.2Q-2.8 -2.4 -1.4 -1.2M1 -1.4Q2.4 -2.6 3.8 -1.4" stroke="${INK}" stroke-width="1" fill="none" stroke-linecap="round"/>` +
+        `<circle cx="-4.6" cy="2.6" r="2.3" fill="#ffc3d3" stroke="#e9a3b8" stroke-width=".5"/><circle cx="2.6" cy="2.8" r="2.1" fill="#ffc3d3" stroke="#e9a3b8" stroke-width=".5" opacity=".8"/>` +
+        `<ellipse cx="-1.3" cy="3.4" rx="1" ry=".9" fill="${INK}"/>` +
+        `</g>` +
+        `<path d="M10.4 15.2Q7 13.4 3.2 11.4M10.8 17.8Q7 17.6 3.6 16.6M9.8 12.6Q6.6 9 2.4 4.4" stroke="${INK}" stroke-width="2.8" fill="none" stroke-linecap="round"/>` +
+        `<path d="M10.4 15.2Q7 13.4 3.2 11.4M10.8 17.8Q7 17.6 3.6 16.6M9.8 12.6Q6.6 9 2.4 4.4" stroke="#f6f2ff" stroke-width="1.3" fill="none" stroke-linecap="round"/>`,
+      GHOST_DEFS,
+    ),
+  },
+  match: {
+    label: "A blown-out candle",
+    hot: [8, 4],
+    svg: svg(
+      // A struck match, its flame forward, to light it again.
+      `<g transform="rotate(-32 16 16)">` +
+        glow(`<path d="M16 1.6C19.6 5 19.2 8.2 16 9C12.8 8.2 12.4 5 16 1.6Z" fill="x"/>`, "#ffb347", 0.9) +
+        `<path d="M14.6 11H17.4V30H14.6Z" fill="#d9b27a" stroke="${INK}" stroke-width="1.1" stroke-linejoin="round"/>` +
+        `<path d="M15.4 13V28.6" stroke="#f0d3a0" stroke-width=".7"/>` +
+        `<ellipse cx="16" cy="10.4" rx="2.6" ry="3.1" fill="#b33a2a" stroke="${INK}" stroke-width="1.1"/>` +
+        `<path d="M15.2 9.2Q15.6 8.4 16.6 8.6" stroke="#e8786a" stroke-width=".7" fill="none" stroke-linecap="round"/>` +
+        `<path d="M16 .8C20.2 4.6 19.6 8 16 8.8C12.4 8 11.8 4.6 16 .8Z" fill="#ffb347"/>` +
+        `<path d="M16 3.4C17.8 5.2 17.6 7 16 7.6C14.4 7 14.2 5.2 16 3.4Z" fill="#fff3c4"/>` +
+        `</g>`,
+    ),
   },
   pumpkin: {
     label: "A pumpkin",
@@ -394,7 +423,8 @@ const OWN: [string, string][] = [
   [".he-bat", "bat"],
   [".he-spider__body", "feather"],
   [".he-tomb__door", "key"],
-  [".he-tomb__candle", "match"],
+  [".he-tomb__candle", "blow"],
+  [".he-tomb__candle.is-out", "match"],
   [".he-tomb__gargoyle", "hand"],
 ];
 

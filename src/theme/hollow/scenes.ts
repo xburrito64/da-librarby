@@ -4,7 +4,7 @@
 // a knock, the house's door creaks open, the ghost (peeking out from behind its tombstone now and
 // then) gets a fright and ducks back down, the black cat on the gate trills, and under the patch the skeleton wakes up, the coffin
 // opens, the mole wakes and the candy stash is found. On show pages, the tomb's gate
-// creaks open (eyes looking out), its gargoyle turns its head, its candles can be blown out. Once
+// creaks open (eyes looking out), its gargoyle turns its head, its candles can be blown out (and lit again). Once
 // in a while a pair of eyes looks out of the tomb's door by itself.
 import { playSound } from "../sound";
 import { graveyardScene, patchScene } from "./scene";
@@ -150,7 +150,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       return;
     }
     // The tomb: its gate creaks open (as slowly as the creak lasts) and the eyes look out; the
-    // gargoyle turns its head with a grind of stone; a candle goes out, and lights again later.
+    // gargoyle turns its head with a grind of stone; a candle goes out (or one that is out is lit again).
     // (The page's header lies over it, so where the click landed counts, unless it was on a control.)
     // The black cat on the gate (cat.ts).
     if (!target.closest?.(CONTROLS) && catThere(e.clientX, e.clientY)) {
@@ -183,15 +183,21 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       });
       return;
     }
-    const flame = part?.matches(".he-tomb__candle") ? part : null;
+    // A candle: blown out, or (if it's out) lit again with a match. Left out, it lights again by
+    // itself after a while.
+    const flame = part?.matches(".he-tomb__candle") ? (part as HTMLElement) : null;
     if (flame) {
-      if (flame.classList.contains("is-out")) return;
+      const light = () => {
+        flame.classList.remove("is-out");
+        delete flame.dataset.out;
+        playSound("ignite");
+      };
+      if (flame.classList.contains("is-out")) return light();
+      const out = String(Date.now());
+      flame.dataset.out = out;
       flame.classList.add("is-out");
       playSound("snuff");
-      later(() => {
-        flame.classList.remove("is-out");
-        playSound("ignite");
-      }, between(CANDLE_OUT_MS));
+      later(() => flame.dataset.out === out && light(), between(CANDLE_OUT_MS));
       return;
     }
     const ghost = target.closest?.(".he-ghost.is-peeking") as SVGGElement | null;
@@ -261,7 +267,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       if (under) return UNDER_THINGS[under.dataset.poke ?? ""] ?? null;
     }
     const part = tombPart(e.clientX, e.clientY);
-    if (part) return part.matches(".he-tomb__door") ? "key" : part.matches(".he-tomb__candle") ? "match" : null;
+    if (part) return part.matches(".he-tomb__door") ? "key" : part.matches(".he-tomb__candle") ? (part.matches(".is-out") ? "match" : "blow") : null;
     if (catThere(e.clientX, e.clientY)) return "paw";
     return undefined;
   };
