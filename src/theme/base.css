@@ -3164,6 +3164,88 @@ select.input {
   margin-top: 22px;
 }
 
+/* Facts: the day with the most watching, after midnight, the favourite day, the biggest binge. */
+.stats__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.stats__fact .stats__tile-value {
+  font-size: 22px;
+}
+
+/* For themes that show them: a drawing on a number, the hours as a round clock, the hour watched
+   most on its own. */
+.stats__tile-art,
+.stats__clock,
+.stats__peak {
+  display: none;
+}
+
+/* Charms to collect: earned ones filled in, the rest an outline with how far along they are. */
+.stats__charms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 20px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats__charm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.stats__charm-badge {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 4px;
+  border: 1.5px dashed var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+}
+
+.stats__charm-badge svg {
+  width: 26px;
+  height: 26px;
+}
+
+.stats__charm.is-earned .stats__charm-badge {
+  border: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.stats__charm-name {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stats__charm.is-earned .stats__charm-name {
+  color: var(--text);
+}
+
+.stats__charm-how,
+.stats__charm-progress {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.stats__charm-progress {
+  opacity: 0.75;
+}
+
 /* Colour options: a row of swatches, the last one for any colour. */
 .swatches {
   display: flex;

@@ -739,7 +739,7 @@
    and what sits on it (a web, moss, ivy, a candle stub, ...) as --he-stone-clip, --he-stone-tint,
    --he-stone and --he-tablet-bits. The stone is drawn under the tablet, the things on it over it, and
    reach up to 28px past its edges. Their font is a setting of its own (fonts.ts). */
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar),
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar, .stats__tile, .stats__panel),
 :root[data-theme="hollow"] .ep.is-next {
   position: relative;
   isolation: isolate;
@@ -750,16 +750,16 @@
   box-shadow: none;
 }
 
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar)::before,
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar, .stats__tile, .stats__panel)::before,
 :root[data-theme="hollow"] .ep.is-next::before,
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar)::after,
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar, .stats__tile, .stats__panel)::after,
 :root[data-theme="hollow"] .ep.is-next::after {
   content: "";
   position: absolute;
   pointer-events: none;
 }
 
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar)::before,
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar, .stats__tile, .stats__panel)::before,
 :root[data-theme="hollow"] .ep.is-next::before {
   inset: 0;
   z-index: -1;
@@ -772,7 +772,7 @@
     inset 0 -10px 24px rgba(0, 0, 0, 0.35);
 }
 
-:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar)::after,
+:root[data-theme="hollow"] :is(.hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar, .stats__tile, .stats__panel)::after,
 :root[data-theme="hollow"] .ep.is-next::after {
   inset: -28px;
   z-index: 1;
@@ -3377,4 +3377,460 @@
 /* The player still hides the pointer when it's idle. */
 :root[data-theme="hollow"] :is(.player--hidden, .player--hidden *) {
   cursor: none !important;
+}
+
+/* ---------- Watch time ---------- */
+
+/* Its numbers, facts and panels are stone tablets (carved by tablets.ts). */
+:root[data-theme="hollow"] :is(.stats__tile, .stats__panel) {
+  padding: 18px 22px 20px;
+}
+
+:root[data-theme="hollow"] .stats__flavor {
+  font-family: var(--he-tablet-font, var(--font-body));
+  font-size: 17px;
+  color: #d8cbe8;
+}
+
+:root[data-theme="hollow"] :is(.stats__tile-label, .stats__heading) {
+  color: var(--he-pumpkin);
+}
+
+:root[data-theme="hollow"] .stats__tile {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-content: start;
+  align-items: center;
+  gap: 6px 12px;
+  min-height: 104px;
+}
+
+:root[data-theme="hollow"] .stats__tile-label {
+  grid-column: 1 / -1;
+}
+
+:root[data-theme="hollow"] .stats__fact .stats__tile-label {
+  color: #c9b6ee;
+}
+
+:root[data-theme="hollow"] .stats__tile-value {
+  grid-column: 1;
+  text-shadow: 0 0 16px rgba(255, 140, 40, 0.3);
+}
+
+:root[data-theme="hollow"] .stats__tile-note {
+  grid-column: 1 / -1;
+  font-family: var(--he-tablet-font, var(--font-body));
+  font-size: 14.5px;
+  color: #c9b6ee;
+}
+
+/* Each number's drawing: an hourglass, tally marks, a film reel in a cobweb, a candle a day. */
+:root[data-theme="hollow"] .stats__tile-art {
+  display: flex;
+  grid-row: 2;
+  grid-column: 2;
+  align-items: flex-end;
+}
+
+:root[data-theme="hollow"] .stats__tile-art[data-art="time"] {
+  width: 34px;
+  height: 44px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 52'%3E%3Cpath d='M6 3H34M6 49H34' stroke='%238a5a2a' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M9 5C9 18 18 22 18 26C18 30 9 34 9 47H31C31 34 22 30 22 26C22 22 31 18 31 5Z' fill='rgba(201,182,238,.18)' stroke='%23c9b6ee' stroke-width='1.6'/%3E%3Cpath d='M12 9H28C27 15 22 19 20 21C18 19 13 15 12 9Z' fill='%23ffb347'/%3E%3Cpath d='M20 22V44' stroke='%23ffb347' stroke-width='1.2' stroke-dasharray='2 2'/%3E%3Cpath d='M11 45C13 38 27 38 29 45Z' fill='%23ff8a1e'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+:root[data-theme="hollow"] .stats__tile-art[data-art="movies"] {
+  width: 44px;
+  height: 40px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 44'%3E%3Ccircle cx='20' cy='22' r='16' fill='%232a2036' stroke='%23c9b6ee' stroke-width='1.6'/%3E%3Ccircle cx='20' cy='22' r='3' fill='%23c9b6ee'/%3E%3Ccircle cx='29' cy='22' r='3.6' fill='%23140c1e'/%3E%3Ccircle cx='22.8' cy='30.6' r='3.6' fill='%23140c1e'/%3E%3Ccircle cx='12.7' cy='27.3' r='3.6' fill='%23140c1e'/%3E%3Ccircle cx='12.7' cy='16.7' r='3.6' fill='%23140c1e'/%3E%3Ccircle cx='22.8' cy='13.4' r='3.6' fill='%23140c1e'/%3E%3Cpath d='M34 30Q42 34 46 42' stroke='%23c9b6ee' stroke-width='3' fill='none'/%3E%3Cg stroke='rgba(243,234,216,.5)' stroke-width='.6' fill='none'%3E%3Cpath d='M36 4L22 6M36 4L28 14M36 4L35 16'/%3E%3Cpath d='M30 5Q31 9 33 10Q35 10 35.6 11'/%3E%3Cpath d='M26 6Q27 11 30 13'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+:root[data-theme="hollow"] .stats__tally {
+  display: flex;
+  gap: 9px;
+}
+
+:root[data-theme="hollow"] .stats__tally-group {
+  position: relative;
+  display: flex;
+  gap: 3.5px;
+}
+
+:root[data-theme="hollow"] .stats__tally i {
+  width: 2.2px;
+  height: 28px;
+  border-radius: 2px;
+  background: #e2d6c4;
+  opacity: 0.85;
+}
+
+:root[data-theme="hollow"] .stats__tally s {
+  position: absolute;
+  top: 50%;
+  left: -5px;
+  right: -5px;
+  height: 2.2px;
+  border-radius: 2px;
+  background: #e2d6c4;
+  opacity: 0.85;
+  transform: rotate(-38deg);
+}
+
+:root[data-theme="hollow"] .stats__candles {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  padding-top: 14px;
+}
+
+:root[data-theme="hollow"] .stats__candles i {
+  position: relative;
+  width: 8px;
+  height: 7px;
+  border-radius: 1.5px;
+  background: linear-gradient(90deg, #fbf3dd, #ead9b4 60%, #c9b48a);
+}
+
+:root[data-theme="hollow"] .stats__candles i::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 6px;
+  height: 9px;
+  margin-left: -3px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M5 14C3 11 7 9 5 6C3.6 4 5.6 2 5 0' stroke='%238a7ca0' stroke-width='.9' fill='none' opacity='.6'/%3E%3C/svg%3E") center bottom / contain no-repeat;
+}
+
+:root[data-theme="hollow"] .stats__candles i.is-lit {
+  height: 22px;
+}
+
+:root[data-theme="hollow"] .stats__candles i.is-lit::before {
+  width: 8px;
+  height: 12px;
+  margin-left: -4px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M5 0C8 4 8.4 7 5 9.6C1.6 7 2 4 5 0Z' fill='%23ffd36b'/%3E%3Cpath d='M5 4C6.2 5.6 6.2 7 5 8C3.8 7 3.8 5.6 5 4Z' fill='%23fff3c4'/%3E%3Cpath d='M5 9.6V14' stroke='%232a1b2a' stroke-width='1'/%3E%3C/svg%3E");
+  filter: drop-shadow(0 0 4px rgba(255, 170, 60, 0.85));
+  transform-origin: 50% 90%;
+  animation: he-candle-flicker 1.6s ease-in-out infinite alternate;
+}
+
+:root[data-theme="hollow"] .stats__candles i:nth-child(2n)::before {
+  animation-delay: -0.7s;
+}
+
+@keyframes he-candle-flicker {
+  50% {
+    transform: scale(0.92, 1.06) rotate(-2deg);
+  }
+  to {
+    transform: scale(1.04, 0.95) rotate(2deg);
+  }
+}
+
+/* Day by day (and month by month): candles burning as tall as the watching; days with none are
+   unlit stubs, days still to come empty. */
+:root[data-theme="hollow"] .stats__chart:not(.stats__chart--hours) {
+  height: 200px;
+  padding-top: 22px;
+}
+
+:root[data-theme="hollow"] .stats__chart:not(.stats__chart--hours) .stats__bar-area {
+  justify-content: center;
+  border-bottom-color: rgba(201, 182, 238, 0.15);
+}
+
+:root[data-theme="hollow"] .stats__chart:not(.stats__chart--hours) .stats__bar {
+  position: relative;
+  width: 14px;
+  max-width: 100%;
+  border-radius: 2px 2px 1px 1px;
+  background: linear-gradient(90deg, #fbf3dd, #ead9b4 60%, #c9b48a);
+  opacity: 1;
+}
+
+:root[data-theme="hollow"] .stats__chart:not(.stats__chart--hours) .stats__bar::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  width: 2px;
+  height: min(8px, 60%);
+  border-radius: 1px;
+  background: #fffaf0;
+  opacity: 0.8;
+}
+
+:root[data-theme="hollow"] .stats__chart:not(.stats__chart--hours) .stats__bar::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 10px;
+  height: 14px;
+  margin-left: -5px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M5 0C8 4 8.4 7 5 9.6C1.6 7 2 4 5 0Z' fill='%23ffd36b'/%3E%3Cpath d='M5 4C6.2 5.6 6.2 7 5 8C3.8 7 3.8 5.6 5 4Z' fill='%23fff3c4'/%3E%3Cpath d='M5 9.6V14' stroke='%232a1b2a' stroke-width='1'/%3E%3C/svg%3E") center bottom / contain no-repeat;
+  filter: drop-shadow(0 0 5px rgba(255, 170, 60, 0.8));
+  transform-origin: 50% 90%;
+  animation: he-candle-flicker 1.8s ease-in-out infinite alternate;
+}
+
+:root[data-theme="hollow"] .stats__chart:not(.stats__chart--hours) .stats__col:nth-child(3n) .stats__bar::before {
+  animation-delay: -0.6s;
+}
+
+:root[data-theme="hollow"] .stats__chart:not(.stats__chart--hours) .stats__col.is-current .stats__bar::before {
+  filter: drop-shadow(0 0 9px rgba(255, 190, 90, 1));
+}
+
+:root[data-theme="hollow"] .stats__chart:not(.stats__chart--hours) .stats__col.is-empty:not(.is-future) .stats__bar {
+  height: 5px !important;
+  background: linear-gradient(90deg, #d8c9a6, #b8a47e);
+}
+
+:root[data-theme="hollow"] .stats__chart:not(.stats__chart--hours) .stats__col.is-empty .stats__bar::before {
+  width: 6px;
+  height: 9px;
+  margin-left: -3px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M5 14C3 11 7 9 5 6C3.6 4 5.6 2 5 0' stroke='%238a7ca0' stroke-width='.9' fill='none' opacity='.6'/%3E%3C/svg%3E");
+  filter: none;
+  animation: none;
+}
+
+:root[data-theme="hollow"] .stats__chart:not(.stats__chart--hours) .stats__col.is-future .stats__bar {
+  visibility: hidden;
+}
+
+/* Most watched: covers in little stone frames, burning fuses, a witch hat on the first. */
+:root[data-theme="hollow"] .stats__thumb {
+  position: relative;
+  width: 44px;
+  height: 64px;
+  padding: 3px;
+  overflow: visible;
+  border-radius: 0;
+  background: #3b3149;
+  box-shadow: inset 0 0 0 1px #5a4c6a;
+}
+
+:root[data-theme="hollow"] .stats__thumb img {
+  border-radius: 1px;
+}
+
+:root[data-theme="hollow"] .stats__top li:first-child .stats__thumb::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 18px;
+  width: 34px;
+  height: 26px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 30'%3E%3Cpath d='M2 25Q20 30 38 24Q30 22 26 21L21 2Q18 5 16 11L13 21Q6 22 2 25Z' fill='%23241a33' stroke='%230c0712'/%3E%3Cpath d='M13 20Q20 22 26 20.4L25.6 18Q20 19.6 13.6 18Z' fill='%23ff7518'/%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 0 4px rgba(185, 155, 255, 0.6));
+  transform: rotate(14deg);
+}
+
+:root[data-theme="hollow"] .stats__top {
+  gap: 10px;
+}
+
+:root[data-theme="hollow"] .stats__show-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 400;
+}
+
+:root[data-theme="hollow"] .stats__meter {
+  background: repeating-linear-gradient(115deg, #3b2a22 0 3px, #5c4232 3px 5px, #3b2a22 5px 8px);
+}
+
+:root[data-theme="hollow"] .stats__meter span {
+  position: relative;
+  background: linear-gradient(90deg, #2c2224 0%, #5a2a1a 35%, #b8400c 70%, #ff7518 92%, #ffd36b 100%);
+  box-shadow: 0 0 10px rgba(255, 117, 24, 0.55);
+}
+
+:root[data-theme="hollow"] .stats__meter span::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  width: 12px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(#ffe7a0, rgba(255, 140, 40, 0) 70%);
+}
+
+:root[data-theme="hollow"] .stats__show-time {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--he-ember);
+}
+
+/* When you watch: a moon clock in place of the bars, and the witching hour beside it. */
+:root[data-theme="hollow"] .stats__chart--hours {
+  display: none;
+}
+
+:root[data-theme="hollow"] .stats__when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 26px;
+}
+
+:root[data-theme="hollow"] .stats__clock {
+  display: block;
+  flex: none;
+  width: 240px;
+}
+
+:root[data-theme="hollow"] .stats__clock-face {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+:root[data-theme="hollow"] .stats__clock-sky {
+  fill: #1f1530;
+  stroke: #4a3d5e;
+}
+
+:root[data-theme="hollow"] .stats__clock-star {
+  fill: #e9dcff;
+  opacity: 0.7;
+}
+
+:root[data-theme="hollow"] .stats__wedge {
+  fill: rgba(201, 182, 238, 0.12);
+}
+
+:root[data-theme="hollow"] .stats__wedge.is-on {
+  fill: url(#stats-hour);
+}
+
+:root[data-theme="hollow"] .stats__wedge.is-peak {
+  filter: drop-shadow(0 0 6px rgba(255, 170, 60, 0.9));
+}
+
+:root[data-theme="hollow"] .stats__hour-from {
+  stop-color: #ff7518;
+}
+
+:root[data-theme="hollow"] .stats__hour-to {
+  stop-color: #ffd36b;
+}
+
+:root[data-theme="hollow"] .stats__clock-label {
+  fill: #a99cc4;
+  font: 700 12px var(--font-label);
+}
+
+:root[data-theme="hollow"] .stats__clock-hub {
+  fill: #140c1e;
+  stroke: #4a3d5e;
+}
+
+:root[data-theme="hollow"] .stats__clock-moon {
+  fill: #f3e6b8;
+  filter: drop-shadow(0 0 10px rgba(243, 230, 184, 0.5));
+}
+
+:root[data-theme="hollow"] .stats__when-text {
+  flex: 1;
+  min-width: 180px;
+}
+
+:root[data-theme="hollow"] .stats__peak {
+  display: grid;
+  margin: 0;
+  font-family: var(--he-tablet-font, var(--font-body));
+  font-size: 17px;
+  color: #d8cbe8;
+}
+
+:root[data-theme="hollow"] .stats__peak strong {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #ffd36b;
+  text-shadow: 0 0 14px rgba(255, 170, 60, 0.6);
+}
+
+:root[data-theme="hollow"] .stats__habit {
+  margin-top: 6px;
+  font-family: var(--he-tablet-font, var(--font-body));
+  font-size: 15.5px;
+  color: #d8cbe8;
+}
+
+/* Charms: wax seals hanging from a string, the ones still to earn dark dotted outlines. */
+:root[data-theme="hollow"] .stats__charms {
+  position: relative;
+  padding-top: 24px;
+  row-gap: 30px;
+}
+
+:root[data-theme="hollow"] .stats__charms::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  height: 30px;
+  border-top: 2px solid #8a6e52;
+  border-radius: 50% / 100% 100% 0 0;
+  transform: scaleY(-1);
+}
+
+:root[data-theme="hollow"] .stats__charm::before {
+  content: "";
+  width: 1.5px;
+  height: 18px;
+  margin: -12px 0 -2px;
+  background: #8a6e52;
+}
+
+:root[data-theme="hollow"] .stats__charm-badge {
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Cpath d='M22 2l4 3 5-1 2 5 5 2-1 5 3 4-3 4 1 5-5 2-2 5-5-1-4 3-4-3-5 1-2-5-5-2 1-5-3-4 3-4-1-5 5-2 2-5 5 1z' fill='rgba(20,12,30,.5)' stroke='%235a4c6a' stroke-width='1.2' stroke-dasharray='3 2'/%3E%3C/svg%3E") center / contain no-repeat;
+  color: #5a4c6a;
+}
+
+:root[data-theme="hollow"] .stats__charm.is-earned .stats__charm-badge {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Cpath d='M22 2l4 3 5-1 2 5 5 2-1 5 3 4-3 4 1 5-5 2-2 5-5-1-4 3-4-3-5 1-2-5-5-2 1-5-3-4 3-4-1-5 5-2 2-5 5 1z' fill='%237a3fc0' stroke='%233a1866' stroke-width='1.2'/%3E%3Ccircle cx='22' cy='22' r='12.5' fill='none' stroke='%23c9a2ff' stroke-width='.9' opacity='.7'/%3E%3Cpath d='M12 12Q15 9 19 9' stroke='%23b98cf0' stroke-width='1.2' fill='none' stroke-linecap='round' opacity='.8'/%3E%3C/svg%3E");
+  color: #f0e4ff;
+  box-shadow: none;
+  filter: drop-shadow(0 0 10px rgba(162, 77, 255, 0.55));
+}
+
+:root[data-theme="hollow"] .stats__charm-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 400;
+  color: #6d5f82;
+}
+
+:root[data-theme="hollow"] .stats__charm.is-earned .stats__charm-name {
+  color: #f3ead8;
+}
+
+:root[data-theme="hollow"] .stats__charm-how {
+  color: #8a7ca0;
+}
+
+:root[data-theme="hollow"] .stats__charm.is-earned .stats__charm-how {
+  color: #c9b6ee;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="hollow"] :is(.stats__candles i, .stats__bar)::before {
+    animation: none !important;
+  }
 }

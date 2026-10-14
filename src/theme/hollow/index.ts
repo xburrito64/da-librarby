@@ -186,6 +186,7 @@ export const HOLLOW: Theme = {
       sleepDone: "Sleep timer: the candles went out. Good night!",
       statsEmpty: "Nothing watched yet. The candles are waiting.",
       statsLine,
+      statsFacts: { longest: "Your longest night", late: "Night owl", day: "Favourite day", binge: "Biggest binge", peak: "Your witching hour" },
       brandLines: [],
     },
     sounds: SOUNDS,

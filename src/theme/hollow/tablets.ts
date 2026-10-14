@@ -9,7 +9,7 @@
 // added inside the page's own elements.
 
 /** Which elements are tablets. */
-const TABLETS = ".hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar, .ep.is-next";
+const TABLETS = ".hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar, .ep.is-next, .stats__tile, .stats__panel";
 
 /** How far the things on a tablet may reach out past its edges (px); hollow.css matches it. */
 const PAD = 28;
@@ -473,6 +473,8 @@ function seedOf(el: HTMLElement) {
   if (el.matches(".mabout__group")) return `${show}|${text(".mabout__heading", el)}`;
   if (el.matches(".tp__seasonbar")) return `${show}|${text(".tp__seasonname", el)}`;
   if (el.matches(".ep")) return `${show}|${text(".ep__name", el)}|next`;
+  if (el.matches(".stats__tile")) return `stats|${text(".stats__tile-label", el)}`;
+  if (el.matches(".stats__panel")) return `stats|${text(".stats__heading", el).replace(/^\w+ \d+, /, "")}`;
   return el.textContent?.slice(0, 80) ?? "";
 }
 

@@ -35,6 +35,10 @@ export interface Copy {
   statsEmpty: string;
   /** An extra line under the page's title, given the seconds ever watched. None by default. */
   statsLine?: (seconds: number) => string;
+  /** The names of its facts (the day with the most watching, episodes finished after midnight,
+   *  the favourite day, the biggest binge) and of the hour watched most (shown by themes that show
+   *  it on its own). */
+  statsFacts: { longest: string; late: string; day: string; binge: string; peak: string };
   /** A movie page's "Check" button shows this in place of the description. None by default.
    *  Lines after the first that start with "* " get the same mark as a text box's first line. */
   check?: (movie: CheckInfo) => string;
@@ -68,6 +72,7 @@ export const COPY: Copy = {
   sleepDone: "Sleep timer: paused. Good night!",
   statsTab: "Watch time",
   statsEmpty: "Nothing watched yet. Once you've watched something, how much and when shows up here.",
+  statsFacts: { longest: "Longest day", late: "Night owl", day: "Favourite day", binge: "Biggest binge", peak: "Busiest hour" },
 };
 
 export function useCopy(): Copy {
