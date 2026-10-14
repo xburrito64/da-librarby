@@ -10,7 +10,6 @@ import { playSound } from "../sound";
 import { graveyardScene, patchScene } from "./scene";
 import { underScene, type Spot } from "./under";
 import { pokeCat } from "./cat";
-import { pointerFor } from "./pointer";
 
 const HOSTS = [
   { selector: ".hero__decor--bottom", draw: patchScene },
@@ -267,14 +266,24 @@ export function startScenes({ surprises }: { surprises: boolean }) {
     return undefined;
   };
   let pointing = 0;
+  /** The element under the pointer marked with what it's over (only it: marking the whole page
+   *  would make the page work out every element's pointer again). */
+  let marked: HTMLElement | SVGElement | null = null;
+  const unmark = () => {
+    marked?.removeAttribute("data-he-point");
+    marked = null;
+  };
   const onMove = (e: PointerEvent) => {
     if (pointing) return;
     pointing = requestAnimationFrame(() => {
       pointing = 0;
       const thing = thingAt(e);
-      const root = document.documentElement;
-      if (thing !== undefined) root.style.setProperty("--he-cur-scene", pointerFor(thing));
-      root.classList.toggle("he-pointing", thing !== undefined);
+      const el = e.target instanceof HTMLElement || e.target instanceof SVGElement ? e.target : null;
+      if (thing === undefined || !el) return unmark();
+      const point = thing ?? "hand";
+      if (marked !== el) unmark();
+      if (el.getAttribute("data-he-point") !== point) el.setAttribute("data-he-point", point);
+      marked = el;
     });
   };
   window.addEventListener("pointermove", onMove, { passive: true });
@@ -308,7 +317,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
     window.removeEventListener("pointermove", onMove);
     document.removeEventListener("click", onClick);
     cancelAnimationFrame(pointing);
-    document.documentElement.classList.remove("he-pointing");
+    unmark();
     timers.forEach((t) => window.clearTimeout(t));
     for (const host of drawn.keys()) {
       host.innerHTML = "";

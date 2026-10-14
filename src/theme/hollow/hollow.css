@@ -3059,35 +3059,11 @@
 }
 
 
-/* ---------- The mouse pointer (a setting; pointer.ts draws them) ---------- */
-
-/* The everyday pointer, everywhere but where you type. */
-:root[data-theme="hollow"].he-pointer,
-:root[data-theme="hollow"].he-pointer :not(textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"])) {
-  cursor: var(--he-cur), auto;
-}
-
-/* Over anything clickable: its own pointer, or Windows' hand. */
-:root[data-theme="hollow"].he-pointer :is(a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider),
-:root[data-theme="hollow"].he-pointer :is(a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider) * {
-  cursor: pointer;
-}
-
-:root[data-theme="hollow"].he-pointer-hand :is(a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider),
-:root[data-theme="hollow"].he-pointer-hand :is(a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider) * {
-  cursor: var(--he-cur-hand), pointer;
-}
+/* ---------- The mouse pointer (a setting; pointer.ts draws them and adds the rules showing them) ---------- */
 
 /* Where you type, the typing cursor. */
 :root[data-theme="hollow"]:is(.he-pointer, .he-pointer-hand) :is(textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"])) {
   cursor: text !important;
-}
-
-/* Pointing at something in the scene that answers a click: what scenes.ts says (the thing itself,
-   the hand, ...). */
-:root[data-theme="hollow"].he-pointing,
-:root[data-theme="hollow"].he-pointing * {
-  cursor: var(--he-cur-scene, pointer) !important;
 }
 
 /* The player still hides the pointer when it's idle. */

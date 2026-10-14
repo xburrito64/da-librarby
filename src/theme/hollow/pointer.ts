@@ -3,7 +3,7 @@
 // pointing, a bony hand, a witch's hand, a ghostly hand), and, pointing at things in the scene, the
 // pointer turning into them (a key at the tomb's gate, a bone over the skeleton, ...; scenes.ts says
 // which). Each is drawn here at 32×32 with the spot the click lands on, made into crisp pictures for
-// ordinary and high-resolution screens, and handed to the stylesheet (hollow.css) as --he-cur-….
+// ordinary and high-resolution screens, and shown by rules added to the page (see applyPointer).
 
 const INK = "#1b1024";
 
@@ -379,25 +379,32 @@ const picture = (s: string) => `data:image/svg+xml,${encodeURIComponent(s)}`;
 export const pointerChoices = () => [{ value: "windows", label: "Windows'", image: picture(WINDOWS) }, ...Object.entries(POINTERS).map(([value, p]) => ({ value, label: p.label, image: picture(p.svg) }))];
 export const handChoices = () => [{ value: "windows", label: "Windows'", image: picture(WINDOWS_HAND) }, ...Object.entries(HANDS).map(([value, p]) => ({ value, label: p.label, image: picture(p.svg) }))];
 
-// ---------- Handing them to the stylesheet ----------
+// ---------- Showing them ----------
+
+/** Anything clickable. */
+const CLICKABLE =
+  'a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider';
+const ROOT = ':root[data-theme="hollow"]';
 
 const made = new Map<string, Promise<string>>();
 
-/** The pointer as a CSS cursor: crisp pictures for ordinary and high-resolution screens, and where
- *  the click lands. */
+/** The pointer as a CSS cursor: crisp pictures for ordinary and high-resolution screens (kept as
+ *  short blob: links, so the page's styles stay quick to work out), and where the click lands. */
 function cursorOf(p: Pointer) {
   let done = made.get(p.svg);
   if (!done) {
     done = new Promise<string>((resolve) => {
       const img = new Image();
-      img.onload = () => {
-        const at = (scale: number) => {
-          const canvas = document.createElement("canvas");
-          canvas.width = canvas.height = 32 * scale;
-          canvas.getContext("2d")!.drawImage(img, 0, 0, 32 * scale, 32 * scale);
-          return `url("${canvas.toDataURL("image/png")}") ${scale}x`;
-        };
-        resolve(`image-set(${at(1)}, ${at(1.5)}, ${at(2)}) ${p.hot[0]} ${p.hot[1]}`);
+      img.onload = async () => {
+        const at = (scale: number) =>
+          new Promise<string>((ok) => {
+            const canvas = document.createElement("canvas");
+            canvas.width = canvas.height = 32 * scale;
+            canvas.getContext("2d")!.drawImage(img, 0, 0, 32 * scale, 32 * scale);
+            canvas.toBlob((blob) => ok(blob ? `url("${URL.createObjectURL(blob)}") ${scale}x` : ""), "image/png");
+          });
+        const sizes = await Promise.all([at(1), at(1.5), at(2)]);
+        resolve(sizes.every(Boolean) ? `image-set(${sizes.join(", ")}) ${p.hot[0]} ${p.hot[1]}` : "");
       };
       img.onerror = () => resolve("");
       img.src = picture(p.svg);
@@ -410,28 +417,44 @@ function cursorOf(p: Pointer) {
 let asked = "";
 
 /** Puts the chosen pointers in place (`main`, `hand`: a key of POINTERS or HANDS, or "windows";
- *  `things`: whether the pointer turns into what it points at in the scene). */
+ *  `things`: whether the pointer turns into what it points at in the scene; scenes.ts marks the
+ *  element under the pointer with data-he-point: a key of THINGS, or "hand").
+ *  (The everyday pointer is set once on the page and passed down; the clicking one only on what's
+ *  clickable: rules reaching every element would make every change on the page slow.) */
 export function applyPointer(main: string, hand: string, things: boolean) {
-  const root = document.documentElement;
   const want = `${main}|${hand}|${things}`;
   asked = want;
-  const tasks: Promise<[string, string]>[] = [];
-  if (POINTERS[main]) tasks.push(cursorOf(POINTERS[main]).then((c) => ["--he-cur", c]));
-  if (HANDS[hand]) tasks.push(cursorOf(HANDS[hand]).then((c) => ["--he-cur-hand", c]));
-  if (things) for (const [key, p] of Object.entries(THINGS)) tasks.push(cursorOf(p).then((c) => [`--he-cur-${key}`, c]));
-  void Promise.all(tasks).then((vars) => {
+  const keys = Object.keys(THINGS);
+  void Promise.all([
+    POINTERS[main] ? cursorOf(POINTERS[main]) : "",
+    HANDS[hand] ? cursorOf(HANDS[hand]) : "",
+    Promise.all(keys.map((k) => (things ? cursorOf(THINGS[k]) : ""))),
+  ]).then(([arrow, finger, over]) => {
     if (asked !== want) return;
-    for (const [name, value] of vars) if (value) root.style.setProperty(name, value);
-    root.classList.toggle("he-pointer", !!POINTERS[main]);
-    root.classList.toggle("he-pointer-hand", !!HANDS[hand]);
-    root.dataset.hePointerThings = things ? "on" : "off";
+    const handCursor = finger ? `${finger}, pointer` : "pointer";
+    let css = "";
+    if (arrow) {
+      css += `${ROOT}.he-pointer, ${ROOT}.he-pointer :is(.choice-row, .tp__desc.is-open, .filter:disabled) { cursor: ${arrow}, auto; }
+`;
+      css += `${ROOT}.he-pointer :is(${CLICKABLE}) { cursor: pointer; }
+`;
+    }
+    if (finger) css += `${ROOT}.he-pointer-hand :is(${CLICKABLE}) { cursor: ${handCursor}; }
+`;
+    for (const [i, key] of [...keys, "hand"].entries()) {
+      const cursor = over[i] ? `${over[i]}, pointer` : handCursor;
+      css += `${ROOT} [data-he-point="${key}"] { cursor: ${cursor} !important; }
+`;
+    }
+    let style = document.getElementById("he-pointer");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "he-pointer";
+      document.head.append(style);
+    }
+    style.textContent = css;
+    const root = document.documentElement;
+    root.classList.toggle("he-pointer", !!arrow);
+    root.classList.toggle("he-pointer-hand", !!finger);
   });
-}
-
-/** The pointer to show over a thing in the scene (`thing`: a key of THINGS, or null for one that has
- *  none), as a CSS cursor value. */
-export function pointerFor(thing: string | null) {
-  const root = document.documentElement;
-  if (thing && THINGS[thing] && root.dataset.hePointerThings === "on") return `var(--he-cur-${thing}), pointer`;
-  return root.classList.contains("he-pointer-hand") ? "var(--he-cur-hand), pointer" : "pointer";
 }
