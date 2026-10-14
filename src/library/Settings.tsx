@@ -212,6 +212,7 @@ function ThemeOptions() {
                   style={c.font ? { fontFamily: c.font } : undefined}
                   onClick={() => setThemeOption(theme.id, o.id, c.value)}
                 >
+                  {c.image && <img className="choice__image" src={c.image} alt="" />}
                   {c.label}
                 </button>
               ))}

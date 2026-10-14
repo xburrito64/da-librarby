@@ -10,6 +10,7 @@ import { playSound } from "../sound";
 import { graveyardScene, patchScene } from "./scene";
 import { underScene, type Spot } from "./under";
 import { pokeCat } from "./cat";
+import { pointerFor } from "./pointer";
 
 const HOSTS = [
   { selector: ".hero__decor--bottom", draw: patchScene },
@@ -51,6 +52,8 @@ const STASH_FOUND = [
 
 /** The tomb's parts that answer clicks (candles first: they stand in front of the rest). */
 const TOMB_PARTS = ".he-tomb__candle, .he-tomb__gargoyle, .he-tomb__door";
+/** What the pointer turns into over the things under the patch (pointer.ts). */
+const UNDER_THINGS: Record<string, string> = { skeleton: "bone", coffin: "coffin", crystals: "pickaxe", mole: "secret", stash: "secret" };
 /** Page controls, which a click is always for (never for the scenery behind them). */
 const CONTROLS = "a, button, input, textarea, select, .card, [role=button], [role=tab]";
 
@@ -244,16 +247,34 @@ export function startScenes({ surprises }: { surprises: boolean }) {
   };
   document.addEventListener("click", onClick);
 
-  // The things under the patch and the tomb sit behind the page, so the pointer shows they can be
-  // clicked.
+  // Pointing at something in the scene that answers a click, the pointer shows it (pointer.ts:
+  // it turns into a key at the tomb's gate, a bone over the skeleton, ...; or at least the hand).
+  // The things under the patch and the tomb sit behind the page, so where the pointer is counts.
+  /** What's under the pointer: a key of pointer.ts's THINGS, null for something without one of its
+   *  own, undefined for nothing. */
+  const thingAt = (e: PointerEvent): string | null | undefined => {
+    const target = e.target as Element;
+    if (target.closest?.(CONTROLS)) return undefined;
+    const own = target.closest?.(".he-pumpkin, .he-house, .he-ghost.is-peeking, .he-bat, .he-spider__body");
+    if (own) return own.matches(".he-pumpkin") ? "pumpkin" : own.matches(".he-house") ? "door" : own.matches(".he-ghost") ? "boo" : own.matches(".he-bat") ? "bat" : "feather";
+    if (surprises) {
+      const under = [...document.querySelectorAll<HTMLElement>(".he-under [data-poke]")].find((t) => over(t, e.clientX, e.clientY));
+      if (under) return UNDER_THINGS[under.dataset.poke ?? ""] ?? null;
+    }
+    const part = tombPart(e.clientX, e.clientY);
+    if (part) return part.matches(".he-tomb__door") ? "key" : part.matches(".he-tomb__candle") ? "match" : null;
+    if (catThere(e.clientX, e.clientY)) return "paw";
+    return undefined;
+  };
   let pointing = 0;
   const onMove = (e: PointerEvent) => {
     if (pointing) return;
     pointing = requestAnimationFrame(() => {
       pointing = 0;
-      const hit = (surprises && [...document.querySelectorAll(".he-under [data-poke]")].some((t) => over(t, e.clientX, e.clientY))) || tombPart(e.clientX, e.clientY) !== null || catThere(e.clientX, e.clientY);
-      const onPage = (e.target as Element).closest?.("a, button, input, .card, [role=button]");
-      document.documentElement.classList.toggle("he-can-poke", hit && !onPage);
+      const thing = thingAt(e);
+      const root = document.documentElement;
+      if (thing !== undefined) root.style.setProperty("--he-cur-scene", pointerFor(thing));
+      root.classList.toggle("he-pointing", thing !== undefined);
     });
   };
   window.addEventListener("pointermove", onMove, { passive: true });
@@ -287,7 +308,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
     window.removeEventListener("pointermove", onMove);
     document.removeEventListener("click", onClick);
     cancelAnimationFrame(pointing);
-    document.documentElement.classList.remove("he-can-poke");
+    document.documentElement.classList.remove("he-pointing");
     timers.forEach((t) => window.clearTimeout(t));
     for (const host of drawn.keys()) {
       host.innerHTML = "";

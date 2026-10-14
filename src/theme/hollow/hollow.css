@@ -2556,14 +2556,10 @@
 }
 
 /* Who lives down there, and what they do when clicked (under.ts, scenes.ts). The pointer shows
-   they can be clicked (scenes.ts sets .he-can-poke). The skeleton dozes,
+   they can be clicked (scenes.ts, see "The mouse pointer"). The skeleton dozes,
    then lifts its head, waves and chatters; the mole wakes, blinks, wiggles its nose and stretches
    its paws; the candy stash glints; the coffin's lid slides open a crack and eyes look out; the
    crystals twinkle. */
-:root.he-can-poke[data-theme="hollow"] :is(.home__rows, .tp, .tp *) {
-  cursor: pointer;
-}
-
 .he-under :is(.heu-skel__head, .heu-skel__arm, .heu-skel__jaw, .heu-skel__z, .heu-coffin__lid, .heu-stash__glints path, .heu-mole__body, .heu-mole__head, .heu-mole__nose, .heu-mole__paws, .heu-mole__z) {
   transform-box: fill-box;
 }
@@ -3062,3 +3058,39 @@
   mask-image: linear-gradient(#000 55%, transparent 92%);
 }
 
+
+/* ---------- The mouse pointer (a setting; pointer.ts draws them) ---------- */
+
+/* The everyday pointer, everywhere but where you type. */
+:root[data-theme="hollow"].he-pointer,
+:root[data-theme="hollow"].he-pointer :not(textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"])) {
+  cursor: var(--he-cur), auto;
+}
+
+/* Over anything clickable: its own pointer, or Windows' hand. */
+:root[data-theme="hollow"].he-pointer :is(a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider),
+:root[data-theme="hollow"].he-pointer :is(a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider) * {
+  cursor: pointer;
+}
+
+:root[data-theme="hollow"].he-pointer-hand :is(a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider),
+:root[data-theme="hollow"].he-pointer-hand :is(a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider) * {
+  cursor: var(--he-cur-hand), pointer;
+}
+
+/* Where you type, the typing cursor. */
+:root[data-theme="hollow"]:is(.he-pointer, .he-pointer-hand) :is(textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"])) {
+  cursor: text !important;
+}
+
+/* Pointing at something in the scene that answers a click: what scenes.ts says (the thing itself,
+   the hand, ...). */
+:root[data-theme="hollow"].he-pointing,
+:root[data-theme="hollow"].he-pointing * {
+  cursor: var(--he-cur-scene, pointer) !important;
+}
+
+/* The player still hides the pointer when it's idle. */
+:root[data-theme="hollow"] :is(.player--hidden, .player--hidden *) {
+  cursor: none !important;
+}

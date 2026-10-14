@@ -10,6 +10,7 @@ import Decor from "./Decor";
 import Candle from "./Candle";
 import { drawArt } from "./art";
 import { applyFonts, fontChoices, TABLET_FONTS, TITLE_FONTS } from "./fonts";
+import { applyPointer, handChoices, pointerChoices } from "./pointer";
 
 drawArt();
 
@@ -120,6 +121,25 @@ export const HOLLOW: Theme = {
         default: "fell",
       },
       {
+        id: "pointer",
+        label: "Pointer",
+        choices: pointerChoices(),
+        default: "ghost",
+      },
+      {
+        id: "pointerHand",
+        label: "Pointer over buttons",
+        hint: "What the pointer becomes over anything you can click.",
+        choices: handChoices(),
+        default: "ghost",
+      },
+      {
+        id: "pointerThings",
+        label: "Pointer turns into what it points at",
+        hint: "In the scene: a key at the tomb's gate, a bone over the skeleton, a paw over the cat…",
+        default: true,
+      },
+      {
         id: "volume",
         label: "Sound volume",
         choices: [
@@ -195,7 +215,10 @@ export const HOLLOW: Theme = {
       ],
       music: true,
     },
-    apply: (options) => applyFonts(String(options.titleFont ?? "fell"), String(options.tabletFont ?? "fell")),
+    apply: (options) => {
+      applyFonts(String(options.titleFont ?? "fell"), String(options.tabletFont ?? "fell"));
+      applyPointer(String(options.pointer ?? "ghost"), String(options.pointerHand ?? "ghost"), options.pointerThings !== false);
+    },
     Decor,
     PlayIntro: Candle,
     brandClick: trickOrTreat,

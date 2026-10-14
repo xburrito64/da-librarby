@@ -70,9 +70,9 @@ export interface ThemeOption {
   hint?: string;
   /** "color": a colour, picked from `choices` (values are "#rrggbb") or chosen freely. */
   kind?: "color";
-  /** Pick one of these (each shown in `font`, if it's a choice of fonts); a plain on/off switch
-   *  when left out. */
-  choices?: { value: string; label: string; font?: string }[];
+  /** Pick one of these (each shown in `font`, if it's a choice of fonts, with its `image` before
+   *  it, if it has a picture, like a mouse pointer); a plain on/off switch when left out. */
+  choices?: { value: string; label: string; font?: string; image?: string }[];
   default: boolean | string;
 }
 

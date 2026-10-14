@@ -2767,14 +2767,15 @@ select.input {
   cursor: default;
 }
 
-/* Many choices (a theme's fonts): they go on a line of their own under the setting's name, wrapping. */
-.choice-row:has(.choice-row__choices > :nth-child(6)) {
+/* Many choices (a theme's fonts), or choices with pictures (its mouse pointers): they go on a line
+   of their own under the setting's name, wrapping. */
+.choice-row:has(.choice-row__choices > :nth-child(6), .choice__image) {
   flex-direction: column;
   align-items: stretch;
   gap: 10px;
 }
 
-.choice-row__choices:has(> :nth-child(6)) {
+.choice-row__choices:has(> :nth-child(6), .choice__image) {
   flex: initial;
   flex-wrap: wrap;
   align-self: flex-start;
@@ -2801,6 +2802,14 @@ select.input {
 
 .choice:hover {
   color: var(--text);
+}
+
+/* A choice's picture (a mouse pointer, ...). */
+.choice__image {
+  width: 24px;
+  height: 24px;
+  margin: -4px 6px -4px -4px;
+  vertical-align: middle;
 }
 
 .choice.is-on {
