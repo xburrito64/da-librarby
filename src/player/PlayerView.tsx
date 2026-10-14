@@ -634,7 +634,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
 
   return (
     <div
-      className={`player ${visible ? "" : "player--hidden"} ${mini ? "player--mini" : ""}`}
+      className={`player ${visible ? "" : "player--hidden"} ${mini ? "player--mini" : ""} ${paused && !ended && !loading ? "player--paused" : ""}`}
       onMouseMove={showControls}
       onMouseLeave={() => mini && setControlsVisible(false)}
       onPointerDown={onStagePointerDown}

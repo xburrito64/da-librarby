@@ -2454,19 +2454,12 @@
 
 /* ---------- Player ---------- */
 
+/* (The small player in the corner stays as plain as it is: none of this but the seek bar's
+   colours, the pumpkin handle and the loading cauldron.) */
+
 :root[data-theme="hollow"] .player__played {
   background: linear-gradient(90deg, var(--he-potion), var(--he-pumpkin));
   box-shadow: 0 0 12px rgba(255, 117, 24, 0.5);
-}
-
-/* A pumpkin for the handle. */
-:root[data-theme="hollow"] .player__knob,
-:root[data-theme="hollow"] .player__seek:hover .player__knob {
-  width: 26px;
-  height: 26px;
-  border-radius: 0;
-  background: var(--he-img-knob-on) center / contain no-repeat;
-  box-shadow: none;
 }
 
 :root[data-theme="hollow"] .player__code {
@@ -2482,6 +2475,321 @@
 :root[data-theme="hollow"] .player__btn:hover,
 :root[data-theme="hollow"] .player__btn.is-active {
   color: var(--he-pumpkin);
+}
+
+/* At the top: a deep purple shade, the show's name in lilac, a glow round the title, the clock with
+   a pocket watch. */
+:root[data-theme="hollow"] .player:not(.player--mini) .player__top {
+  background: linear-gradient(rgba(16, 8, 28, 0.88), rgba(30, 16, 48, 0.35) 60%, transparent);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__show {
+  color: #c9b6ee;
+  letter-spacing: 0.14em;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__title {
+  text-shadow:
+    0 0 18px rgba(255, 140, 40, 0.35),
+    0 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__clock-now {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__clock-now::before {
+  content: "";
+  width: 20px;
+  height: 22px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 22'%3E%3Cpath d='M10 1.4v2.4' stroke='%23d9a441' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='10' cy='1.6' r='1.4' fill='none' stroke='%23d9a441'/%3E%3Ccircle cx='10' cy='13' r='8' fill='%232a1d36' stroke='%23d9a441' stroke-width='1.8'/%3E%3Ccircle cx='10' cy='13' r='6.2' fill='%23efe6d2'/%3E%3Cpath d='M10 13V8.6M10 13l3 1.6' stroke='%231b1024' stroke-width='1.1' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__clock-end {
+  color: #c9b6ee;
+}
+
+/* At the bottom: purple fog rising, and the graveyard along the edge (an iron fence, tombstones,
+   grass and a dead twig). */
+:root[data-theme="hollow"] .player:not(.player--mini) .player__controls {
+  padding-bottom: 26px;
+  background: linear-gradient(transparent, rgba(30, 14, 48, 0.55) 40%, rgba(14, 6, 24, 0.92));
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__controls::before,
+:root[data-theme="hollow"] .player:not(.player--mini) .player__controls::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  pointer-events: none;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__controls::before {
+  height: 58px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1280' height='58' viewBox='0 0 1280 58'%3E%3Cg fill='%230b0712' stroke='%233a2d4a'%3E%3Cpath d='M60 41V18l-2.4 3.4h4.8L60 18M74 41V18l-2.4 3.4h4.8L74 18M88 41V18l-2.4 3.4h4.8L88 18M102 41V18l-2.4 3.4h4.8L102 18M116 41V18l-2.4 3.4h4.8L116 18M130 41V18l-2.4 3.4h4.8L130 18M144 41V18l-2.4 3.4h4.8L144 18M158 41V18l-2.4 3.4h4.8L158 18M172 41V18l-2.4 3.4h4.8L172 18M186 41V18l-2.4 3.4h4.8L186 18M200 41V18l-2.4 3.4h4.8L200 18M214 41V18l-2.4 3.4h4.8L214 18M228 41V18l-2.4 3.4h4.8L228 18M242 41V18l-2.4 3.4h4.8L242 18M256 41V18l-2.4 3.4h4.8L256 18M270 41V18l-2.4 3.4h4.8L270 18M284 41V18l-2.4 3.4h4.8L284 18M298 41V18l-2.4 3.4h4.8L298 18M58 24H300M58 34H300' stroke-width='1.3'/%3E%3Cpath d='M380 44V26a10 10 0 0 1 20 0V44ZM430 44V30h-6v-6h6v-7h6v7h6v6h-6V44ZM880 44V22l9-9 9 9V44ZM930 44V30a8 8 0 0 1 16 0V44ZM1180 44V26a9 9 0 0 1 18 0V44Z'/%3E%3Cpath d='M0 58V40L120 43L240 37L360 42L480 39L600 44L720 38L840 41L960 37L1080 42L1200 39L1280 41V58Z'/%3E%3C/g%3E%3Cg stroke='%230b0712' stroke-width='1.6' fill='none' stroke-linecap='round'%3E%3Cpath d='M1240 42C1238 30 1236 22 1228 14M1236 26C1242 20 1248 18 1254 16M1232 18C1230 12 1224 10 1220 8' stroke-width='2.4'/%3E%3Cpath d='M20 41q1-4 -1-8M33 41q1-5 2-9M46 42q-1-4 -2-7M330 41q1-5 -1-9M345 41q1-4 2-8M470 40q1-5 -1-8M520 42q1-4 2-8M610 43q-1-5 -2-8M650 42q1-4 2-7M760 39q1-5 -1-9M800 40q1-4 2-8M1010 38q-1-5 -2-8M1060 41q1-4 2-8M1120 41q1-5 -1-8M1270 41q1-4 2-7'/%3E%3C/g%3E%3C/svg%3E") center bottom / 1280px 58px repeat-x;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__controls::after {
+  height: 150px;
+  background:
+    radial-gradient(ellipse 30% 40% at 20% 85%, rgba(185, 155, 255, 0.16), transparent),
+    radial-gradient(ellipse 25% 35% at 70% 90%, rgba(185, 155, 255, 0.12), transparent);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) :is(.player__seek, .player__bar) {
+  position: relative;
+  z-index: 1;
+}
+
+/* The seek bar is a fuse: a twisted cord, burnt to ash behind, glowing towards where it's burning
+   (sparks flying), little gravestones for the chapters, the pumpkin to drag. */
+:root[data-theme="hollow"] .player:not(.player--mini) .player__rail,
+:root[data-theme="hollow"] .player:not(.player--mini) .player__seek:hover .player__rail {
+  height: 6px;
+  overflow: visible;
+  border-radius: 3px;
+  background: repeating-linear-gradient(115deg, #3b2a22 0 3px, #5c4232 3px 5px, #3b2a22 5px 8px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__hover {
+  border-radius: 3px;
+  background: rgba(255, 214, 150, 0.18);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__played {
+  border-radius: 3px;
+  background: linear-gradient(90deg, #2c2224 0%, #5a2a1a 35%, #b8400c 70%, #ff7518 92%, #ffd36b 100%);
+  box-shadow: 0 0 10px rgba(255, 117, 24, 0.55);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__played::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -20px;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg fill='%23ffd36b'%3E%3Ccircle cx='9' cy='10' r='1.3'/%3E%3Ccircle cx='6' cy='20' r='.9'/%3E%3Ccircle cx='14' cy='5' r='.8'/%3E%3Ccircle cx='31' cy='8' r='1'/%3E%3Ccircle cx='35' cy='17' r='.8'/%3E%3C/g%3E%3Cg fill='%23ff8a1e'%3E%3Ccircle cx='12' cy='15' r='1'/%3E%3Ccircle cx='28' cy='13' r='1.2'/%3E%3Ccircle cx='20' cy='30' r='.9'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  animation: he-sparks 0.9s steps(1) infinite;
+  pointer-events: none;
+}
+
+@keyframes he-sparks {
+  33% {
+    transform: rotate(120deg) scale(0.9);
+  }
+  66% {
+    transform: rotate(240deg) scale(1.1);
+  }
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__tick {
+  top: calc(50% - 7px);
+  width: 7px;
+  height: 9px;
+  border-radius: 3.5px 3.5px 1px 1px;
+  background: #8f80a8;
+  box-shadow: 0 0 0 1px #1b1024;
+  transform: translateX(-50%);
+}
+
+/* A pumpkin for the handle (glowing on the big player). */
+:root[data-theme="hollow"] .player__knob,
+:root[data-theme="hollow"] .player__seek:hover .player__knob {
+  width: 26px;
+  height: 26px;
+  border-radius: 0;
+  background: var(--he-img-knob-on) center / contain no-repeat;
+  box-shadow: none;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__knob,
+:root[data-theme="hollow"] .player:not(.player--mini) .player__seek:hover .player__knob {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 0 8px rgba(255, 140, 40, 0.8));
+}
+
+/* The picture above the seek bar, on a little stone tablet. */
+:root[data-theme="hollow"] .player:not(.player--mini) .player__tip {
+  padding: 9px 9px 7px;
+  border-radius: 0;
+  background: linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%);
+  clip-path: polygon(0 6px, 8px 0, 38% 0, 40% 3px, 43% 0, calc(100% - 4px) 0, 100% 5px, 100% calc(100% - 9px), calc(100% - 7px) 100%, 64% 100%, 61% calc(100% - 3px), 58% 100%, 6px 100%, 0 calc(100% - 5px));
+  box-shadow: inset 0 0 0 1px #4a3d5e;
+  color: var(--he-ember);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__tip::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg stroke='rgba(243,234,216,.45)' stroke-width='.7' fill='none'%3E%3Cpath d='M40 0L4 2M40 0L12 18M40 0L24 30M40 0L38 38'/%3E%3Cpath d='M31 .5Q32 6 34 7.5Q37 8 39.5 9'/%3E%3Cpath d='M22 1Q24 10 28 14Q33 17 39 19'/%3E%3Cpath d='M13 1.5Q16 14 22 22Q30 27 38.6 29'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__tip-picture {
+  margin: 0 0 6px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #120c18;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__tip-chapter {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 400;
+  color: #f3ead8;
+  opacity: 1;
+}
+
+/* The buttons: pale lilac, a misty glow when pointed at, Play glowing like a lit pumpkin. */
+:root[data-theme="hollow"] .player:not(.player--mini) .player__time {
+  color: #d8cbe8;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__btn {
+  color: #efe6ff;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__btn:hover,
+:root[data-theme="hollow"] .player:not(.player--mini) .player__btn.is-active {
+  color: #fff;
+  background: rgba(107, 63, 160, 0.45);
+  box-shadow: 0 0 16px rgba(185, 155, 255, 0.55);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__btn--main,
+:root[data-theme="hollow"] .player:not(.player--mini) .player__btn--main:hover {
+  background: radial-gradient(circle at 40% 35%, #ffb04a, #ff7518 60%, #c4520a);
+  color: #2a1206;
+  box-shadow:
+    0 0 20px rgba(255, 117, 24, 0.6),
+    inset 0 -3px 6px rgba(120, 40, 0, 0.4);
+}
+
+/* Paused: the picture dims round the edges, and a jack-o'-lantern glows in the middle. */
+:root[data-theme="hollow"] .player:not(.player--mini).player--paused::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(10, 4, 20, 0.05) 30%, rgba(24, 10, 40, 0.55) 100%);
+  pointer-events: none;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini).player--paused::after {
+  content: "Paused";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200px;
+  margin: -84px 0 0 -100px;
+  padding-top: 138px;
+  background: var(--he-img-knob-on) center top / 130px 130px no-repeat;
+  filter: drop-shadow(0 0 26px rgba(255, 140, 40, 0.75));
+  font-family: var(--font-display);
+  font-size: 26px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: #e8dcff;
+  text-shadow:
+    0 0 6px rgba(10, 4, 20, 0.95),
+    0 0 14px rgba(185, 155, 255, 0.6);
+  pointer-events: none;
+  animation: he-relit 0.5s ease-out;
+}
+
+@keyframes he-relit {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+/* The menus (audio and subtitles, chapters, speed, the sleep timer): stone tablets in the tablet
+   font, a cobweb in the corner. */
+:root[data-theme="hollow"] .player:not(.player--mini) .player__menu {
+  padding: 16px 16px 18px;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%);
+  clip-path: polygon(0 6px, 8px 0, 38% 0, 40% 3px, 43% 0, calc(100% - 4px) 0, 100% 5px, 100% calc(100% - 9px), calc(100% - 7px) 100%, 64% 100%, 61% calc(100% - 3px), 58% 100%, 6px 100%, 0 calc(100% - 5px));
+  box-shadow:
+    inset 0 0 0 1px #4a3d5e,
+    inset 0 -10px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: none;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__menu::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg stroke='rgba(243,234,216,.45)' stroke-width='.7' fill='none'%3E%3Cpath d='M40 0L4 2M40 0L12 18M40 0L24 30M40 0L38 38'/%3E%3Cpath d='M31 .5Q32 6 34 7.5Q37 8 39.5 9'/%3E%3Cpath d='M22 1Q24 10 28 14Q33 17 39 19'/%3E%3Cpath d='M13 1.5Q16 14 22 22Q30 27 38.6 29'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__menu-title {
+  color: var(--he-pumpkin);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__item {
+  border-radius: 8px;
+  font-family: var(--he-tablet-font, var(--font-body));
+  font-size: 15px;
+  color: #e2d6c4;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__item.is-active {
+  color: #fff;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__item:hover {
+  background: rgba(107, 63, 160, 0.3);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__item-check {
+  color: var(--he-ember);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__menu-col {
+  scrollbar-width: thin;
+  scrollbar-color: #6b3fa0 transparent;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__item {
+  padding-block: 7px;
+}
+
+/* Notes ("Picked up where you left off"), Skip intro: misty purple, like the library's buttons. */
+:root[data-theme="hollow"] .player:not(.player--mini) :is(.player__toast, .player__skip, .player__notice) {
+  background: rgba(30, 18, 46, 0.9);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(201, 182, 238, 0.35),
+    0 0 18px rgba(107, 63, 160, 0.3);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__skip {
+  border-color: transparent;
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) .player__toast-btn {
+  background: rgba(107, 63, 160, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(201, 182, 238, 0.4);
+}
+
+:root[data-theme="hollow"] .player:not(.player--mini) :is(.player__toast-btn, .player__skip):hover {
+  background: rgba(107, 63, 160, 0.65);
+  color: #fff !important;
 }
 
 /* Loading: a bubbling cauldron. */
