@@ -2517,7 +2517,7 @@
    grass and a dead twig). */
 :root[data-theme="hollow"] .player:not(.player--mini) .player__controls {
   padding-bottom: 26px;
-  background: linear-gradient(transparent, rgba(30, 14, 48, 0.55) 40%, rgba(14, 6, 24, 0.92));
+  background: linear-gradient(transparent, rgba(30, 14, 48, 0.38) 45%, rgba(14, 6, 24, 0.85));
 }
 
 :root[data-theme="hollow"] .player:not(.player--mini) .player__controls::before,
@@ -2536,8 +2536,8 @@
 :root[data-theme="hollow"] .player:not(.player--mini) .player__controls::after {
   height: 150px;
   background:
-    radial-gradient(ellipse 30% 40% at 20% 85%, rgba(185, 155, 255, 0.16), transparent),
-    radial-gradient(ellipse 25% 35% at 70% 90%, rgba(185, 155, 255, 0.12), transparent);
+    radial-gradient(ellipse 30% 40% at 20% 85%, rgba(185, 155, 255, 0.08), transparent),
+    radial-gradient(ellipse 25% 35% at 70% 90%, rgba(185, 155, 255, 0.06), transparent);
 }
 
 :root[data-theme="hollow"] .player:not(.player--mini) :is(.player__seek, .player__bar) {
