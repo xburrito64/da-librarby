@@ -273,17 +273,29 @@ export function startScenes({ surprises }: { surprises: boolean }) {
     marked?.removeAttribute("data-he-point");
     marked = null;
   };
+  const mark = (e: PointerEvent) => {
+    const thing = thingAt(e);
+    const el = e.target instanceof HTMLElement || e.target instanceof SVGElement ? e.target : null;
+    if (thing === undefined || !el) return unmark();
+    const point = thing ?? "hand";
+    if (marked !== el) unmark();
+    if (el.getAttribute("data-he-point") !== point) el.setAttribute("data-he-point", point);
+    marked = el;
+  };
+  // Onto something else: at once (so its pointer never shows in between); along the same thing:
+  // once a frame.
+  let last: EventTarget | null = null;
   const onMove = (e: PointerEvent) => {
+    if (e.target !== last) {
+      last = e.target;
+      cancelAnimationFrame(pointing);
+      pointing = 0;
+      return mark(e);
+    }
     if (pointing) return;
     pointing = requestAnimationFrame(() => {
       pointing = 0;
-      const thing = thingAt(e);
-      const el = e.target instanceof HTMLElement || e.target instanceof SVGElement ? e.target : null;
-      if (thing === undefined || !el) return unmark();
-      const point = thing ?? "hand";
-      if (marked !== el) unmark();
-      if (el.getAttribute("data-he-point") !== point) el.setAttribute("data-he-point", point);
-      marked = el;
+      mark(e);
     });
   };
   window.addEventListener("pointermove", onMove, { passive: true });

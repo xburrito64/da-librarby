@@ -385,6 +385,18 @@ export const handChoices = () => [{ value: "windows", label: "Windows'", image: 
 const CLICKABLE =
   'a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider';
 const ROOT = ':root[data-theme="hollow"]';
+/** The scene's things that are under the pointer themselves (not behind the page), and what the
+ *  pointer turns into over them, every part of them. */
+const OWN: [string, string][] = [
+  [".he-house", "door"],
+  [".he-pumpkin", "pumpkin"],
+  [".he-ghost.is-peeking", "boo"],
+  [".he-bat", "bat"],
+  [".he-spider__body", "feather"],
+  [".he-tomb__door", "key"],
+  [".he-tomb__candle", "match"],
+  [".he-tomb__gargoyle", "hand"],
+];
 
 const made = new Map<string, Promise<string>>();
 
@@ -441,11 +453,11 @@ export function applyPointer(main: string, hand: string, things: boolean) {
     }
     if (finger) css += `${ROOT}.he-pointer-hand :is(${CLICKABLE}) { cursor: ${handCursor}; }
 `;
-    for (const [i, key] of [...keys, "hand"].entries()) {
-      const cursor = over[i] ? `${over[i]}, pointer` : handCursor;
-      css += `${ROOT} [data-he-point="${key}"] { cursor: ${cursor} !important; }
+    const cursorFor = (key: string) => (over[keys.indexOf(key)] ? `${over[keys.indexOf(key)]}, pointer` : handCursor);
+    for (const key of [...keys, "hand"]) css += `${ROOT} [data-he-point="${key}"] { cursor: ${cursorFor(key)} !important; }
 `;
-    }
+    for (const [selector, key] of OWN) css += `${ROOT} ${selector}, ${ROOT} ${selector} * { cursor: ${cursorFor(key)} !important; }
+`;
     let style = document.getElementById("he-pointer");
     if (!style) {
       style = document.createElement("style");
