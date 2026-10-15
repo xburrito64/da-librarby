@@ -1571,7 +1571,16 @@
 }
 
 :root[data-theme="hollow"] .row__head {
+  position: relative;
+  z-index: 2;
   margin-bottom: -32px;
+  pointer-events: none;
+}
+
+/* (The covers' row reaches up under the heading, for the friends on top of them: its title and
+   "See all" stay above it, so they can be clicked, the rest of the heading lets clicks through.) */
+:root[data-theme="hollow"] .row__head > * {
+  pointer-events: auto;
 }
 
 /* (The arrows stay halfway down the covers.) */
