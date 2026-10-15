@@ -38,7 +38,7 @@ Windows only for now.
   few secrets; you can give it your own font, sound files and background music) and **Hollow's Eve**
   (a pumpkin patch on Halloween night: glowing jack-o'-lanterns, a haunted house, bats, a black cat,
   falling leaves, a graveyard with a ghost, little friends on the covers, descriptions on carved
-  stone tablets and trick or treat; you can pick its fonts). Hollow's Eve takes over by itself in
+  stone tablets and trick or treat; you can pick its fonts and its mouse pointers). Hollow's Eve takes over by itself in
   October, if you like.
 
 ## Getting started
