@@ -143,6 +143,14 @@ export const fileInfo = {
     listen<{ path: string; info: FileInfo | null }>("fileinfo:ready", (e) => callback(e.payload.path, e.payload.info)),
 };
 
+/** Pictures taken from the video itself, for episodes nothing else has a picture for. */
+export const episodeFrames = {
+  /** The picture's file if it was made before, otherwise null (then `onReady` follows). */
+  get: (path: string) => invoke<string | null>("episode_frame", { path }),
+  onReady: (callback: (path: string, file: string | null) => void) =>
+    listen<{ path: string; file: string | null }>("frame:ready", (e) => callback(e.payload.path, e.payload.file)),
+};
+
 export interface SeasonRow {
   id: number;
   number: number | null;

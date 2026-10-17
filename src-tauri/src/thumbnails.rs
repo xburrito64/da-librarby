@@ -9,6 +9,10 @@
 //! `thumbs_close` (the player closed).
 //! Here -> frontend: `thumbs:info` { path, dir, interval, count, ready } once a video is
 //! ready, and `thumbs:ready` { path, index } for each new picture.
+//!
+//! The same hidden mpv also makes a picture for an episode nothing else has one for (`episode_frame`
+//! { path }: the picture straight away if it was made before, otherwise `frame:ready` { path, file }
+//! follows), kept in `<app data>/episode-frames/<video>.jpg
 
 use std::collections::VecDeque;
 use std::fs;
@@ -38,7 +42,15 @@ pub(crate) enum Msg {
     Close,
     /// Find out what's in a movie's file (see fileinfo.rs).
     Probe(String),
+    /// A picture for an episode that has none.
+    Frame(String),
 }
+
+/// Where in an episode its picture is taken from (as a share of its length): past the opening,
+/// then elsewhere if that one is nearly black (a scene change).
+const FRAME_AT: [f64; 3] = [0.3, 0.55, 0.15];
+/// A picture smaller than this (bytes) is taken to be nearly all black.
+const FRAME_MIN_BYTES: u64 = 6000;
 
 #[derive(Default)]
 pub struct Thumbs {
@@ -79,6 +91,27 @@ pub fn thumbs_want(app: AppHandle, thumbs: State<'_, Thumbs>, path: String, time
 #[tauri::command]
 pub fn thumbs_close(app: AppHandle, thumbs: State<'_, Thumbs>) {
     thumbs.send(&app, Msg::Close);
+}
+
+/// An episode's picture taken from the video itself: the file if it was made before, otherwise
+/// None and `frame:ready` follows once it's made.
+#[tauri::command]
+pub fn episode_frame(app: AppHandle, thumbs: State<'_, Thumbs>, path: String) -> Option<String> {
+    let file = frame_file(&app, &path)?;
+    if file.exists() {
+        return Some(file.to_string_lossy().into_owned());
+    }
+    thumbs.send(&app, Msg::Frame(path));
+    None
+}
+
+/// Where episodes' pictures from the videos themselves live (allowed for the page to load, see lib.rs).
+pub fn frames_root(app: &AppHandle) -> tauri::Result<PathBuf> {
+    Ok(app.path().app_local_data_dir()?.join("episode-frames"))
+}
+
+fn frame_file(app: &AppHandle, path: &str) -> Option<PathBuf> {
+    Some(frames_root(app).ok()?.join(format!("{}.jpg", video_key(Path::new(path)))))
 }
 
 /// Where the pictures of all videos live (allowed for the page to load, see lib.rs).
@@ -167,6 +200,7 @@ impl Worker {
                     self.unload();
                 }
                 Some(Msg::Probe(path)) => self.probe(path),
+                Some(Msg::Frame(path)) => self.frame(path),
                 None => self.step(),
             }
         }
@@ -304,6 +338,31 @@ impl Worker {
             }
         };
         let _ = self.app.emit("fileinfo:ready", json!({ "path": path, "info": info }));
+    }
+
+    /// Takes a picture for an episode from the video itself, and lets the page know.
+    fn frame(&mut self, path: String) {
+        let Some(file) = frame_file(&self.app, &path) else { return };
+        if !file.exists() {
+            // The seek bar pictures' video (if any) has to be opened again afterwards.
+            self.unload();
+            if let (Some(dir), Some(mpv)) = (file.parent().map(Path::to_path_buf), self.mpv()) {
+                if fs::create_dir_all(&dir).is_ok() && mpv.command(&["loadfile", &path]).is_ok() && wait_for(mpv, true) {
+                    let duration = mpv.get_property("duration").ok().and_then(|v| v.as_f64()).unwrap_or(0.0);
+                    for share in FRAME_AT {
+                        let ok = mpv.command(&["seek", &format!("{:.2}", duration * share), "absolute+keyframes"]).is_ok()
+                            && wait_for(mpv, false)
+                            && mpv.command(&["screenshot-to-file", &file.to_string_lossy(), "video"]).is_ok();
+                        if ok && fs::metadata(&file).is_ok_and(|m| m.len() >= FRAME_MIN_BYTES) {
+                            break;
+                        }
+                    }
+                }
+                let _ = mpv.command(&["stop"]);
+            }
+        }
+        let made = file.exists().then(|| file.to_string_lossy().into_owned());
+        let _ = self.app.emit("frame:ready", json!({ "path": path, "file": made }));
     }
 
     fn unload(&mut self) {

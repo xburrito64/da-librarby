@@ -1,6 +1,7 @@
 // Show and movie pages: artwork, description, seasons and episodes, movies, extras; for movies
 // also "About", the cast and more like it (MovieParts.tsx).
 import { useCallback, useEffect, useRef, useState } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import {
   library,
   metadata,
@@ -11,6 +12,7 @@ import {
   upNext,
   canResume,
   fileInfo,
+  episodeFrames,
   watch,
   reveal,
   KIND_LABELS,
@@ -428,6 +430,33 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
   );
 }
 
+/** A picture taken from the episode itself, for one nothing else has a picture for (`path`: null
+ *  for one that has): asked for once its place on the page comes into view, and kept. */
+function useFrame(path: string | null, place: React.RefObject<HTMLElement | null>) {
+  const [frame, setFrame] = useState<string | null>(null);
+  useEffect(() => {
+    setFrame(null);
+    const el = place.current;
+    if (!path || !el) return;
+    let alive = true;
+    const off = episodeFrames.onReady((p, file) => {
+      if (alive && p === path && file) setFrame(file);
+    });
+    const seen = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      seen.disconnect();
+      void episodeFrames.get(path).then((file) => alive && file && setFrame(file));
+    });
+    seen.observe(el);
+    return () => {
+      alive = false;
+      seen.disconnect();
+      void off.then((f) => f());
+    };
+  }, [path, place]);
+  return frame;
+}
+
 /** How long each of these files runs (seconds), as far as known: read from the files themselves
  *  (once, then kept), or from playing them. */
 function useLengths(files: FileRow[]) {
@@ -552,6 +581,8 @@ function Episode({
 }) {
   const watched = !!file.progress?.watched;
   const p = file.progress;
+  const still = useRef<HTMLSpanElement>(null);
+  const frame = useFrame(file.meta?.thumb ? null : file.path, still);
   const left = canResume(p) && p!.duration > 0 ? Math.max(1, Math.round((p!.duration - p!.position) / 60)) : null;
   // How far you are with it, for themes that show it.
   const state = left ? `${left} min left` : watched ? "watched" : null;
@@ -567,9 +598,15 @@ function Episode({
       <span className="ep__num" aria-hidden="true">
         {file.episode != null ? (file.episodeEnd != null ? `${file.episode}–${file.episodeEnd}` : file.episode) : ""}
       </span>
-      <span className="ep__still">
-        {file.meta?.thumb && (
-          <img src={img(file.meta.thumb)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add("is-loaded")} />
+      <span className="ep__still" ref={still}>
+        {(file.meta?.thumb || frame) && (
+          <img
+            src={file.meta?.thumb ? img(file.meta.thumb) : convertFileSrc(frame!)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onLoad={(e) => e.currentTarget.classList.add("is-loaded")}
+          />
         )}
         <span className="ep__play">
           <PlayIcon />

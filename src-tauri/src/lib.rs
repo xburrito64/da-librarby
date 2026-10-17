@@ -82,6 +82,10 @@ pub fn run() {
             let thumbs = thumbnails::root(app.handle())?;
             std::fs::create_dir_all(&thumbs)?;
             app.asset_protocol_scope().allow_directory(&thumbs, true)?;
+            // Pictures taken from episodes that have none (see thumbnails.rs).
+            let frames = thumbnails::frames_root(app.handle())?;
+            std::fs::create_dir_all(&frames)?;
+            app.asset_protocol_scope().allow_directory(&frames, true)?;
             // Scene pictures made by an earlier version for movie pages aren't used any more.
             if let Ok(dir) = app.path().app_local_data_dir() {
                 let _ = std::fs::remove_dir_all(dir.join("scenes"));
@@ -107,6 +111,7 @@ pub fn run() {
             player::player_get_property,
             player::player_screenshot_dir,
             thumbnails::thumbs_open,
+            thumbnails::episode_frame,
             thumbnails::thumbs_want,
             thumbnails::thumbs_close,
             fileinfo::file_info,
