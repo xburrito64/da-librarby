@@ -128,12 +128,13 @@ pub fn match_show(input: &ShowInput, src: &mut dyn Source) -> Result<ShowMatch, 
                 episodes.push(EpisodeMatch { file_id: ep.file_id, media_id: hit.map(|h| h.0), episode: hit.map(|h| h.1) });
             }
             // Files without a number ("Jump Anime Festa 2018 Special Video" after "Petit Clover - 15")
-            // get the one-episode entries picked for the season that no numbered file reached.
+            // or with one none of them has (Kill la Kill's "25", in a tab matched to its OVA) get the
+            // one-episode entries picked for the season that no other file reached.
             {
                 let used: Vec<i64> = episodes[first..].iter().filter_map(|m| m.media_id).collect();
                 let mut spare = entries.iter().filter(|m| m.episodes == Some(1) && !used.contains(&m.id));
-                for (ep, m) in season.episodes.iter().zip(&mut episodes[first..]) {
-                    if m.media_id.is_none() && whole(ep.episode).is_none() {
+                for m in &mut episodes[first..] {
+                    if m.media_id.is_none() {
                         let Some(entry) = spare.next() else { break };
                         m.media_id = Some(entry.id);
                         m.episode = Some(1);
@@ -723,6 +724,19 @@ mod tests {
         assert!(similarity("Naruto", "Boruto: Naruto Next Generations") < MIN_SIMILARITY);
         let part = "South Park: The Streaming Wars Part";
         assert!(similarity(part, "South Park: The Streaming Wars") > similarity(part, "South Park the Streaming Wars Part 2"));
+    }
+
+    #[test]
+    fn numbered_file_in_a_tab_matched_to_a_special() {
+        // Kill la Kill's Specials tab, matched by hand to its OVA, holding "KILL la KILL - 25".
+        let mut ova = media(20572, "OVA", Some(1), "Kill la Kill Tokubetsu-hen", &[]);
+        ova.relations = None;
+        let mut src = Fake(HashMap::from([(20572, ova)]), vec![]);
+        let mut tab = season(10, 0, 25..=25);
+        tab.locked = Some(vec![20572]);
+        let input = ShowInput { name: "KILL la KILL".into(), year: None, is_movie: false, parent: None, locked_root: Some(None), seasons: vec![tab], movies: Vec::new() };
+        let out = match_show(&input, &mut src).unwrap();
+        assert_eq!((out.episodes[0].media_id, out.episodes[0].episode), (Some(20572), Some(1)));
     }
 }
 

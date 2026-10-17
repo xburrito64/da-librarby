@@ -445,9 +445,10 @@ pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Resu
 /// a one-episode special is looked up on TMDB by that special's names too; version 6: a file without
 /// a number in a season matched by hand gets the special picked for it that no numbered file
 /// reached; version 7: a file in a Specials tab numbered on from the show's last episode, Kill la
-/// Kill's "25", is matched like one without a number). Hand-made choices stay; the episodes' TMDB
-/// details are looked up again too, for the new match.
-const ANILIST_MATCH_VERSION: &str = "7";
+/// Kill's "25", is matched like one without a number; version 8: so is one whose number none of the
+/// entries picked by hand for its season has). Hand-made choices stay; the episodes' TMDB details are
+/// looked up again too, for the new match.
+const ANILIST_MATCH_VERSION: &str = "8";
 
 pub fn refresh_anilist_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "anilist_match_version")?.as_deref() == Some(ANILIST_MATCH_VERSION) {
