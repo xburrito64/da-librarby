@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use super::anilist::Error;
-use super::anime_match::{best_similarity, global_numbers, similarity, whole, SeasonInput, ShowInput};
+use super::anime_match::{best_similarity, global_numbers, similarity, whole, without_show, EpisodeInput, SeasonInput, ShowInput};
 use super::tmdb::{Episode, Movie, SearchResult, Season, SeasonSummary, Tmdb, TvShow};
 
 const MIN_SIMILARITY: f64 = 0.8;
@@ -209,10 +209,15 @@ pub fn map_episodes(ours: &[SeasonInput], theirs: &[Season]) -> Vec<(i64, Vec<Ep
             .episodes
             .iter()
             .map(|ep| {
-                let Some(name) = ep.name.as_deref() else { return Vec::new() };
-                let found = tmdb_season.map(|ts| match_by_name(name, &ts.episodes)).unwrap_or_default();
-                // Seasons cut differently (SpongeBob's season 10 on disk spans TMDB's 10 and 11): look everywhere.
-                if found.is_empty() && !numbers_fit { match_by_name(name, &everything) } else { found }
+                for name in names_of(ep) {
+                    let found = tmdb_season.map(|ts| match_by_name(name, &ts.episodes)).unwrap_or_default();
+                    // Seasons cut differently (SpongeBob's season 10 on disk spans TMDB's 10 and 11): look everywhere.
+                    let found = if found.is_empty() && !numbers_fit { match_by_name(name, &everything) } else { found };
+                    if !found.is_empty() {
+                        return found;
+                    }
+                }
+                Vec::new()
             })
             .collect();
         let counted: Vec<Option<&Episode>> = season
@@ -232,7 +237,7 @@ pub fn map_episodes(ours: &[SeasonInput], theirs: &[Season]) -> Vec<(i64, Vec<Ep
         let counting_agrees = pairs.len() >= 3 && pairs.iter().filter(|a| **a).count() * 10 >= pairs.len() * 7;
 
         for (i, ep) in season.episodes.iter().enumerate() {
-            let special = || ep.name.as_deref().map(|name| match_by_name(name, &specials)).unwrap_or_default();
+            let special = || names_of(ep).map(|name| match_by_name(name, &specials)).find(|f| !f.is_empty()).unwrap_or_default();
             let found: Vec<Episode> = if !by_name[i].is_empty() {
                 by_name[i].clone()
             } else if let found @ [_, ..] = special().as_slice() {
@@ -260,6 +265,12 @@ pub fn map_episodes(ours: &[SeasonInput], theirs: &[Season]) -> Vec<(i64, Vec<Ep
         }
     }
     out
+}
+
+/// Every name an episode goes by: from its file, then those of what it's matched to on AniList,
+/// with and without the show's name in front.
+fn names_of(ep: &EpisodeInput) -> impl Iterator<Item = &str> {
+    ep.name.as_deref().into_iter().chain(ep.other_names.iter().flat_map(|n| [n.as_str(), without_show(n)]))
 }
 
 /// TMDB episodes whose titles match ours. A combined title ("Help Wanted & Reef Blower")
@@ -345,13 +356,31 @@ mod tests {
             episodes: eps
                 .iter()
                 .enumerate()
-                .map(|(i, (e, end))| EpisodeInput { file_id: id * 100 + i as i64, episode: Some(*e), episode_end: *end, name: None })
+                .map(|(i, (e, end))| EpisodeInput { file_id: id * 100 + i as i64, episode: Some(*e), episode_end: *end, name: None, other_names: Vec::new() })
                 .collect(),
         }
     }
 
     fn names(out: &[(i64, Vec<Episode>)], file: i64) -> Vec<String> {
         out.iter().find(|(f, _)| *f == file).unwrap().1.iter().filter_map(|e| e.name.clone()).collect()
+    }
+
+    #[test]
+    fn special_found_by_its_anilist_names() {
+        // Black Clover: a "Petit Clover" tab (no season number) whose last file, "Jump Anime Festa
+        // 2018 Special Video", is matched on AniList to the Thanksgiving Festa special, which TMDB
+        // keeps among its specials (without the show's name in front).
+        let mut tab = ours(1, 1, &[(1.0, None), (2.0, None), (16.0, None)]);
+        tab.number = None;
+        tab.episodes[2].name = Some("Black Clover - Jump Anime Festa 2018 Special Video".into());
+        tab.episodes[2].other_names = vec!["Black Clover: The All Magic Knights Thanksgiving Festa".into(), "Black Clover: All Mahou Kishi Kanshasai".into()];
+        let mut specials = tmdb_season(0, 2);
+        specials.episodes[0].name = Some("Black Clover: Jump Festa 2016 Special".into());
+        specials.episodes[1].name = Some("The All Magic Knights Thanksgiving Festa".into());
+        let out = map_episodes(&[tab], &[specials, tmdb_season(1, 170)]);
+        assert_eq!(names(&out, 102), ["The All Magic Knights Thanksgiving Festa"]);
+        // (The tab's other files aren't the show's season 1 episodes.)
+        assert!(names(&out, 100).is_empty());
     }
 
     #[test]

@@ -59,7 +59,7 @@ pub fn load_show_input(conn: &Connection, title_id: i64) -> rusqlite::Result<Opt
         )
         .optional()?;
     let Some((name, is_movie, locked, provider_id, year, parent)) = head else { return Ok(None) };
-    let locked_root = locked_choice(locked, provider_id);
+    let locked_root = locked_choice(locked, provider_id.clone());
 
     let mut stmt = conn.prepare(
         "SELECT s.id, s.number, sm.locked, sm.provider_ids FROM seasons s
@@ -83,16 +83,25 @@ pub fn load_show_input(conn: &Connection, title_id: i64) -> rusqlite::Result<Opt
         })?
         .collect::<rusqlite::Result<_>>()?;
 
+    // (With the AniList entry each file is matched to, for an anime.)
     let mut stmt = conn.prepare(
-        "SELECT id, season_id, episode, episode_end, name FROM files
-         WHERE title_id = ?1 AND present = 1 AND role = 'episode' ORDER BY sort",
+        "SELECT f.id, f.season_id, f.episode, f.episode_end, f.name,
+                CASE WHEN tm.provider = 'anilist' THEN fm.provider_id END
+         FROM files f
+         LEFT JOIN file_meta fm ON fm.file_id = f.id
+         LEFT JOIN title_meta tm ON tm.title_id = f.title_id
+         WHERE f.title_id = ?1 AND f.present = 1 AND f.role = 'episode' ORDER BY f.sort",
     )?;
-    let rows: Vec<(i64, Option<i64>, Option<f64>, Option<f64>, Option<String>)> = stmt
-        .query_map([title_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))?
+    #[allow(clippy::type_complexity)]
+    let rows: Vec<(i64, Option<i64>, Option<f64>, Option<f64>, Option<String>, Option<String>)> = stmt
+        .query_map([title_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)))?
         .collect::<rusqlite::Result<_>>()?;
-    for (file_id, season_id, episode, episode_end, name) in rows {
+    let matched: Vec<i64> = rows.iter().filter_map(|r| r.5.as_deref()?.parse().ok()).collect();
+    let one_episode = one_episode_names(conn, &matched, provider_id.as_deref())?;
+    for (file_id, season_id, episode, episode_end, name, media_id) in rows {
         if let Some(season) = seasons.iter_mut().find(|s| Some(s.id) == season_id) {
-            season.episodes.push(EpisodeInput { file_id, episode, episode_end, name });
+            let other_names = media_id.and_then(|id| id.parse::<i64>().ok()).and_then(|id| one_episode.get(&id).cloned()).unwrap_or_default();
+            season.episodes.push(EpisodeInput { file_id, episode, episode_end, name, other_names });
         }
     }
 
@@ -113,6 +122,42 @@ pub fn load_show_input(conn: &Connection, title_id: i64) -> rusqlite::Result<Opt
         .collect::<rusqlite::Result<_>>()?;
 
     Ok(Some(ShowInput { name, year, is_movie, parent, locked_root, seasons, movies }))
+}
+
+/// The names of those of these AniList entries that are one episode long (a special, an OVA, a
+/// movie), from what was fetched before: the entry itself, or the show's (`root`) list of related
+/// entries.
+fn one_episode_names(conn: &Connection, ids: &[i64], root: Option<&str>) -> rusqlite::Result<HashMap<i64, Vec<String>>> {
+    let mut out = HashMap::new();
+    if ids.is_empty() {
+        return Ok(out);
+    }
+    let mut stmt = conn.prepare("SELECT json FROM provider_cache WHERE provider = 'anilist' AND id = ?1")?;
+    let mut fetched = |id: &str| -> rusqlite::Result<Option<Media>> {
+        let json: Option<String> = stmt.query_row([id], |r| r.get(0)).optional()?;
+        Ok(json.and_then(|j| serde_json::from_str::<Media>(&j).ok()))
+    };
+    let show = match root {
+        Some(id) => fetched(id)?,
+        None => None,
+    };
+    for &id in ids {
+        if out.contains_key(&id) {
+            continue;
+        }
+        let names: Option<Vec<String>> = match fetched(&id.to_string())? {
+            Some(m) => (m.episodes == Some(1)).then(|| m.all_titles().into_iter().map(String::from).collect()),
+            None => show
+                .as_ref()
+                .and_then(|s| s.relations().find(|e| e.node.id == id))
+                .filter(|e| e.node.episodes == Some(1))
+                .map(|e| e.node.all_titles().into_iter().map(String::from).collect()),
+        };
+        if let Some(names) = names {
+            out.insert(id, names);
+        }
+    }
+    Ok(out)
 }
 
 fn locked_choice(locked: Option<bool>, provider_id: Option<String>) -> Locked {
@@ -395,9 +440,13 @@ pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Resu
 /// Bumped when automatic AniList matching improves, so earlier automatic matches are made again
 /// (version 2: "Naruto Shippuden" had been matched to the series before it, "Naruto"; version 3:
 /// episodes whose numbers were read wrongly before, "290 - Power - Episode 1"; version 4: shows
-/// matched by hand get their episodes lined up again too). Hand-made choices stay; the episodes'
-/// TMDB details are looked up again too, for the new match.
-const ANILIST_MATCH_VERSION: &str = "4";
+/// matched by hand get their episodes lined up again too; version 5: a special kept without a
+/// number in a Specials tab gets the show's one-episode special left over, and an episode matched to
+/// a one-episode special is looked up on TMDB by that special's names too; version 6: a file without
+/// a number in a season matched by hand gets the special picked for it that no numbered file
+/// reached). Hand-made choices stay; the episodes' TMDB details are looked up again too, for the new
+/// match.
+const ANILIST_MATCH_VERSION: &str = "6";
 
 pub fn refresh_anilist_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "anilist_match_version")?.as_deref() == Some(ANILIST_MATCH_VERSION) {

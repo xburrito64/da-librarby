@@ -47,6 +47,10 @@ pub struct EpisodeInput {
     pub episode_end: Option<f64>,
     /// Title from the file name, if any.
     pub name: Option<String>,
+    /// Other names it goes by: those of the one-episode special, OVA or movie it's matched to on
+    /// AniList ("Black Clover: The All Magic Knights Thanksgiving Festa" for a file called "Jump
+    /// Anime Festa 2018 Special Video"), for finding it on TMDB.
+    pub other_names: Vec<String>,
 }
 
 pub struct MovieInput {
@@ -118,9 +122,23 @@ pub fn match_show(input: &ShowInput, src: &mut dyn Source) -> Result<ShowMatch, 
             let entries: Vec<Media> = ids.iter().filter_map(|id| fetched.get(id).cloned()).collect();
             seen.extend(entries.iter().cloned());
             let local = ranges_of(&entries);
+            let first = episodes.len();
             for ep in &season.episodes {
                 let hit = whole(ep.episode).and_then(|n| locate(&local, n));
                 episodes.push(EpisodeMatch { file_id: ep.file_id, media_id: hit.map(|h| h.0), episode: hit.map(|h| h.1) });
+            }
+            // Files without a number ("Jump Anime Festa 2018 Special Video" after "Petit Clover - 15")
+            // get the one-episode entries picked for the season that no numbered file reached.
+            {
+                let used: Vec<i64> = episodes[first..].iter().filter_map(|m| m.media_id).collect();
+                let mut spare = entries.iter().filter(|m| m.episodes == Some(1) && !used.contains(&m.id));
+                for (ep, m) in season.episodes.iter().zip(&mut episodes[first..]) {
+                    if m.media_id.is_none() && whole(ep.episode).is_none() {
+                        let Some(entry) = spare.next() else { break };
+                        m.media_id = Some(entry.id);
+                        m.episode = Some(1);
+                    }
+                }
             }
             seasons.push(SeasonMatch { season_id: season.id, entries, locked: true });
             continue;
@@ -140,6 +158,11 @@ pub fn match_show(input: &ShowInput, src: &mut dyn Source) -> Result<ShowMatch, 
         seasons.push(SeasonMatch { season_id: season.id, entries, locked: false });
     }
 
+    // 4. Specials kept as files without a number in a Specials tab ("Black Clover OVA").
+    if let Some(r) = &root {
+        match_specials(input, r, &seasons, &mut episodes);
+    }
+
     // Movies stored inside the show folder.
     let mut movies = Vec::new();
     for movie in &input.movies {
@@ -153,6 +176,64 @@ pub fn match_show(input: &ShowInput, src: &mut dyn Source) -> Result<ShowMatch, 
     }
 
     Ok(ShowMatch { root, chain, seasons, episodes, movies })
+}
+
+/// Files without an episode number in a Specials tab (season 0, not matched by hand) get the show's
+/// one-episode specials and OVAs that nothing else is matched to: by name where the name says
+/// which, and otherwise when exactly one file and one special are left over.
+fn match_specials(input: &ShowInput, root: &Media, seasons: &[SeasonMatch], episodes: &mut [EpisodeMatch]) {
+    let claimed: Vec<i64> = episodes
+        .iter()
+        .filter_map(|e| e.media_id)
+        .chain(seasons.iter().flat_map(|s| s.entries.iter().map(|m| m.id)))
+        .collect();
+    let mut left: Vec<&RelationNode> = root
+        .relations()
+        .map(|e| &e.node)
+        .filter(|n| matches!(n.format.as_deref(), Some("SPECIAL") | Some("OVA")) && n.episodes == Some(1) && !claimed.contains(&n.id))
+        .collect();
+    let mut files: Vec<&EpisodeInput> = input
+        .seasons
+        .iter()
+        .filter(|s| s.number == Some(0) && s.locked.is_none())
+        .flat_map(|s| s.episodes.iter())
+        .filter(|ep| whole(ep.episode).is_none())
+        .filter(|ep| episodes.iter().any(|m| m.file_id == ep.file_id && m.media_id.is_none()))
+        .collect();
+    let assign = |file_id: i64, id: i64, episodes: &mut [EpisodeMatch]| {
+        if let Some(m) = episodes.iter_mut().find(|m| m.file_id == file_id) {
+            m.media_id = Some(id);
+            m.episode = Some(1);
+        }
+    };
+    // By name.
+    files.retain(|ep| {
+        let Some(name) = ep.name.as_deref() else { return true };
+        let best = left
+            .iter()
+            .enumerate()
+            .map(|(i, n)| (i, n.all_titles().iter().map(|t| similarity(name, t).max(similarity(name, without_show(t)))).fold(0.0, f64::max)))
+            .filter(|(_, score)| *score >= 0.85)
+            .max_by(|a, b| a.1.total_cmp(&b.1));
+        match best {
+            Some((i, _)) => {
+                let id = left.remove(i).id;
+                assign(ep.file_id, id, episodes);
+                false
+            }
+            None => true,
+        }
+    });
+    // The only one left.
+    if let ([ep], [n]) = (files.as_slice(), left.as_slice()) {
+        assign(ep.file_id, n.id, episodes);
+    }
+}
+
+/// A special's title without the show's name in front ("Black Clover: Jump Festa 2016 Special" ->
+/// "Jump Festa 2016 Special").
+pub fn without_show(title: &str) -> &str {
+    title.split_once(": ").or_else(|| title.split_once(" - ")).map_or(title, |(_, rest)| rest.trim())
 }
 
 fn fetch_one(src: &mut dyn Source, id: i64) -> Result<Option<Media>, Error> {
@@ -511,7 +592,7 @@ mod tests {
             id,
             number: Some(number),
             locked: None,
-            episodes: eps.map(|e| EpisodeInput { file_id: id * 1000 + e as i64, episode: Some(e as f64), episode_end: None, name: None }).collect(),
+            episodes: eps.map(|e| EpisodeInput { file_id: id * 1000 + e as i64, episode: Some(e as f64), episode_end: None, name: None, other_names: Vec::new() }).collect(),
         }
     }
 
@@ -695,7 +776,7 @@ mod live {
                         .iter()
                         .enumerate()
                         .filter(|(_, f)| f.season == Some(i))
-                        .map(|(j, f)| EpisodeInput { file_id: j as i64, episode: f.episode, episode_end: f.episode_end, name: f.name.clone() })
+                        .map(|(j, f)| EpisodeInput { file_id: j as i64, episode: f.episode, episode_end: f.episode_end, name: f.name.clone(), other_names: Vec::new() })
                         .collect(),
                 })
                 .collect();
@@ -729,12 +810,46 @@ mod episode_zero {
     use super::*;
 
     #[test]
+    fn leftover_special_goes_to_the_specials_tab() {
+        // Black Clover: one-episode specials related to the show are the Thanksgiving Festa (picked
+        // by hand for another tab) and the Jump Festa 2016 special; the Specials tab holds a file
+        // "Black Clover OVA" without a number, which gets the one left over.
+        let node = |id: i64, title: &str, format: &str, episodes: i32| {
+            serde_json::json!({ "relationType": "OTHER", "node": { "id": id, "type": "ANIME", "format": format, "episodes": episodes, "title": { "romaji": title } } })
+        };
+        let root: Media = serde_json::from_value(serde_json::json!({
+            "id": 97940, "type": "ANIME", "format": "TV", "episodes": 170, "title": { "romaji": "Black Clover" },
+            "relations": { "edges": [
+                node(106223, "Black Clover: All Mahou Kishi Kanshasai", "SPECIAL", 1),
+                node(87528, "Black Clover: Jump Festa 2016 Special", "SPECIAL", 1),
+                node(155017, "Petit Clover Advance", "SPECIAL", 15),
+                node(131680, "Black Clover: Mahou Tei no Ken", "MOVIE", 1),
+            ] }
+        }))
+        .unwrap();
+        let ova = EpisodeInput { file_id: 1, episode: None, episode_end: None, name: Some("Black Clover OVA".into()), other_names: Vec::new() };
+        let input = ShowInput {
+            name: "Black Clover".into(),
+            year: None,
+            is_movie: false,
+            parent: None,
+            locked_root: None,
+            seasons: vec![SeasonInput { id: 10, number: Some(0), locked: None, episodes: vec![ova] }],
+            movies: Vec::new(),
+        };
+        let claimed = EpisodeMatch { file_id: 2, media_id: Some(106223), episode: Some(1) };
+        let mut episodes = vec![EpisodeMatch { file_id: 1, media_id: None, episode: None }, claimed];
+        match_specials(&input, &root, &[], &mut episodes);
+        assert_eq!(episodes[0].media_id, Some(87528));
+    }
+
+    #[test]
     fn episode_zero_counts_as_first() {
         let mk = |id: i64, number: i32, eps: &[f64]| SeasonInput {
             id,
             number: Some(number),
             locked: None,
-            episodes: eps.iter().map(|&e| EpisodeInput { file_id: id * 100 + e as i64, episode: Some(e), episode_end: None, name: None }).collect(),
+            episodes: eps.iter().map(|&e| EpisodeInput { file_id: id * 100 + e as i64, episode: Some(e), episode_end: None, name: None, other_names: Vec::new() }).collect(),
         };
         let seasons = [mk(1, 1, &[1.0, 2.0]), mk(2, 2, &[0.0, 1.0, 2.0]), mk(3, 3, &[1.0])];
         let g = global_numbers(&seasons);
