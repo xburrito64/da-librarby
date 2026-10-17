@@ -148,10 +148,14 @@
 
 /* ---------- The heart as the mouse pointer (an option) ---------- */
 
-/* Text fields keep their text cursor; the player still hides the pointer when it's idle. */
+/* Text fields get a pixel text cursor; the player still hides the pointer when it's idle. */
 :root[data-theme="snowdin"].sd-heart-pointer,
 :root[data-theme="snowdin"].sd-heart-pointer :not(input, textarea) {
   cursor: var(--sd-pointer), auto !important;
+}
+
+:root[data-theme="snowdin"].sd-heart-pointer :is(textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"])) {
+  cursor: var(--sd-text-pointer), text !important;
 }
 
 :root[data-theme="snowdin"].sd-heart-pointer :is(.player--hidden, .player--hidden *) {

@@ -1,9 +1,11 @@
 // Snowdin's little sprites and pixel icons. The sprites reach the stylesheet as CSS variables
 // (--sd-heart, --sd-town, ...); the icons replace the usual line icons while Snowdin is on.
+import type { ScrollLook } from "../autoscroll";
 import { forestScene, paint, sceneUrl, townScene, type Scene } from "./scenes";
 
 const PALETTE: Record<string, string> = {
   R: "#ff0000", // the heart (its colour can be changed, see setHeartColors)
+  B: "#003cff", // the blue soul (gravity), while scrolling with the middle button
   Y: "#fff200",
   y: "#ffd23a",
   W: "#ffffff",
@@ -168,8 +170,58 @@ export function setHeartColors(hearts: string, pointer = hearts) {
     const palette = { ...PALETTE, R: pointer };
     const image = (scale: number) => `url("${sprite(outlined(HEART), palette, scale)}") ${scale / 3}x`;
     document.documentElement.style.setProperty("--sd-pointer", `image-set(${image(3)}, ${image(6)}) 13 10`);
+    document.documentElement.style.setProperty("--sd-text-pointer", pixelCursor(TEXT_BAR, palette));
   }
   drawn = { hearts, pointer };
+}
+
+// ---------- Scrolling with the middle button, and typing (with the heart as the pointer) ----------
+
+/** Where you type: a bar, in the pointer's colour. */
+const TEXT_BAR = ["RRR.RRR", ...Array(8).fill("...R..."), "RRR.RRR"];
+const ARROW_UP = ["...W...", "..WWW..", ".WWWWW."];
+const ARROW_DOWN = [...ARROW_UP].reverse();
+const ARROW_LEFT = [".W", "WW", ".W"];
+const ARROW_RIGHT = mirror(ARROW_LEFT);
+const ROW_GAP = ["......."];
+/** The heart turned into the blue soul, as when gravity pulls it in the game. */
+const BLUE_HEART = HEART.map((row) => row.replace(/R/g, "B"));
+
+/** Sprites side by side, each `top` dots down. */
+function beside(...parts: [string[], number][]) {
+  const h = Math.max(...parts.map(([rows, top]) => rows.length + top));
+  return Array.from({ length: h }, (_, y) => parts.map(([rows, top]) => rows[y - top] ?? ".".repeat(rows[0].length)).join(""));
+}
+
+/** An outlined sprite as a CSS cursor, 2 screen pixels per dot (4 on high-resolution screens),
+ *  pointing from its middle. */
+function pixelCursor(rows: string[], palette: Record<string, string>) {
+  const pic = outlined(rows);
+  const w = Math.max(...pic.map((r) => r.length));
+  return `image-set(url("${sprite(pic, palette, 2)}") 1x, url("${sprite(pic, palette, 4)}") 2x) ${w} ${pic.length}`;
+}
+
+/** The pictures for scrolling with the middle button: the heart (in the pointer's colour) between
+ *  little arrows while waiting, and turned blue with the arrow it's going while scrolling. */
+export function heartScroll(color: string): ScrollLook {
+  const palette = { ...PALETTE, R: isColor(color) ? color : PALETTE.R };
+  const waitV = [...ARROW_UP, ...ROW_GAP, ...HEART, ...ROW_GAP, ...ARROW_DOWN];
+  const waitH = beside([ARROW_LEFT, 1], [["."], 0], [HEART, 0], [["."], 0], [ARROW_RIGHT, 1]);
+  const mark = (rows: string[]) => {
+    const pic = outlined(rows);
+    return { src: sprite(pic, palette, 4), width: Math.max(...pic.map((r) => r.length)) * 2, height: pic.length * 2, pixels: true };
+  };
+  return {
+    cursors: {
+      v: pixelCursor(waitV, palette),
+      h: pixelCursor(waitH, palette),
+      up: pixelCursor([...ARROW_UP, ...ROW_GAP, ...BLUE_HEART], palette),
+      down: pixelCursor([...BLUE_HEART, ...ROW_GAP, ...ARROW_DOWN], palette),
+      left: pixelCursor(beside([ARROW_LEFT, 1], [["."], 0], [BLUE_HEART, 0]), palette),
+      right: pixelCursor(beside([BLUE_HEART, 0], [["."], 0], [ARROW_RIGHT, 1]), palette),
+    },
+    marks: { v: mark(waitV), h: mark(waitH) },
+  };
 }
 
 /** The heart's colour in the game. */

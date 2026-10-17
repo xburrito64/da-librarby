@@ -4,7 +4,8 @@ import "@fontsource-variable/pixelify-sans";
 import "./snowdin.css";
 import type { Theme } from "../themes";
 import type { CheckInfo } from "../copy";
-import { HEART_RED, ICONS, setHeartColors } from "./art";
+import { HEART_RED, ICONS, heartScroll, setHeartColors } from "./art";
+import { setScrollLook } from "../autoscroll";
 import { SOUNDS } from "./sounds";
 import Decor from "./Decor";
 import Encounter from "./Encounter";
@@ -184,6 +185,7 @@ export const SNOWDIN: Theme = {
       const color = String(options.heart ?? HEART_RED);
       setHeartColors(options.pointerOnly === true ? HEART_RED : color, color);
       document.documentElement.classList.toggle("sd-heart-pointer", options.pointer !== false);
+      setScrollLook("snowdin", options.pointer !== false ? heartScroll(color) : null);
     },
     Decor,
     PlayIntro: Encounter,

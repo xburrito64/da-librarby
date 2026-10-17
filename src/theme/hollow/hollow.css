@@ -3378,7 +3378,7 @@
 
 /* ---------- The mouse pointer (a setting; pointer.ts draws them and adds the rules showing them) ---------- */
 
-/* Where you type, the typing cursor. */
+/* Where you type, the typing cursor (the pointer's own, see pointer.ts, when it has one). */
 :root[data-theme="hollow"]:is(.he-pointer, .he-pointer-hand) :is(textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"])) {
   cursor: text !important;
 }

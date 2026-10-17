@@ -4,6 +4,10 @@
 // pointer turning into them (a key at the tomb's gate, a bone over the skeleton, ...; scenes.ts says
 // which). Each is drawn here at 32×32 with the spot the click lands on, made into crisp pictures for
 // ordinary and high-resolution screens, and shown by rules added to the page (see applyPointer).
+// Each everyday pointer also comes with its own pictures for scrolling with the middle mouse button
+// (see ../autoscroll.ts) and for where you type.
+
+import { setScrollLook } from "../autoscroll";
 
 const INK = "#1b1024";
 
@@ -50,6 +54,27 @@ const sheetGhost = (arm = "", smile = false) =>
 const ARM_UP = `<path d="M-7 -.4Q-6.4 -9 -3.6 -14.4Q-1.6 -16.4 .4 -14.6Q1 -13.4 .2 -12Q-1.2 -6.4 -1 -.4Z" fill="#f1ecff" stroke="${INK}" stroke-width="1.1" stroke-linejoin="round"/>`;
 const ARM_OUT = `<path d="M-6.2 1.6Q-12 -4 -15.6 -11Q-14.6 -12.6 -13 -11.6Q-10 -7.4 -5.6 -4Z" fill="#f1ecff" stroke="${INK}" stroke-width="1.1" stroke-linejoin="round"/>`;
 
+/** A little bat (its head up, its middle at 0 0), placed by `transform`. */
+const BAT_SHAPES =
+  `<path d="M-2 -3.4C-6 -5.4 -10 -4.6 -14 -1.4C-12.4 -.4 -11.6 .8 -11.8 2.4C-10.2 1.4 -8.6 1.6 -7.6 3C-6.4 1.8 -4.6 1.8 -3.2 3.2Z"/>` +
+  `<path d="M2 -3.4C6 -5.4 10 -4.6 14 -1.4C12.4 -.4 11.6 .8 11.8 2.4C10.2 1.4 8.6 1.6 7.6 3C6.4 1.8 4.6 1.8 3.2 3.2Z"/>` +
+  `<path d="M0 -10.4C1.6 -10.4 2.6 -9 2.6 -7.6L2.6 2C2.6 4.8 1.4 7 0 8.4C-1.4 7 -2.6 4.8 -2.6 2L-2.6 -7.6C-2.6 -9 -1.6 -10.4 0 -10.4Z"/>` +
+  `<path d="M-2 -9.2L-2.8 -12.6L-.6 -10.2ZM2 -9.2L2.8 -12.6L.6 -10.2Z"/>`;
+const batFigure = (transform: string) =>
+  `<g transform="${transform}">` +
+  glow(BAT_SHAPES.replace(/<path /g, '<path fill="x" '), "#c9b6ee", 0.9) +
+  `<g fill="#241a33" stroke="#0c0712" stroke-width=".8" stroke-linejoin="round">${BAT_SHAPES}</g>` +
+  `<path d="M-13 -1.6C-9.4 -4.2 -5.8 -4.6 -2.4 -3M13 -1.6C9.4 -4.2 5.8 -4.6 2.4 -3" stroke="#a48fd0" stroke-width=".7" fill="none"/>` +
+  `<path d="M-7.6 -3.6L-7.6 2.6M-11 -2.4L-11.6 2M7.6 -3.6L7.6 2.6M11 -2.4L11.6 2" stroke="#3d2d52" stroke-width=".6"/>` +
+  `<circle cx="-1" cy="-8" r=".85" fill="#ffcf5a"/><circle cx="1" cy="-8" r=".85" fill="#ffcf5a"/></g>`;
+
+/** The jack-o'-lantern's pumpkin (its middle at 18 20), without its stem and face. */
+const PUMPKIN = "M18 11.4C24.6 10 29 14 29 19.6C29 25.6 24 28.8 18 28.8C12 28.8 7 25.6 7 19.6C7 14 11.4 10 18 11.4Z";
+const PUMPKIN_DEFS = `<radialGradient id="pk" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#ffb04a"/><stop offset=".7" stop-color="#ff7a12"/><stop offset="1" stop-color="#c4520a"/></radialGradient><clipPath id="pkc"><path d="${PUMPKIN}"/></clipPath>`;
+const PUMPKIN_BODY =
+  `<path d="${PUMPKIN}" fill="url(#pk)" stroke="${INK}" stroke-width="1.1"/>` +
+  `<g clip-path="url(#pkc)"><path d="M18 11.8V28.4M12.6 12.6Q10.4 19.6 13 28M23.4 12.6Q25.6 19.6 23 28" stroke="#b34f0c" stroke-width=".9" fill="none"/></g>`;
+
 // ---------- The everyday pointers ----------
 
 export const POINTERS: Record<string, Pointer> = {
@@ -86,36 +111,19 @@ export const POINTERS: Record<string, Pointer> = {
     svg: svg(
       `<g transform="rotate(-22 18 19)">` +
         glow(`<ellipse cx="18" cy="20" rx="10.5" ry="9" fill="x"/>`, "#ff7a1a", 0.7, true) +
-        `<path d="M18 11.4C24.6 10 29 14 29 19.6C29 25.6 24 28.8 18 28.8C12 28.8 7 25.6 7 19.6C7 14 11.4 10 18 11.4Z" fill="url(#pk)" stroke="${INK}" stroke-width="1.1"/>` +
-        `<g clip-path="url(#pkc)"><path d="M18 11.8V28.4M12.6 12.6Q10.4 19.6 13 28M23.4 12.6Q25.6 19.6 23 28" stroke="#b34f0c" stroke-width=".9" fill="none"/></g>` +
+        PUMPKIN_BODY +
         `<path d="M17.2 11.6Q16.6 7.6 13.2 6.4Q10.4 5.6 9.6 3.6Q12.6 4 14.6 3.8" stroke="${INK}" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` +
         `<path d="M17.2 11.6Q16.6 7.6 13.2 6.4Q10.4 5.6 9.6 3.6Q12.6 4 14.6 3.8" stroke="#5f7a3a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` +
         `<path d="M11.8 17.6L14.6 15.2L15.6 18.8ZM24.2 17.6L21.4 15.2L20.4 18.8Z" fill="#ffe27a" stroke="#7a3206" stroke-width=".5"/>` +
         `<path d="M11.4 21.4Q18 26.8 24.6 21.4L22.6 22.2L21.6 23.6L20.2 22.6L18 24.2L15.8 22.6L14.4 23.6L13.4 22.2Z" fill="#ffe27a" stroke="#7a3206" stroke-width=".5"/>` +
         `</g>`,
-      `<radialGradient id="pk" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#ffb04a"/><stop offset=".7" stop-color="#ff7a12"/><stop offset="1" stop-color="#c4520a"/></radialGradient><clipPath id="pkc"><path d="M18 11.4C24.6 10 29 14 29 19.6C29 25.6 24 28.8 18 28.8C12 28.8 7 25.6 7 19.6C7 14 11.4 10 18 11.4Z"/></clipPath>`,
+      PUMPKIN_DEFS,
     ),
   },
   bat: {
     label: "Bat",
     hot: [3, 4],
-    svg: svg(
-      (() => {
-        const shapes =
-          `<path d="M-2 -3.4C-6 -5.4 -10 -4.6 -14 -1.4C-12.4 -.4 -11.6 .8 -11.8 2.4C-10.2 1.4 -8.6 1.6 -7.6 3C-6.4 1.8 -4.6 1.8 -3.2 3.2Z"/>` +
-          `<path d="M2 -3.4C6 -5.4 10 -4.6 14 -1.4C12.4 -.4 11.6 .8 11.8 2.4C10.2 1.4 8.6 1.6 7.6 3C6.4 1.8 4.6 1.8 3.2 3.2Z"/>` +
-          `<path d="M0 -10.4C1.6 -10.4 2.6 -9 2.6 -7.6L2.6 2C2.6 4.8 1.4 7 0 8.4C-1.4 7 -2.6 4.8 -2.6 2L-2.6 -7.6C-2.6 -9 -1.6 -10.4 0 -10.4Z"/>` +
-          `<path d="M-2 -9.2L-2.8 -12.6L-.6 -10.2ZM2 -9.2L2.8 -12.6L.6 -10.2Z"/>`;
-        return (
-          `<g transform="translate(11.8 12.8) rotate(-45) scale(1.05)">` +
-          glow(shapes.replace(/<path /g, '<path fill="x" '), "#c9b6ee", 0.9) +
-          `<g fill="#241a33" stroke="#0c0712" stroke-width=".8" stroke-linejoin="round">${shapes}</g>` +
-          `<path d="M-13 -1.6C-9.4 -4.2 -5.8 -4.6 -2.4 -3M13 -1.6C9.4 -4.2 5.8 -4.6 2.4 -3" stroke="#a48fd0" stroke-width=".7" fill="none"/>` +
-          `<path d="M-7.6 -3.6L-7.6 2.6M-11 -2.4L-11.6 2M7.6 -3.6L7.6 2.6M11 -2.4L11.6 2" stroke="#3d2d52" stroke-width=".6"/>` +
-          `<circle cx="-1" cy="-8" r=".85" fill="#ffcf5a"/><circle cx="1" cy="-8" r=".85" fill="#ffcf5a"/></g>`
-        );
-      })(),
-    ),
+    svg: svg(batFigure("translate(11.8 12.8) rotate(-45) scale(1.05)")),
   },
 };
 
@@ -408,12 +416,164 @@ const picture = (s: string) => `data:image/svg+xml,${encodeURIComponent(s)}`;
 export const pointerChoices = () => [{ value: "windows", label: "Windows'", image: picture(WINDOWS) }, ...Object.entries(POINTERS).map(([value, p]) => ({ value, label: p.label, image: picture(p.svg) }))];
 export const handChoices = () => [{ value: "windows", label: "Windows'", image: picture(WINDOWS_HAND) }, ...Object.entries(HANDS).map(([value, p]) => ({ value, label: p.label, image: picture(p.svg) }))];
 
+// ---------- Scrolling with the middle button, and typing ----------
+
+/** For each everyday pointer: waiting after a middle click (little arrows up and down), scrolling
+ *  up and down (sideways: the same, turned), and where you type. All centred on the pointer. */
+interface ScrollSet {
+  wait: string;
+  up: string;
+  down: string;
+  text: string;
+}
+
+const arrowUp = (y: number, fill: string, stroke: string, w = 3.4, h = 3.4) =>
+  `<path d="M16 ${y}L${16 + w} ${y + h}L${16 - w} ${y + h}Z" fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-linejoin="round"/>`;
+const arrowDown = (y: number, fill: string, stroke: string, w = 3.4, h = 3.4) =>
+  `<path d="M16 ${y}L${16 + w} ${y - h}L${16 - w} ${y - h}Z" fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-linejoin="round"/>`;
+/** Three short streaks from y0 to y1 behind something moving (the side ones shorter). */
+const streaks = (y0: number, y1: number, color: string) => {
+  const side = y0 + (y1 - y0) * 0.3;
+  return `<g stroke="${color}" stroke-width="1.4" stroke-linecap="round" opacity=".85"><path d="M11.4 ${side}V${y1}"/><path d="M16 ${y0}V${y1}"/><path d="M20.6 ${side}V${y1}"/></g>`;
+};
+/** Where you type: a bar with ends, and something of the pointer's on top or below. */
+const typing = (fill: string, stroke: string, glowColor: string, extra = "", defs = "") => {
+  const d = "M12.6 5.4H19.4V7.4H17.1V24.6H19.4V26.6H12.6V24.6H14.9V7.4H12.6Z";
+  return svg(glow(`<path d="${d}" fill="x"/>`, glowColor, 0.75) + `<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-linejoin="round"/>` + extra, defs);
+};
+const LILAC = "#f1ecff";
+const ARMS_OUT = ARM_OUT + `<g transform="scale(-1 1)">${ARM_OUT}</g>`;
+
+const WISP_DEFS =
+  `<radialGradient id="wa" cx=".5" cy=".6" r=".7"><stop offset="0" stop-color="#f4fff0"/><stop offset=".45" stop-color="#9dffb4"/><stop offset="1" stop-color="#2fae6a"/></radialGradient>` +
+  `<radialGradient id="wc" cx=".5" cy=".25" r=".8"><stop offset="0" stop-color="#f4fff0"/><stop offset=".35" stop-color="#9dffb4"/><stop offset="1" stop-color="#2fae6a" stop-opacity=".7"/></radialGradient>`;
+const WISP_DARK = "#0f3a24";
+const FLAME = "M0 -9C3 -5 6.5 -2 6.5 2.5C6.5 6.6 3.6 9 0 9C-3.6 9 -6.5 6.6 -6.5 2.5C-6.5 -2 -3 -5 0 -9Z";
+/** The wisp streaming along like a comet, its head leading upwards (or, `down`, downwards). */
+const comet = (down: boolean) => {
+  const d = "M16 3.6C20 3.6 22.4 6.6 22.2 10.2C22 14 19.6 17 18.4 21C17.6 24 18.6 27 16.2 30.6C14.6 27.6 14.8 24.6 14 21.6C12.4 17.4 9.8 14 9.8 10.2C9.8 6.6 12.2 3.6 16 3.6Z";
+  return svg(
+    `<g${down ? ' transform="translate(0 32) scale(1 -1)"' : ""}>` +
+      glow(`<path d="${d}" fill="x"/>`, "#5dff8f", 0.9, true) +
+      `<path d="${d}" fill="url(#wc)" stroke="${WISP_DARK}" stroke-width=".9" stroke-linejoin="round"/>` +
+      `<path d="M13 9.6C13.2 7.6 14.4 6.4 16 6.2" stroke="#f2fff0" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".9"/>` +
+      `<circle cx="14.2" cy="9.4" r="1.05" fill="${WISP_DARK}"/><circle cx="17.8" cy="9.4" r="1.05" fill="${WISP_DARK}"/></g>`,
+    WISP_DEFS,
+  );
+};
+
+const LIT = "#ffe27a";
+const UNLIT = "#5a2306";
+/** The jack-o'-lantern carved with an up and a down arrow (lit or not), `dy` up or down. */
+const carvedLantern = (up: string, down: string, dy = 0, light = 0.7) =>
+  `<g transform="translate(-2 ${-3 + dy})">` +
+  glow(`<ellipse cx="18" cy="20" rx="10.5" ry="9" fill="x"/>`, "#ff7a1a", light, true) +
+  PUMPKIN_BODY +
+  `<path d="M18 11.6Q17.6 8.6 15.4 7.2" stroke="${INK}" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M18 11.6Q17.6 8.6 15.4 7.2" stroke="#5f7a3a" stroke-width="1.8" fill="none" stroke-linecap="round"/>` +
+  `<path d="M18 13.8L21.2 17.6H14.8Z" fill="${up}" stroke="#7a3206" stroke-width=".6" stroke-linejoin="round"/><path d="M18 26L21.2 22.2H14.8Z" fill="${down}" stroke="#7a3206" stroke-width=".6" stroke-linejoin="round"/>` +
+  `<ellipse cx="13" cy="19.9" rx="1" ry="1.2" fill="${LIT}"/><ellipse cx="23" cy="19.9" rx="1" ry="1.2" fill="${LIT}"/>` +
+  `</g>`;
+
+/** The bat hanging asleep, wrapped in its wings (upside down: feet at the top, ears below). */
+const SLEEPING_BAT = (() => {
+  const d = "M16 7.4C19.8 7.4 21.4 11 21.2 15.6C21 20.2 19.4 23.4 16 23.4C12.6 23.4 11 20.2 10.8 15.6C10.6 11 12.2 7.4 16 7.4Z";
+  return (
+    `<g transform="translate(0 .4)">` +
+    glow(`<path d="${d}" fill="x"/>`, "#c9b6ee", 0.9) +
+    `<path d="M14.4 7.8V5.6M17.6 7.8V5.6M13.4 5.6H18.6" stroke="#a48fd0" stroke-width=".9" stroke-linecap="round"/>` +
+    `<path d="M14 22.6L13 25.6L15.4 23.2ZM18 22.6L19 25.6L16.6 23.2Z" fill="#241a33" stroke="#0c0712" stroke-width=".7" stroke-linejoin="round"/>` +
+    `<path d="${d}" fill="#241a33" stroke="#0c0712" stroke-width=".8"/>` +
+    `<path d="M16 8.4C14.4 11.6 14 15.4 14.8 19.6M16 8.4C17.6 11.6 18 15.4 17.2 19.6" stroke="#a48fd0" stroke-width=".7" fill="none"/>` +
+    `<path d="M14.2 21.2Q15 21.9 15.6 21.2M16.4 21.2Q17 21.9 17.8 21.2" stroke="#ffcf5a" stroke-width=".7" fill="none" stroke-linecap="round"/>` +
+    `</g>`
+  );
+})();
+
+export const SCROLLS: Record<string, ScrollSet> = {
+  ghost: {
+    wait: svg(arrowUp(1.2, LILAC, INK) + `<g transform="translate(16 11.7) scale(.62)">${sheetGhost("", true)}</g>` + arrowDown(30.8, LILAC, INK), GHOST_DEFS),
+    up: svg(`<g transform="translate(16 9) scale(.78)">${sheetGhost()}</g>` + streaks(26.6, 31, "#c9b6ee"), GHOST_DEFS),
+    down: svg(streaks(5.4, 1, "#c9b6ee") + `<g transform="translate(16 23) rotate(180) scale(.78)">${sheetGhost()}</g>`, GHOST_DEFS),
+    // (Ending in a little sheet hem.)
+    text: typing(
+      LILAC,
+      INK,
+      "#b99bff",
+      `<path d="M12.6 24.6Q13.4 27.6 14.6 26.2Q15.6 28 16.4 26.2Q17.4 28 18.4 26.2Q19.2 27.4 19.4 24.6" fill="${LILAC}" stroke="${INK}" stroke-width="1" stroke-linejoin="round"/><path d="M13.2 24.9H18.8" stroke="${LILAC}" stroke-width="1.4"/>`,
+    ),
+  },
+  reaching: {
+    // (Its body, not its arms, halfway between the arrows.)
+    wait: svg(arrowUp(1.2, LILAC, INK) + `<g transform="translate(16 11.8) scale(.6)">${sheetGhost(ARMS_OUT, true)}</g>` + arrowDown(30.8, LILAC, INK), GHOST_DEFS),
+    up: svg(`<g transform="translate(17 12.4) scale(.66)">${sheetGhost(ARM_UP, true)}</g>` + streaks(27, 31, "#c9b6ee"), GHOST_DEFS),
+    down: svg(streaks(5, 1, "#c9b6ee") + `<g transform="translate(15 19.6) rotate(180) scale(.66)">${sheetGhost(ARM_UP, true)}</g>`, GHOST_DEFS),
+    // (Holding its little arms up.)
+    text: typing(
+      LILAC,
+      INK,
+      "#b99bff",
+      `<g transform="translate(16 6.2) scale(.36)"><path d="M-9 0Q-14 -6 -15.6 -11Q-14.6 -12.6 -13 -11.6Q-10 -6 -5 -1Z" fill="${LILAC}" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/><path d="M9 0Q14 -6 15.6 -11Q14.6 -12.6 13 -11.6Q10 -6 5 -1Z" fill="${LILAC}" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/></g>`,
+    ),
+  },
+  wisp: {
+    wait: svg(
+      arrowUp(0.8, "#6fe89a", WISP_DARK) +
+        `<g transform="translate(16 16) scale(.92)">` +
+        glow(`<path d="${FLAME}" fill="x"/>`, "#5dff8f", 0.9, true) +
+        `<path d="${FLAME}" fill="url(#wa)" stroke="${WISP_DARK}" stroke-width=".9"/>` +
+        `<path d="M-3.6 1.2C-3.6 -1.4 -2 -3.6 0 -5.2" stroke="#f2fff0" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".9"/>` +
+        `<circle cx="-1.9" cy="3" r="1.05" fill="${WISP_DARK}"/><circle cx="1.9" cy="3" r="1.05" fill="${WISP_DARK}"/></g>` +
+        arrowDown(31.2, "#6fe89a", WISP_DARK),
+      WISP_DEFS,
+    ),
+    up: comet(false),
+    down: comet(true),
+    // (A little flame on top.)
+    text: typing(
+      "#c8ffd6",
+      WISP_DARK,
+      "#5dff8f",
+      `<path d="M16 .8C17.6 2.4 18.4 3.6 18 5.4H14C13.6 3.6 14.4 2.4 16 .8Z" fill="#9dffb4" stroke="${WISP_DARK}" stroke-width=".9" stroke-linejoin="round"/><path d="M16 3.2C16.6 3.8 16.8 4.4 16.6 5H15.4C15.2 4.4 15.4 3.8 16 3.2Z" fill="#f4fff0"/>`,
+    ),
+  },
+  lantern: {
+    wait: svg(carvedLantern(LIT, LIT), PUMPKIN_DEFS),
+    up: svg(carvedLantern(LIT, UNLIT, -1.6, 0.85) + streaks(28.2, 31.4, "#ffb04a"), PUMPKIN_DEFS),
+    down: svg(streaks(4.4, 0.6, "#ffb04a") + carvedLantern(UNLIT, LIT, 2.6, 0.85), PUMPKIN_DEFS),
+    // (Pumpkin-orange, with a stem.)
+    text: typing(
+      "#ffb04a",
+      INK,
+      "#ff7a1a",
+      `<path d="M16 5.6Q15.8 3.4 14 2.4" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M16 5.6Q15.8 3.4 14 2.4" stroke="#5f7a3a" stroke-width="1.3" fill="none" stroke-linecap="round"/>`,
+    ),
+  },
+  bat: {
+    wait: svg(arrowUp(0.6, "#c9b6ee", "#0c0712", 3, 3) + SLEEPING_BAT + arrowDown(31.4, "#c9b6ee", "#0c0712", 3, 3)),
+    up: svg(batFigure("translate(16 13) scale(1.02)") + streaks(26.4, 31, "#a48fd0")),
+    down: svg(streaks(5.6, 1, "#a48fd0") + batFigure("translate(16 19) rotate(180) scale(1.02)")),
+    // (A tiny bat perched on top.)
+    text: typing(
+      "#3a2a52",
+      "#0c0712",
+      "#c9b6ee",
+      `<g transform="translate(16 6.6) scale(.42)"><g fill="#241a33" stroke="#0c0712" stroke-width="1.8" stroke-linejoin="round">${BAT_SHAPES.split("<path").slice(0, 3).join("<path")}<circle cx="0" cy="-1" r="3.6"/></g><circle cx="-1.3" cy="-1.6" r="1" fill="#ffcf5a"/><circle cx="1.3" cy="-1.6" r="1" fill="#ffcf5a"/></g>`,
+    ),
+  },
+};
+
+/** The same picture turned around its middle (for scrolling sideways). */
+const turned = (picture: string, degrees: number) => picture.replace("</defs>", `</defs><g transform="rotate(${degrees} 16 16)">`).replace(/<\/svg>$/, "</g></svg>");
+const centred = (s: string): Pointer => ({ label: "", hot: [16, 16], svg: s });
+
 // ---------- Showing them ----------
 
 /** Anything clickable. */
 const CLICKABLE =
   'a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider';
 const ROOT = ':root[data-theme="hollow"]';
+/** Where you type. */
+const TYPING = 'textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"])';
 /** The scene's things that are under the pointer themselves (not behind the page), and what the
  *  pointer turns into over them, every part of them. */
 const OWN: [string, string][] = [
@@ -467,11 +627,22 @@ export function applyPointer(main: string, hand: string, things: boolean) {
   const want = `${main}|${hand}|${things}`;
   asked = want;
   const keys = Object.keys(THINGS);
+  const scroll = SCROLLS[main];
+  const scrolling = scroll && {
+    v: scroll.wait,
+    h: turned(scroll.wait, 90),
+    up: scroll.up,
+    down: scroll.down,
+    left: turned(scroll.up, -90),
+    right: turned(scroll.down, -90),
+  };
   void Promise.all([
     POINTERS[main] ? cursorOf(POINTERS[main]) : "",
     HANDS[hand] ? cursorOf(HANDS[hand]) : "",
     Promise.all(keys.map((k) => (things ? cursorOf(THINGS[k]) : ""))),
-  ]).then(([arrow, finger, over]) => {
+    scroll ? cursorOf(centred(scroll.text)) : "",
+    Promise.all(Object.values(scrolling || {}).map((s) => cursorOf(centred(s)))),
+  ]).then(([arrow, finger, over, text, scrollCursors]) => {
     if (asked !== want) return;
     const handCursor = finger ? `${finger}, pointer` : "pointer";
     let css = "";
@@ -479,6 +650,8 @@ export function applyPointer(main: string, hand: string, things: boolean) {
       css += `${ROOT}.he-pointer, ${ROOT}.he-pointer :is(.choice-row, .tp__desc.is-open, .filter:disabled) { cursor: ${arrow}, auto; }
 `;
       css += `${ROOT}.he-pointer :is(${CLICKABLE}) { cursor: pointer; }
+`;
+      if (text) css += `${ROOT}.he-pointer.he-pointer :is(${TYPING}) { cursor: ${text}, text !important; }
 `;
     }
     if (finger) css += `${ROOT}.he-pointer-hand :is(${CLICKABLE}) { cursor: ${handCursor}; }
@@ -498,5 +671,14 @@ export function applyPointer(main: string, hand: string, things: boolean) {
     const root = document.documentElement;
     root.classList.toggle("he-pointer", !!arrow);
     root.classList.toggle("he-pointer-hand", !!finger);
+    // Scrolling with the middle button (in the pointer's style, or the browser's own).
+    if (arrow && scrolling && scrollCursors.every(Boolean)) {
+      const names = Object.keys(scrolling) as (keyof typeof scrolling)[];
+      const mark = (s: string) => ({ src: picture(s), width: 32, height: 32 });
+      setScrollLook("hollow", {
+        cursors: Object.fromEntries(names.map((n, i) => [n, `${scrollCursors[i]}, all-scroll`])) as Record<keyof typeof scrolling, string>,
+        marks: { v: mark(scrolling.v), h: mark(scrolling.h) },
+      });
+    } else setScrollLook("hollow", null);
   });
 }
