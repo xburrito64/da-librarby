@@ -158,9 +158,10 @@ pub fn match_show(input: &ShowInput, src: &mut dyn Source) -> Result<ShowMatch, 
         seasons.push(SeasonMatch { season_id: season.id, entries, locked: false });
     }
 
-    // 4. Specials kept as files without a number in a Specials tab ("Black Clover OVA").
+    // 4. Specials kept in a Specials tab as files without a number ("Black Clover OVA") or numbered
+    // on from the show's last episode (Kill la Kill's "- 25", after 24).
     if let Some(r) = &root {
-        match_specials(input, r, &seasons, &mut episodes);
+        match_specials(input, r, need, &seasons, &mut episodes);
     }
 
     // Movies stored inside the show folder.
@@ -178,10 +179,11 @@ pub fn match_show(input: &ShowInput, src: &mut dyn Source) -> Result<ShowMatch, 
     Ok(ShowMatch { root, chain, seasons, episodes, movies })
 }
 
-/// Files without an episode number in a Specials tab (season 0, not matched by hand) get the show's
-/// one-episode specials and OVAs that nothing else is matched to: by name where the name says
-/// which, and otherwise when exactly one file and one special are left over.
-fn match_specials(input: &ShowInput, root: &Media, seasons: &[SeasonMatch], episodes: &mut [EpisodeMatch]) {
+/// Files in a Specials tab (season 0, not matched by hand) without an episode number, or numbered on
+/// from the show's last episode (`last`), get the show's one-episode specials and OVAs that nothing
+/// else is matched to: by name where the name says which, and otherwise when exactly one file and
+/// one special are left over.
+fn match_specials(input: &ShowInput, root: &Media, last: i32, seasons: &[SeasonMatch], episodes: &mut [EpisodeMatch]) {
     let claimed: Vec<i64> = episodes
         .iter()
         .filter_map(|e| e.media_id)
@@ -197,7 +199,7 @@ fn match_specials(input: &ShowInput, root: &Media, seasons: &[SeasonMatch], epis
         .iter()
         .filter(|s| s.number == Some(0) && s.locked.is_none())
         .flat_map(|s| s.episodes.iter())
-        .filter(|ep| whole(ep.episode).is_none())
+        .filter(|ep| whole(ep.episode).is_none_or(|n| last > 0 && n > last))
         .filter(|ep| episodes.iter().any(|m| m.file_id == ep.file_id && m.media_id.is_none()))
         .collect();
     let assign = |file_id: i64, id: i64, episodes: &mut [EpisodeMatch]| {
@@ -839,8 +841,40 @@ mod episode_zero {
         };
         let claimed = EpisodeMatch { file_id: 2, media_id: Some(106223), episode: Some(1) };
         let mut episodes = vec![EpisodeMatch { file_id: 1, media_id: None, episode: None }, claimed];
-        match_specials(&input, &root, &[], &mut episodes);
+        match_specials(&input, &root, 170, &[], &mut episodes);
         assert_eq!(episodes[0].media_id, Some(87528));
+    }
+
+    #[test]
+    fn special_numbered_on_from_the_last_episode() {
+        // Kill la Kill: 24 episodes, and "KILL la KILL - 25" in a Special folder is the OVA that
+        // followed (AniList lists it as a sequel, "Kill la Kill Episode 25").
+        let root: Media = serde_json::from_value(serde_json::json!({
+            "id": 18679, "type": "ANIME", "format": "TV", "episodes": 24, "title": { "romaji": "Kill la Kill" },
+            "relations": { "edges": [
+                { "relationType": "SEQUEL", "node": { "id": 20572, "type": "ANIME", "format": "OVA", "episodes": 1, "title": { "romaji": "Kill la Kill Tokubetsu-hen" } } },
+            ] }
+        }))
+        .unwrap();
+        let file = |id: i64, n: f64| EpisodeInput { file_id: id, episode: Some(n), episode_end: None, name: None, other_names: Vec::new() };
+        let input = ShowInput {
+            name: "KILL la KILL".into(),
+            year: None,
+            is_movie: false,
+            parent: None,
+            locked_root: None,
+            seasons: vec![SeasonInput { id: 10, number: Some(0), locked: None, episodes: vec![file(25, 25.0)] }],
+            movies: Vec::new(),
+        };
+        let mut episodes = vec![EpisodeMatch { file_id: 25, media_id: None, episode: None }];
+        match_specials(&input, &root, 24, &[], &mut episodes);
+        assert_eq!(episodes[0].media_id, Some(20572));
+        // A special by its own number ("S00E01") isn't one of these.
+        let mut input = input;
+        input.seasons[0].episodes = vec![file(1, 1.0)];
+        let mut episodes = vec![EpisodeMatch { file_id: 1, media_id: None, episode: None }];
+        match_specials(&input, &root, 24, &[], &mut episodes);
+        assert_eq!(episodes[0].media_id, None);
     }
 
     #[test]

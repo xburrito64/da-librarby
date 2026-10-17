@@ -28,8 +28,9 @@ macro_rules! re {
 re!(QUALITY, r"(?i)\b(\d{3,4}p|x26[45]|h\.?26[45]|hevc|avc|av1|blu-?ray|bdrip|bd|web-?dl|webrip|web|amzn|dual[- ]?audio|10[- ]?bit|aac|flac|e-?ac-?3|ddp?\d?|dts(-hd)?|truehd|remux|hdr(10)?|dv|uhd|multi-subs)\b");
 re!(BRACKETS, r"\[[^\]]*\]");
 re!(PARENS, r"\([^)]*\)");
-// Where a dotted release tail starts, e.g. "Name (2023).1080p.BluRay.x264-GROUP".
-re!(RELEASE_TAIL, r"(?i)[ .(\[](2160p|1080p|720p|480p|blu-?ray|web-?dl|webrip|bdrip|remux)\b.*$");
+// Where a dotted release tail starts, e.g. "Name (2023).1080p.BluRay.x264-GROUP", or the bracket
+// it starts in: "KILL la KILL - 03 [BD 1080p x265 OPUS][Anipakku]".
+re!(RELEASE_TAIL, r"(?i)(?:\[[^\]]*?)?[ .(\[](2160p|1080p|720p|480p|blu-?ray|web-?dl|webrip|bdrip|remux)\b.*$");
 re!(YEAR_PARENS, r"\((19\d{2}|20[0-3]\d)\)");
 re!(YEAR_TRAILING, r"\s(19\d{2}|20[0-3]\d)$");
 re!(EPISODE_RANGE_PARENS, r"\(\s*\d+\s*-\s*\d+[^)]*\)");
@@ -554,6 +555,14 @@ mod tests {
 
         let e = ep("One Pace[431-432] Post-Enies Lobby 01");
         assert_eq!(e.episode, Some(1.0));
+
+        // Tags in brackets after the number, with a release tail inside them.
+        let e = ep("KILL la KILL - 03 [BD 1080p x265 OPUS][Anipakku]");
+        assert_eq!((e.episode, e.absolute, e.title.as_deref()), (Some(3.0), true, None));
+        let e = ep("KILL la KILL - E03 [BD 1080p x265 OPUS][Anipakku]");
+        assert_eq!((e.episode, e.title.as_deref()), (Some(3.0), None));
+        let e = ep("KILL la KILL - 25 [BD 1080p x265 OPUS][Anipakku]");
+        assert_eq!(e.episode, Some(25.0));
 
         let e = ep("Chainsaw Man -  The Movie Reze Arc");
         assert_eq!((e.episode, e.title.as_deref()), (None, Some("Chainsaw Man - The Movie Reze Arc")));
