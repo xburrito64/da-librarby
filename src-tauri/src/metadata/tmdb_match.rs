@@ -211,8 +211,10 @@ pub fn map_episodes(ours: &[SeasonInput], theirs: &[Season]) -> Vec<(i64, Vec<Ep
             .map(|ep| {
                 for name in names_of(ep) {
                     let found = tmdb_season.map(|ts| match_by_name(name, &ts.episodes)).unwrap_or_default();
-                    // Seasons cut differently (SpongeBob's season 10 on disk spans TMDB's 10 and 11): look everywhere.
-                    let found = if found.is_empty() && !numbers_fit { match_by_name(name, &everything) } else { found };
+                    // Seasons cut differently (SpongeBob's season 10 on disk spans TMDB's 10 and 11), and
+                    // specials that are another cut of a regular episode (Gurren Lagann's "Sit in the Hot Tub
+                    // 'Til You're Sick!! (On Air Version)"): look everywhere.
+                    let found = if found.is_empty() && (!numbers_fit || season.number == Some(0)) { match_by_name(name, &everything) } else { found };
                     if !found.is_empty() {
                         return found;
                     }
@@ -238,12 +240,18 @@ pub fn map_episodes(ours: &[SeasonInput], theirs: &[Season]) -> Vec<(i64, Vec<Ep
 
         for (i, ep) in season.episodes.iter().enumerate() {
             let special = || names_of(ep).map(|name| match_by_name(name, &specials)).find(|f| !f.is_empty()).unwrap_or_default();
+            // A special's number is only trusted when its name doesn't say it's another one (a
+            // Specials folder's "06 - ..." can be a version of episode 6, not special 6).
+            let agrees = |found: Vec<Episode>| match (season.number, ep.name.as_deref(), found.first().and_then(|e| e.name.as_deref())) {
+                (Some(0), Some(ours), Some(theirs)) if title_similarity(ours, theirs) < 0.35 => Vec::new(),
+                _ => found,
+            };
             let found: Vec<Episode> = if !by_name[i].is_empty() {
                 by_name[i].clone()
             } else if let found @ [_, ..] = special().as_slice() {
                 found.to_vec()
             } else if let Some(ts) = in_order {
-                vec![ts.episodes[i].clone()]
+                agrees(vec![ts.episodes[i].clone()])
             } else {
                 let first = whole(ep.episode);
                 let last = whole(ep.episode_end).or(first);
@@ -254,7 +262,7 @@ pub fn map_episodes(ours: &[SeasonInput], theirs: &[Season]) -> Vec<(i64, Vec<Ep
                     _ => Vec::new(),
                 };
                 if !direct.is_empty() {
-                    direct
+                    agrees(direct)
                 } else if numbers_fit || counting_agrees {
                     counted[i].map(|e| vec![e.clone()]).unwrap_or_default()
                 } else {
@@ -314,9 +322,15 @@ fn split_title(title: &str) -> Vec<String> {
         .collect()
 }
 
+/// "(Part 2)" says the same as "(2)": "A Choice with No Regrets (Part 2)" is TMDB's "A Choice with No
+/// Regrets (2)".
+static PART: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| regex::Regex::new(r"(?i)\bpart\s+(\d+)").unwrap());
+
 /// Like `similarity`, but also matches one segment of a combined title
 /// ("Extreme Spots" is part of "Extreme Spots & Squirrel Record").
 fn title_similarity(ours: &str, theirs: &str) -> f64 {
+    let (ours, theirs) = (PART.replace_all(ours, "$1"), PART.replace_all(theirs, "$1"));
+    let (ours, theirs) = (ours.as_ref(), theirs.as_ref());
     let (our_parts, their_parts) = (split_title(ours), split_title(theirs));
     let parts = our_parts
         .iter()
@@ -352,6 +366,7 @@ mod tests {
         SeasonInput {
             id,
             number: Some(number),
+            label: String::new(),
             locked: None,
             episodes: eps
                 .iter()
@@ -381,6 +396,42 @@ mod tests {
         assert_eq!(names(&out, 102), ["The All Magic Knights Thanksgiving Festa"]);
         // (The tab's other files aren't the show's season 1 episodes.)
         assert!(names(&out, 100).is_empty());
+    }
+
+    #[test]
+    fn part_numbers_written_either_way() {
+        // Attack on Titan's specials: "(Part 2)" on disk, "(2)" on TMDB.
+        let mut tab = ours(1, 0, &[(17.0, None), (20.0, None)]);
+        tab.episodes[0].name = Some("A Choice with No Regrets (Part 2)".into());
+        tab.episodes[1].name = Some("Lost Girls - Wall Sina, Goodbye (Part 1)".into());
+        let mut specials = tmdb_season(0, 20);
+        for (i, name) in [(14, "A Choice with No Regrets (1)"), (15, "A Choice with No Regrets (2)"), (16, "Lost Girls: Wall Sina, Goodbye (1)"), (19, "Chibi Theater: Day 38")] {
+            specials.episodes[i].name = Some(name.into());
+        }
+        let out = map_episodes(&[tab], &[specials]);
+        assert_eq!(names(&out, 100), ["A Choice with No Regrets (2)"]);
+        assert_eq!(names(&out, 101), ["Lost Girls: Wall Sina, Goodbye (1)"]);
+    }
+
+    #[test]
+    fn special_that_is_another_cut_of_an_episode() {
+        // Gurren Lagann's Specials folder: "06 - Sit in the Hot Tub 'Til You're Sick!! (On Air
+        // Version)" is episode 6 as first aired, not special 6 (a Parallel Works clip).
+        let mut tab = ours(1, 0, &[(6.0, None)]);
+        tab.episodes[0].name = Some("Sit in the Hot Tub 'Til You're Sick!! (On Air Version)".into());
+        let mut specials = tmdb_season(0, 8);
+        specials.episodes[5].name = Some("Gurren Lagann Parallel Works 1-4: Pierce the Heavens With Your XXX".into());
+        let mut run = tmdb_season(1, 27);
+        run.episodes[5].name = Some("Sit in the Hot Tub 'Til You're Sick!!".into());
+        let out = map_episodes(&[tab], &[specials, run]);
+        assert_eq!(names(&out, 100), ["Sit in the Hot Tub 'Til You're Sick!!"]);
+
+        // Named otherwise, the number isn't taken for it either.
+        let mut tab = ours(1, 0, &[(6.0, None)]);
+        tab.episodes[0].name = Some("Something Else Entirely".into());
+        let mut specials = tmdb_season(0, 8);
+        specials.episodes[5].name = Some("Gurren Lagann Parallel Works 1-4: Pierce the Heavens With Your XXX".into());
+        assert!(names(&map_episodes(&[tab], &[specials]), 100).is_empty());
     }
 
     #[test]

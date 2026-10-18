@@ -29,8 +29,15 @@ re!(QUALITY, r"(?i)\b(\d{3,4}p|x26[45]|h\.?26[45]|hevc|avc|av1|blu-?ray|bdrip|bd
 re!(BRACKETS, r"\[[^\]]*\]");
 re!(PARENS, r"\([^)]*\)");
 // Where a dotted release tail starts, e.g. "Name (2023).1080p.BluRay.x264-GROUP", or the bracket
-// it starts in: "KILL la KILL - 03 [BD 1080p x265 OPUS][Anipakku]".
-re!(RELEASE_TAIL, r"(?i)(?:\[[^\]]*?)?[ .(\[](2160p|1080p|720p|480p|blu-?ray|web-?dl|webrip|bdrip|remux)\b.*$");
+// it starts in: "KILL la KILL - 03 [BD 1080p x265 OPUS][Anipakku]", "... Series (BD 1080p)(Dual-Audio)".
+re!(RELEASE_TAIL, r"(?i)(?:[\[(][^\])]*?)?[ .(\[](2160p|1080p|720p|480p|blu-?ray|web-?dl|webrip|bdrip|remux)\b.*$");
+// A release group in round brackets in front: "(CBB) Tengen Toppa Gurren Lagann" (a word, never
+// just a number: "(500) Days of Summer" is the title).
+re!(LEADING_GROUP, r"^\s*\([A-Za-z][A-Za-z0-9._&-]{1,15}\)\s*");
+// ... or after an episode's title: "Parallel Works - Episode 1 (CBB)".
+re!(TRAILING_GROUP, r"\s*\(([A-Z][A-Z0-9]{1,7})\)$");
+// What a folder holding a show's own episodes is called, numbered or not ("01. Series").
+re!(MAIN_SERIES, r"(?i)^(the )?(main )?(tv )?(series|episodes|show|story)$");
 re!(YEAR_PARENS, r"\((19\d{2}|20[0-3]\d)\)");
 re!(YEAR_TRAILING, r"\s(19\d{2}|20[0-3]\d)$");
 re!(EPISODE_RANGE_PARENS, r"\(\s*\d+\s*-\s*\d+[^)]*\)");
@@ -54,7 +61,8 @@ re!(MOVIES_FOLDER,r"(?i)^(movies|films)$");
 re!(THE_MOVIE, r"(?i)\bthe movie\b");
 re!(SXXEYY, r"(?i)\bS(\d{1,3})\s*E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?(?:-?E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?)?");
 re!(EPISODE_ONLY, r"(?i)(?:^|[\s\-_.])E(?:p|pisode)?\s?(\d{1,4}(?:\.\d+)?)(?:$|[\s\-_.])");
-re!(ABSOLUTE, r"(?:^|\s-\s)(\d{1,4})(?:\s-\s|$)");
+// (A half-episode too: "05.5 - My Gurren is Sparkling!!".)
+re!(ABSOLUTE, r"(?:^|\s-\s)(\d{1,4}(?:\.\d)?)(?:\s-\s|$)");
 re!(TRAILING_NUMBER, r"\s(\d{1,3})$");
 re!(LEADING_NUMBER, r"^(\d{1,3})(½)?\s*[.\-]\s+");
 re!(SPACES, r"\s+");
@@ -74,7 +82,8 @@ pub fn clean_text(s: &str) -> String {
         .chars()
         .map(|c| match c {
             '∶' | '：' | '꞉' => ':',
-            '？' => '?',
+            '？' | '❔' | '❓' => '?',
+            '❕' | '❗' => '!',
             '／' => '/',
             '＂' => '"',
             '＊' => '*',
@@ -98,7 +107,8 @@ fn episode_title(s: &str) -> String {
     let s = WORD_DOT.replace_all(&s, "$1 $2");
     // Twice: "A.B.C" overlaps.
     let s = WORD_DOT.replace_all(&s, "$1 $2");
-    without_release_words(&clean_text(&TIGHT_PLUS.replace_all(&s, " + ")))
+    let s = without_release_words(&clean_text(&TIGHT_PLUS.replace_all(&s, " + ")));
+    clean_text(&TRAILING_GROUP.replace(&s, ""))
 }
 
 /// A release tag's word, also with its group on the end ("x264-GROUP").
@@ -120,9 +130,11 @@ fn without_release_words(title: &str) -> String {
     }
 }
 
-/// Removes release tags: `[Group]`, `(1080p BluRay x265)`, `.1080p.BluRay.x264-GROUP` tails, stray brackets.
+/// Removes release tags: `[Group]`, `(Group)` in front, `(1080p BluRay x265)`, `.1080p.BluRay.x264-GROUP`
+/// tails, stray brackets.
 pub fn strip_tags(s: &str) -> String {
-    let s = RELEASE_TAIL.replace(s, "");
+    let s = LEADING_GROUP.replace(s, "");
+    let s = RELEASE_TAIL.replace(&s, "");
     let s = BRACKETS.replace_all(&s, " ");
     let s = PARENS.replace_all(&s, |caps: &regex::Captures| {
         if QUALITY.is_match(&caps[0]) { " ".to_string() } else { caps[0].to_string() }
@@ -179,16 +191,21 @@ pub fn category_folder(name: &str) -> Option<super::scan::LibraryKind> {
 }
 
 /// What a folder inside a show folder holds. Only the part before a "+" counts:
-/// "South Park (1997) S01 + Extras" is season 1, "Jujutsu Kaisen S01 Extras" is extras.
+/// "South Park (1997) S01 + Extras" is season 1, "Jujutsu Kaisen S01 Extras" is extras. A number in
+/// front only orders them: "01. Series" holds the show's episodes (its first season), "02. Movies"
+/// its movies.
 pub fn classify_folder(name: &str) -> FolderKind {
     let stripped = strip_tags(name);
     let head = stripped.split('+').next().unwrap_or_default();
+    let bare = clean_text(&LEADING_NUMBER.replace(head.trim(), ""));
     if EXTRAS.is_match(head) {
         FolderKind::Extras
     } else if let Some(n) = season_number(head) {
         FolderKind::Season(n)
-    } else if MOVIES_FOLDER.is_match(&clean_text(head)) {
+    } else if MOVIES_FOLDER.is_match(&bare) {
         FolderKind::Movies
+    } else if MAIN_SERIES.is_match(&bare) {
+        FolderKind::Season(1)
     } else {
         FolderKind::Other
     }
@@ -361,6 +378,28 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
     EpisodeName { title: Some(clean_text(s)).filter(|t| !t.is_empty()), ..Default::default() }
 }
 
+/// Says outright which episode it is ("S01E05", "E05", "Episode 5"), not just a number at the end
+/// ("Day 38, Day 39, Day 40" isn't an episode of anything).
+pub fn names_episode(stem: &str) -> bool {
+    let s = strip_tags(stem);
+    SXXEYY.is_match(&s) || EPISODE_ONLY.is_match(&s)
+}
+
+/// A spin-off series' name as a heading, without the show's name in front: "Gurren Lagann -
+/// Parallel Works" in "Tengen Toppa Gurren Lagann" is "Parallel Works".
+pub fn series_label(folder: &str, show: &str) -> String {
+    let name = clean_text(&strip_tags(folder));
+    let rest = without_prefix(&name, show);
+    if rest != name {
+        return rest.to_string();
+    }
+    let lower = |s: &str| s.to_lowercase();
+    match name.split_once(" - ") {
+        Some((head, rest)) if !head.is_empty() && lower(show).ends_with(&lower(head)) => clean_text(rest),
+        _ => name,
+    }
+}
+
 /// Compares names so that "Episode 2" sorts before "Episode 10".
 pub fn natural_cmp(a: &str, b: &str) -> Ordering {
     let (mut a, mut b) = (a.chars().peekable(), b.chars().peekable());
@@ -413,6 +452,22 @@ mod tests {
         assert_eq!(show_title("Some Show S01-S05"), ("Some Show".into(), None));
         assert_eq!(show_title("Adventure Time∶ Fionna and Cake"), ("Adventure Time: Fionna and Cake".into(), None));
         assert_eq!(show_title("SpongeBob SquarePants"), ("SpongeBob SquarePants".into(), None));
+    }
+
+    #[test]
+    fn release_groups_and_tags_in_round_brackets() {
+        assert_eq!(
+            show_title("(CBB) Tengen Toppa Gurren Lagann - The Complete Series (BD 1080p)(Dual-Audio)(HEVC-x265-10bit)").0,
+            "Tengen Toppa Gurren Lagann"
+        );
+        // A number in round brackets in front is part of the title.
+        assert_eq!(title_and_year("(500) Days of Summer (2009)"), ("(500) Days of Summer".to_string(), Some(2009)));
+        assert_eq!(classify_folder("01. Series"), FolderKind::Season(1));
+        assert_eq!(classify_folder("02. Movies"), FolderKind::Movies);
+        assert_eq!(classify_folder("03. Extra"), FolderKind::Extras);
+        assert_eq!(classify_folder("04. OVA"), FolderKind::Season(0));
+        assert_eq!(classify_folder("03. Special"), FolderKind::Season(0));
+        assert_eq!(classify_folder("01. Romance Dawn"), FolderKind::Other);
     }
 
     #[test]
@@ -563,6 +618,14 @@ mod tests {
         assert_eq!((e.episode, e.title.as_deref()), (Some(3.0), None));
         let e = ep("KILL la KILL - 25 [BD 1080p x265 OPUS][Anipakku]");
         assert_eq!(e.episode, Some(25.0));
+
+        // Gurren Lagann's: titles with a look-alike question mark, and the release group after one.
+        let e = ep("03 - Who Do You Think You Are, Having Two Faces!❔");
+        assert_eq!((e.episode, e.title.as_deref()), (Some(3.0), Some("Who Do You Think You Are, Having Two Faces!?")));
+        let e = ep("Gurren Lagann Parallel Works - Episode 1 (CBB)");
+        assert_eq!((e.episode, e.title.as_deref()), (Some(1.0), None));
+        let e = ep("05.5 - My Gurren is Sparkling!! (DS Ver. Soft Inclusion)");
+        assert_eq!((e.episode, e.title.as_deref()), (Some(5.5), Some("My Gurren is Sparkling!! (DS Ver. Soft Inclusion)")));
 
         let e = ep("Chainsaw Man -  The Movie Reze Arc");
         assert_eq!((e.episode, e.title.as_deref()), (None, Some("Chainsaw Man - The Movie Reze Arc")));

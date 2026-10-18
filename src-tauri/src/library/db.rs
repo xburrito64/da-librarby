@@ -828,7 +828,8 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
         .optional()?;
     let provider = meta.as_ref().and_then(|m| m.base.provider.clone());
 
-    // Specials go last, like on streaming services.
+    // Specials go last, like on streaming services (tabs without a season number, like a spin-off's,
+    // go by their place).
     let mut stmt = conn.prepare(
         "SELECT s.id, s.number, s.label,
                 sm.season_id IS NOT NULL, sm.provider_ids, sm.locked, sm.name, sm.description, sm.year, sm.score,
@@ -836,7 +837,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
          FROM seasons s LEFT JOIN season_meta sm ON sm.season_id = s.id
          WHERE s.title_id = ?1 AND s.present = 1
            AND EXISTS (SELECT 1 FROM files f WHERE f.season_id = s.id AND f.present = 1)
-         ORDER BY s.number = 0, s.sort",
+         ORDER BY COALESCE(s.number, -1) = 0, s.sort",
     )?;
     let seasons = stmt
         .query_map([id], |r| {

@@ -62,7 +62,7 @@ pub fn load_show_input(conn: &Connection, title_id: i64) -> rusqlite::Result<Opt
     let locked_root = locked_choice(locked, provider_id.clone());
 
     let mut stmt = conn.prepare(
-        "SELECT s.id, s.number, sm.locked, sm.provider_ids FROM seasons s
+        "SELECT s.id, s.number, sm.locked, sm.provider_ids, s.label FROM seasons s
          LEFT JOIN season_meta sm ON sm.season_id = s.id
          WHERE s.title_id = ?1 AND s.present = 1 ORDER BY s.sort",
     )?;
@@ -73,6 +73,7 @@ pub fn load_show_input(conn: &Connection, title_id: i64) -> rusqlite::Result<Opt
             Ok(SeasonInput {
                 id: r.get(0)?,
                 number: r.get(1)?,
+                label: r.get::<_, Option<String>>(4)?.unwrap_or_default(),
                 locked: if locked == Some(true) {
                     Some(ids.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default())
                 } else {
@@ -410,7 +411,7 @@ pub fn set_setting(conn: &Connection, key: &str, value: Option<&str>) -> rusqlit
 
 /// Bumped when TMDB matching improves, so existing matches are redone once (hand-made choices
 /// are kept; images already on disk are reused).
-const TMDB_MATCH_VERSION: &str = "8";
+const TMDB_MATCH_VERSION: &str = "9";
 
 pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "tmdb_match_version")?.as_deref() == Some(TMDB_MATCH_VERSION) {
@@ -446,9 +447,10 @@ pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Resu
 /// a number in a season matched by hand gets the special picked for it that no numbered file
 /// reached; version 7: a file in a Specials tab numbered on from the show's last episode, Kill la
 /// Kill's "25", is matched like one without a number; version 8: so is one whose number none of the
-/// entries picked by hand for its season has). Hand-made choices stay; the episodes' TMDB details are
-/// looked up again too, for the new match.
-const ANILIST_MATCH_VERSION: &str = "8";
+/// entries picked by hand for its season has; version 9: a special found by the number it goes by,
+/// "Episode 5.5", and a tab of a spin-off series, "Parallel Works", by its name). Hand-made choices
+/// stay; the episodes' TMDB details are looked up again too, for the new match.
+const ANILIST_MATCH_VERSION: &str = "9";
 
 pub fn refresh_anilist_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "anilist_match_version")?.as_deref() == Some(ANILIST_MATCH_VERSION) {

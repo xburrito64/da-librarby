@@ -425,15 +425,47 @@ fn add_extras(title: &mut ScannedTitle, dir: &Path, group: ExtraGroup) {
 
 /// Adds every video in a subfolder of extras under that subfolder's heading. A general extras
 /// folder split by season ("Adventure Time Extras/Season 01") goes under the seasons' headings.
+/// OVAs and specials kept with the extras ("03. Extra/04. OVA") are specials, and a spin-off series
+/// among them ("05. Music Videos/.../Gurren Lagann - Parallel Works", episodes 1 to 8) a tab of its own.
 fn add_extras_folder(title: &mut ScannedTitle, folder: &Entry, parent: &ExtraGroup) {
+    if !parent.movie && parse::classify_folder(&folder.name) == FolderKind::Season(0) {
+        let season = title.season_by_number(0);
+        add_season_dir(title, &folder.path, season, Some(0));
+        return;
+    }
     let season = parse::extras_season(&folder.name).filter(|_| parent.label.is_none() && !parent.movie);
     let group = match season {
         Some(n) => title.season_extras(n),
         None => parent.sub(&folder.name),
     };
-    for video in videos_recursive(&folder.path) {
-        title.push_extra(&video, group.clone());
+    add_extras_tree(title, folder, &group);
+}
+
+/// The videos in an extras folder and the folders in it, under one heading, except spin-off series.
+fn add_extras_tree(title: &mut ScannedTitle, folder: &Entry, group: &ExtraGroup) {
+    if !group.movie && side_series(&folder.path) {
+        let label = parse::series_label(&folder.name, &title.name);
+        let season = title.add_group(&folder.name, label, None, None);
+        add_season_dir(title, &folder.path, season, None);
+        return;
     }
+    let Ok(entries) = list(&folder.path) else { return };
+    for entry in &entries {
+        if entry.is_dir {
+            add_extras_tree(title, entry, group);
+        } else if parse::is_video(&entry.name) {
+            title.push_extra(entry, group.clone());
+        }
+    }
+}
+
+/// A folder of episodes of a series of its own: at least three videos saying which episode they
+/// are, and not openings or endings.
+fn side_series(dir: &Path) -> bool {
+    let Ok(entries) = list(dir) else { return false };
+    let stems: Vec<&str> = entries.iter().filter(|e| !e.is_dir && parse::is_video(&e.name)).map(|e| parse::file_stem(&e.name)).collect();
+    let episodes = stems.iter().filter(|s| parse::names_episode(s)).count();
+    stems.len() >= 3 && episodes * 10 >= stems.len() * 8 && !stems.iter().any(|s| parse::is_op_ed(s))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -698,7 +730,10 @@ mod tests {
             (r"D:\Anime", LibraryKind::Anime),
         ] {
             println!("########## {root}");
-            let titles = scan_library(Path::new(root), kind).unwrap();
+            let Ok(titles) = scan_library(Path::new(root), kind) else {
+                println!("(not there)");
+                continue;
+            };
             for t in titles {
                 let parent = t.parent_key.as_deref().map(|p| format!("  (inside {p})")).unwrap_or_default();
                 let extras = t.files.iter().filter(|f| f.role == Role::Extra).count();
