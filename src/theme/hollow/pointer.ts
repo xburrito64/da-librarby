@@ -674,10 +674,8 @@ export function applyPointer(main: string, hand: string, things: boolean) {
     // Scrolling with the middle button (in the pointer's style, or the browser's own).
     if (arrow && scrolling && scrollCursors.every(Boolean)) {
       const names = Object.keys(scrolling) as (keyof typeof scrolling)[];
-      const mark = (s: string) => ({ src: picture(s), width: 32, height: 32 });
       setScrollLook("hollow", {
         cursors: Object.fromEntries(names.map((n, i) => [n, `${scrollCursors[i]}, all-scroll`])) as Record<keyof typeof scrolling, string>,
-        marks: { v: mark(scrolling.v), h: mark(scrolling.h) },
       });
     } else setScrollLook("hollow", null);
   });

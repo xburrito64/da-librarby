@@ -207,10 +207,6 @@ export function heartScroll(color: string): ScrollLook {
   const palette = { ...PALETTE, R: isColor(color) ? color : PALETTE.R };
   const waitV = [...ARROW_UP, ...ROW_GAP, ...HEART, ...ROW_GAP, ...ARROW_DOWN];
   const waitH = beside([ARROW_LEFT, 1], [["."], 0], [HEART, 0], [["."], 0], [ARROW_RIGHT, 1]);
-  const mark = (rows: string[]) => {
-    const pic = outlined(rows);
-    return { src: sprite(pic, palette, 4), width: Math.max(...pic.map((r) => r.length)) * 2, height: pic.length * 2, pixels: true };
-  };
   return {
     cursors: {
       v: pixelCursor(waitV, palette),
@@ -220,7 +216,6 @@ export function heartScroll(color: string): ScrollLook {
       left: pixelCursor(beside([ARROW_LEFT, 1], [["."], 0], [BLUE_HEART, 0]), palette),
       right: pixelCursor(beside([BLUE_HEART, 0], [["."], 0], [ARROW_RIGHT, 1]), palette),
     },
-    marks: { v: mark(waitV), h: mark(waitH) },
   };
 }
 

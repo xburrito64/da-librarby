@@ -1,8 +1,7 @@
 // Scrolling with the middle mouse button, done by the app itself while the theme has its own
 // pointers for it (the browser's own scrolling shows Windows' pointers, which a page can't change).
 // It works as usual: click the wheel and move the mouse, and the page scrolls that way, faster the
-// further away; click again (or, if the wheel was held while moving, let go) to stop. Where you
-// clicked keeps a faded copy of the waiting picture, so you can see how far away you are.
+// further away; click again (or, if the wheel was held while moving, let go) to stop.
 
 /** "v", "h": waiting (for something that scrolls up and down, or only sideways); the others:
  *  scrolling that way. */
@@ -11,8 +10,6 @@ export type ScrollState = "v" | "h" | "up" | "down" | "left" | "right";
 export interface ScrollLook {
   /** The pointer (a CSS cursor value) for each state. */
   cursors: Record<ScrollState, string>;
-  /** The waiting pictures, left where you clicked (`pixels`: drawn with crisp square dots). */
-  marks: Record<"v" | "h", { src: string; width: number; height: number; pixels?: boolean }>;
 }
 
 /** No scrolling until the pointer is this far (pixels) from where you clicked. */
@@ -62,7 +59,6 @@ interface Run {
   fy: number;
   last: number;
   state: ScrollState | "";
-  mark: HTMLImageElement;
   frame: number;
 }
 
@@ -90,32 +86,13 @@ function speed(d: number) {
 }
 
 function start(e: MouseEvent, look: ScrollLook, v: Element | null, h: Element | null) {
-  const wait = v ? "v" : "h";
-  const pic = look.marks[wait];
-  const mark = document.createElement("img");
-  mark.src = pic.src;
-  mark.alt = "";
-  Object.assign(mark.style, {
-    position: "fixed",
-    left: `${e.clientX - pic.width / 2}px`,
-    top: `${e.clientY - pic.height / 2}px`,
-    width: `${pic.width}px`,
-    height: `${pic.height}px`,
-    zIndex: "2147483647",
-    pointerEvents: "none",
-    opacity: "0",
-    transition: "opacity .12s",
-    imageRendering: pic.pixels ? "pixelated" : "auto",
-  });
-  document.body.append(mark);
-  run = { look, x: e.clientX, y: e.clientY, px: e.clientX, py: e.clientY, v, h, held: true, dragged: false, fx: 0, fy: 0, last: performance.now(), state: "", mark, frame: 0 };
+  run = { look, x: e.clientX, y: e.clientY, px: e.clientX, py: e.clientY, v, h, held: true, dragged: false, fx: 0, fy: 0, last: performance.now(), state: "", frame: 0 };
   run.frame = requestAnimationFrame(step);
 }
 
 function stop() {
   if (!run) return;
   cancelAnimationFrame(run.frame);
-  run.mark.remove();
   delete document.documentElement.dataset.autoscroll;
   run = null;
 }
@@ -145,8 +122,6 @@ function step(now: number) {
   if (state !== r.state) {
     r.state = state;
     document.documentElement.dataset.autoscroll = state;
-    // (While waiting, the pointer is the picture itself.)
-    r.mark.style.opacity = state === "v" || state === "h" ? "0" : ".7";
   }
   r.frame = requestAnimationFrame(step);
 }
