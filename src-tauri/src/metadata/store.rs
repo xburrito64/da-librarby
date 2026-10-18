@@ -450,9 +450,10 @@ pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Resu
 /// entries picked by hand for its season has; version 9: a special found by the number it goes by,
 /// "Episode 5.5", and a tab of a spin-off series, "Parallel Works", by its name; version 10: TMDB's
 /// special titles also without what's in front, "Gurren Lagann Parallel Works 1-1: ..."; version 11: a
-/// special whose name ends like the file's, "... - Viral no Amai Yume"). Hand-made choices stay; the
+/// special whose name ends like the file's, "... - Viral no Amai Yume"; version 12: a tab matched by
+/// hand gives its specials by name before handing out the rest in order). Hand-made choices stay; the
 /// episodes' TMDB details are looked up again too, for the new match.
-const ANILIST_MATCH_VERSION: &str = "11";
+const ANILIST_MATCH_VERSION: &str = "12";
 
 pub fn refresh_anilist_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "anilist_match_version")?.as_deref() == Some(ANILIST_MATCH_VERSION) {

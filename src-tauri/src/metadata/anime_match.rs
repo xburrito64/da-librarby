@@ -131,15 +131,35 @@ pub fn match_show(input: &ShowInput, src: &mut dyn Source) -> Result<ShowMatch, 
             }
             // Files without a number ("Jump Anime Festa 2018 Special Video" after "Petit Clover - 15")
             // or with one none of them has (Kill la Kill's "25", in a tab matched to its OVA) get the
-            // one-episode entries picked for the season that no other file reached.
+            // one-episode entries picked for the season that no other file reached: by name (or the
+            // number it goes by), and the rest in order when they pair up one for one.
             {
                 let used: Vec<i64> = episodes[first..].iter().filter_map(|m| m.media_id).collect();
-                let mut spare = entries.iter().filter(|m| m.episodes == Some(1) && !used.contains(&m.id));
-                for m in &mut episodes[first..] {
-                    if m.media_id.is_none() {
-                        let Some(entry) = spare.next() else { break };
-                        m.media_id = Some(entry.id);
-                        m.episode = Some(1);
+                let mut spare: Vec<&Media> = entries.iter().filter(|m| m.episodes == Some(1) && !used.contains(&m.id)).collect();
+                let mut open: Vec<usize> = (0..season.episodes.len()).filter(|&k| episodes[first + k].media_id.is_none()).collect();
+                let mut give = |k: usize, id: i64| {
+                    episodes[first + k].media_id = Some(id);
+                    episodes[first + k].episode = Some(1);
+                };
+                open.retain(|&k| {
+                    let titles = |m: &Media| m.all_titles().into_iter().map(String::from).collect::<Vec<_>>();
+                    let best = spare
+                        .iter()
+                        .enumerate()
+                        .map(|(i, m)| (i, special_score(&season.episodes[k], &titles(m))))
+                        .filter(|(_, score)| *score >= 0.85)
+                        .max_by(|a, b| a.1.total_cmp(&b.1));
+                    match best {
+                        Some((i, _)) => {
+                            give(k, spare.remove(i).id);
+                            false
+                        }
+                        None => true,
+                    }
+                });
+                if open.len() == spare.len() {
+                    for (&k, m) in open.iter().zip(&spare) {
+                        give(k, m.id);
                     }
                 }
             }
@@ -250,20 +270,10 @@ fn match_specials(input: &ShowInput, root: &Media, last: i32, full: &HashMap<i64
     };
     // By name, or by the number it goes by.
     files.retain(|ep| {
-        let by_number = |t: &str| ep.episode.is_some_and(|n| format!(" {} ", normalize(t)).contains(&format!(" episode {} ", normalize(&n.to_string()))));
         let best = left
             .iter()
             .enumerate()
-            .map(|(i, n)| {
-                let score = titles(n)
-                    .iter()
-                    .map(|t| {
-                        let named = ep.name.as_deref().map_or(0.0, |name| similarity(name, t).max(similarity(name, without_show(t))).max(same_ending(name, t)));
-                        if by_number(t) { named.max(0.95) } else { named }
-                    })
-                    .fold(0.0, f64::max);
-                (i, score)
-            })
+            .map(|(i, n)| (i, special_score(ep, &titles(n))))
             .filter(|(_, score)| *score >= 0.85)
             .max_by(|a, b| a.1.total_cmp(&b.1));
         match best {
@@ -279,6 +289,19 @@ fn match_specials(input: &ShowInput, root: &Media, last: i32, full: &HashMap<i64
     if let ([ep], [n]) = (files.as_slice(), left.as_slice()) {
         assign(ep.file_id, n.id, episodes);
     }
+}
+
+/// How well a file fits a special going by these names: by its own name (also without the show's
+/// name in front, or by how both end), or by the number the special goes by ("... Episode 5.5").
+fn special_score(ep: &EpisodeInput, titles: &[String]) -> f64 {
+    let by_number = |t: &str| ep.episode.is_some_and(|n| format!(" {} ", normalize(t)).contains(&format!(" episode {} ", normalize(&n.to_string()))));
+    titles
+        .iter()
+        .map(|t| {
+            let named = ep.name.as_deref().map_or(0.0, |name| similarity(name, t).max(similarity(name, without_show(t))).max(same_ending(name, t)));
+            if by_number(t) { named.max(0.95) } else { named }
+        })
+        .fold(0.0, f64::max)
 }
 
 /// How alike the last parts of two names are ("Tengen Toppa Gurren Lagann Movie Zenyasai - Viral no
@@ -799,6 +822,36 @@ mod tests {
         let input = ShowInput { name: "KILL la KILL".into(), year: None, is_movie: false, parent: None, locked_root: Some(None), seasons: vec![tab], movies: Vec::new() };
         let out = match_show(&input, &mut src).unwrap();
         assert_eq!((out.episodes[0].media_id, out.episodes[0].episode), (Some(20572), Some(1)));
+    }
+
+    #[test]
+    fn tab_matched_by_hand_gives_its_specials_by_name() {
+        // Gurren Lagann's Specials, matched by hand to the OVA ("Episode 5.5") and Festival Eve's
+        // special: the on-air episode 6 and Kirameki Yoko Box get neither.
+        let named = |id: i64, title: &str, synonym: &str| {
+            let mut m: Media = serde_json::from_value(serde_json::json!({ "id": id, "type": "ANIME", "format": "SPECIAL", "episodes": 1, "title": { "romaji": title } })).unwrap();
+            m.synonyms = vec![synonym.into()];
+            m
+        };
+        let ova = named(10622, "Tengen Toppa Gurren Lagann: Ore no Gurren wa Pikka-Pika!!", "Tengen Toppa Gurren Lagann Episode 5.5");
+        let eve = named(5947, "Tengen Toppa Gurren Lagann Movie: Lagann-hen Special - Viral no Amai Yume", "Viral's Sweet Dream");
+        let mut src = Fake(HashMap::from([(10622, ova), (5947, eve)]), vec![]);
+        let file = |id: i64, n: Option<f64>, name: &str| EpisodeInput { file_id: id, episode: n, episode_end: None, name: Some(name.into()), other_names: Vec::new() };
+        let tab = SeasonInput {
+            id: 10,
+            number: Some(0),
+            label: "Specials".into(),
+            locked: Some(vec![10622, 5947]),
+            episodes: vec![
+                file(1, Some(5.5), "My Gurren is Shiny!! (DS Ver. Soft Inclusion)"),
+                file(2, Some(6.0), "Sit in the Hot Tub 'Til You're Sick!! (On Air Version)"),
+                file(3, None, "Kirameki Youko Box - Pieces of Sweet Stars (CBB)"),
+                file(4, None, "Tengen Toppa Gurren Lagann Movie Zenyasai - Viral no Amai Yume"),
+            ],
+        };
+        let input = ShowInput { name: "Tengen Toppa Gurren Lagann".into(), year: None, is_movie: false, parent: None, locked_root: Some(None), seasons: vec![tab], movies: Vec::new() };
+        let got: Vec<Option<i64>> = match_show(&input, &mut src).unwrap().episodes.iter().map(|e| e.media_id).collect();
+        assert_eq!(got, [Some(10622), None, None, Some(5947)]);
     }
 }
 
