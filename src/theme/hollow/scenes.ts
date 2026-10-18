@@ -54,7 +54,8 @@ const TOMB_PARTS = ".he-tomb__candle, .he-tomb__gargoyle, .he-tomb__door";
 /** What the pointer turns into over the things under the patch (pointer.ts). */
 const UNDER_THINGS: Record<string, string> = { skeleton: "bone", coffin: "coffin", crystals: "pickaxe", mole: "secret", stash: "secret" };
 /** Page controls, which a click is always for (never for the scenery behind them). */
-const CONTROLS = "a, button, input, textarea, select, .card, [role=button], [role=tab]";
+// (A dialog or menu lies over the scene: nothing behind it answers there.)
+const CONTROLS = "a, button, input, textarea, select, .card, [role=button], [role=tab], .modal, .ctx-menu";
 
 /** Whether the pointer is over an element (or near it). */
 const over = (el: Element, x: number, y: number, near = 6) => {
@@ -113,10 +114,11 @@ export function startScenes({ surprises }: { surprises: boolean }) {
   /** Whether the black cat on the gate is under the pointer (sitting there, not off on a stroll). */
   const catThere = (x: number, y: number) => shown(".he-cat:not(.is-away) .he-cat__sit").some((c) => over(c, x, y, 1));
 
+  // (Not on the home screen kept behind a show's page: it's still where it was, only covered.)
   const shown = <T extends Element>(selector: string) =>
     [...document.querySelectorAll<T>(selector)].filter((el) => {
       const r = el.getBoundingClientRect();
-      return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
+      return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth && !el.closest(".is-covered");
     });
 
   // Clicks: on a pumpkin, the house, the ghost, or (where nothing else was clicked) something
@@ -215,7 +217,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       return;
     }
     if (!surprises || target.closest?.(CONTROLS)) return;
-    const stash = document.querySelector(".he-under .heu-stash");
+    const stash = shown(".he-under .heu-stash")[0];
     if (stash && over(stash, e.clientX, e.clientY, 2)) {
       stash.classList.remove("is-poked");
       void (stash as SVGGraphicsElement).getBBox();
@@ -225,7 +227,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
       window.dispatchEvent(new CustomEvent("da:say", { detail: STASH_FOUND[Math.floor(Math.random() * STASH_FOUND.length)] }));
       return;
     }
-    for (const thing of document.querySelectorAll(".he-under [data-poke]")) {
+    for (const thing of shown(".he-under [data-poke]")) {
       if (resting.has(thing) || !over(thing, e.clientX, e.clientY)) continue;
       const poke = POKES[(thing as HTMLElement).dataset.poke ?? ""];
       if (!poke) continue;
@@ -263,7 +265,7 @@ export function startScenes({ surprises }: { surprises: boolean }) {
     const own = target.closest?.(".he-pumpkin, .he-house, .he-ghost.is-peeking, .he-bat, .he-spider__body");
     if (own) return own.matches(".he-pumpkin") ? "pumpkin" : own.matches(".he-house") ? "door" : own.matches(".he-ghost") ? "boo" : own.matches(".he-bat") ? "bat" : "feather";
     if (surprises) {
-      const under = [...document.querySelectorAll<HTMLElement>(".he-under [data-poke]")].find((t) => over(t, e.clientX, e.clientY));
+      const under = shown<HTMLElement>(".he-under [data-poke]").find((t) => over(t, e.clientX, e.clientY));
       if (under) return UNDER_THINGS[under.dataset.poke ?? ""] ?? null;
     }
     const part = tombPart(e.clientX, e.clientY);

@@ -33,7 +33,7 @@ const HOSTS = { town: ".hero__decor--bottom", forest: ".tp__decor--bottom" } as 
 type Kind = keyof typeof HOSTS;
 
 /** Pointing at these (or at a box in front of the trees) doesn't shake a tree. */
-const CONTROLS = "button, a, input, select, textarea, [role='button'], .card, .tp__cover, .tp__desc-box, .hero__desc-box";
+const CONTROLS = "button, a, input, select, textarea, [role='button'], .card, .tp__cover, .tp__desc-box, .hero__desc-box, .modal, .ctx-menu";
 
 interface Bit extends SnowBit {
   vx: number;

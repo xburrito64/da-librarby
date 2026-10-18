@@ -217,8 +217,11 @@ export function Lights({ active, sounds, volume }: { active: boolean; sounds: bo
       return best;
     };
 
+    // (Not through a dialog or menu lying over them.)
+    const covered = (e: Event) => (e.target as Element | null)?.closest?.(".modal, .ctx-menu") != null;
+
     const onMove = (e: PointerEvent) => {
-      const i = e.clientY < BAND ? bulbAt(e.clientX, e.clientY) : -1;
+      const i = e.clientY < BAND && !covered(e) ? bulbAt(e.clientX, e.clientY) : -1;
       if (i === hovered) return;
       hovered = i;
       document.documentElement.classList.toggle("sd-on-bulb", i >= 0);
@@ -238,7 +241,7 @@ export function Lights({ active, sounds, volume }: { active: boolean; sounds: bo
     };
 
     const onClick = (e: MouseEvent) => {
-      if (e.clientY >= BAND) return;
+      if (e.clientY >= BAND || covered(e)) return;
       const i = bulbAt(e.clientX, e.clientY);
       if (i < 0) return;
       e.stopPropagation();
