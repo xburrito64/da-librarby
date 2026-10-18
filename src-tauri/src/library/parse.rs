@@ -60,7 +60,8 @@ re!(LEADING_SEASON, r"(?i)^(season\s*\d{1,3}|s\d{1,3}(e\d{1,4})?)(\s*[-–:.]\s+
 re!(MOVIES_FOLDER,r"(?i)^(movies|films)$");
 re!(THE_MOVIE, r"(?i)\bthe movie\b");
 re!(SXXEYY, r"(?i)\bS(\d{1,3})\s*E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?(?:-?E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?)?");
-re!(EPISODE_ONLY, r"(?i)(?:^|[\s\-_.])E(?:p|pisode)?\s?(\d{1,4}(?:\.\d+)?)(?:$|[\s\-_.])");
+// (Several in one file: "Episode 9-15", "E09-E15".)
+re!(EPISODE_ONLY, r"(?i)(?:^|[\s\-_.])E(?:p|pisode)?\s?(\d{1,4}(?:\.\d+)?)(?:-(?:E(?:p|pisode)?\s?)?(\d{1,4}))?(?:$|[\s\-_.])");
 // (A half-episode too: "05.5 - My Gurren is Sparkling!!".)
 re!(ABSOLUTE, r"(?:^|\s-\s)(\d{1,4}(?:\.\d)?)(?:\s-\s|$)");
 re!(TRAILING_NUMBER, r"\s(\d{1,3})$");
@@ -355,6 +356,7 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
         let after = episode_title(&s[m.end()..]);
         return EpisodeName {
             episode: c[1].parse().ok(),
+            episode_end: c.get(2).and_then(|e| e.as_str().parse().ok()),
             title: (!after.is_empty()).then_some(after),
             ..Default::default()
         };
@@ -624,6 +626,10 @@ mod tests {
         assert_eq!((e.episode, e.title.as_deref()), (Some(3.0), Some("Who Do You Think You Are, Having Two Faces!?")));
         let e = ep("Gurren Lagann Parallel Works - Episode 1 (CBB)");
         assert_eq!((e.episode, e.title.as_deref()), (Some(1.0), None));
+        let e = ep("Gurren Lagann Parallel Works - Episode 9-15 - The Sense of Wonder + Kittan Zero (CBB)");
+        assert_eq!((e.episode, e.episode_end, e.title.as_deref()), (Some(9.0), Some(15.0), Some("The Sense of Wonder + Kittan Zero")));
+        let e = ep("Show - E01-Title");
+        assert_eq!((e.episode, e.episode_end), (Some(1.0), None));
         let e = ep("05.5 - My Gurren is Sparkling!! (DS Ver. Soft Inclusion)");
         assert_eq!((e.episode, e.title.as_deref()), (Some(5.5), Some("My Gurren is Sparkling!! (DS Ver. Soft Inclusion)")));
 

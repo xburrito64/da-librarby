@@ -281,16 +281,18 @@ fn names_of(ep: &EpisodeInput) -> impl Iterator<Item = &str> {
     ep.name.as_deref().into_iter().chain(ep.other_names.iter().flat_map(|n| [n.as_str(), without_show(n)]))
 }
 
-/// TMDB episodes whose titles match ours. A combined title ("Help Wanted & Reef Blower")
-/// is matched part by part when TMDB lists the parts separately.
+/// TMDB episodes whose titles match ours, also without what TMDB puts in front of a special's title
+/// ("Gurren Lagann Parallel Works 1-1: Rap is a Man's Soul!"). A combined title ("Help Wanted & Reef
+/// Blower") is matched part by part when TMDB lists the parts separately.
 fn match_by_name(name: &str, episodes: &[Episode]) -> Vec<Episode> {
+    let named = |theirs: &str, alike: fn(&str, &str) -> f64| alike(name, theirs).max(alike(name, without_show(theirs)));
     let parts = split_title(name);
     if parts.len() > 1 {
         let mut found: Vec<&Episode> = Vec::new();
         for part in &parts {
             let best = episodes
                 .iter()
-                .filter_map(|e| Some((similarity(part, e.name.as_deref()?), e)))
+                .filter_map(|e| e.name.as_deref().map(|n| (similarity(part, n).max(similarity(part, without_show(n))), e)))
                 .filter(|(score, _)| *score >= 0.85)
                 .max_by(|a, b| a.0.total_cmp(&b.0))
                 .map(|(_, e)| e);
@@ -305,7 +307,7 @@ fn match_by_name(name: &str, episodes: &[Episode]) -> Vec<Episode> {
     }
     episodes
         .iter()
-        .filter_map(|e| Some((title_similarity(name, e.name.as_deref()?), e)))
+        .filter_map(|e| Some((named(e.name.as_deref()?, title_similarity), e)))
         .filter(|(score, _)| *score >= 0.85)
         .max_by(|a, b| a.0.total_cmp(&b.0))
         .map(|(_, e)| vec![e.clone()])
@@ -396,6 +398,28 @@ mod tests {
         assert_eq!(names(&out, 102), ["The All Magic Knights Thanksgiving Festa"]);
         // (The tab's other files aren't the show's season 1 episodes.)
         assert!(names(&out, 100).is_empty());
+    }
+
+    #[test]
+    fn specials_titled_after_their_series() {
+        // TMDB: "Gurren Lagann Parallel Works 1-1: Rap is a Man's Soul! (Dai-Gurren-Dan Theme)"; on disk,
+        // the clip's own title, and a file holding a whole series of clips.
+        let mut tab = ours(1, 0, &[(1.0, None), (9.0, Some(10.0))]);
+        tab.number = None;
+        tab.episodes[0].name = Some("Rap is a Man's Soul! (Dai-Gurren-Dan Theme)".into());
+        tab.episodes[1].name = Some("The Sense of Wonder + Kittan Zero".into());
+        let mut specials = tmdb_season(0, 20);
+        for (i, name) in [
+            (2, "Gurren Lagann Parallel Works 1-1: Rap is a Man's Soul! (Dai-Gurren-Dan Theme)"),
+            (6, "Gurren Lagann Parallel Works 1-5: Rap is a Man's Soul! (Kamina's Theme)"),
+            (13, "Gurren Lagann Parallel Works 2-1: The Sense of Wonder"),
+            (19, "Gurren Lagann Parallel Works 2-7: Kittan Zero"),
+        ] {
+            specials.episodes[i].name = Some(name.into());
+        }
+        let out = map_episodes(&[tab], &[specials]);
+        assert_eq!(names(&out, 100), ["Gurren Lagann Parallel Works 1-1: Rap is a Man's Soul! (Dai-Gurren-Dan Theme)"]);
+        assert_eq!(names(&out, 101).len(), 2);
     }
 
     #[test]

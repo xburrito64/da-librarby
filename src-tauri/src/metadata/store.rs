@@ -448,9 +448,10 @@ pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Resu
 /// reached; version 7: a file in a Specials tab numbered on from the show's last episode, Kill la
 /// Kill's "25", is matched like one without a number; version 8: so is one whose number none of the
 /// entries picked by hand for its season has; version 9: a special found by the number it goes by,
-/// "Episode 5.5", and a tab of a spin-off series, "Parallel Works", by its name). Hand-made choices
-/// stay; the episodes' TMDB details are looked up again too, for the new match.
-const ANILIST_MATCH_VERSION: &str = "9";
+/// "Episode 5.5", and a tab of a spin-off series, "Parallel Works", by its name; version 10: TMDB's
+/// special titles also without what's in front, "Gurren Lagann Parallel Works 1-1: ..."). Hand-made
+/// choices stay; the episodes' TMDB details are looked up again too, for the new match.
+const ANILIST_MATCH_VERSION: &str = "10";
 
 pub fn refresh_anilist_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "anilist_match_version")?.as_deref() == Some(ANILIST_MATCH_VERSION) {
