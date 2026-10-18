@@ -138,7 +138,9 @@ pub fn specials_among(extras: &[(i64, String, Option<String>)], seasons: &[Seaso
                 .filter(|n| exact(n))
                 .or_else(|| Some(name.clone()).filter(|n| exact(n)))
                 .or_else(|| Some(name.clone()).filter(|n| clear(n)))
-                .or_else(|| headed.filter(|n| clear(n)));
+                .or_else(|| headed.filter(|n| clear(n)))
+                // Several specials in one video, named part by part ("Gravity Paws Theme Song + Countdown + ...").
+                .or_else(|| Some(name.clone()).filter(|n| split_title(n).len() > 1 && match_by_name(n, &specials.episodes).len() > 1));
             found.map(|n| (*id, n))
         })
         .collect()
@@ -513,8 +515,15 @@ mod tests {
         let extras = [
             (1, "OO Magic Episode 1 - The Magic of Saying What You Are Thinking".to_string(), Some("Season 1".to_string())),
             (2, "South.Park.Pilot.The.Spirit.Of.Christmas.Jesus.VS.Santa.DVDRip.XviD-SAiNTS".to_string(), None),
+            (3, "OO Magic Episode 1 - The Magic of Saying What You Are Thinking + The Spirit of Christmas (Jesus vs. Santa)".to_string(), None),
         ];
-        assert_eq!(specials_among(&extras, &[specials]), [(1, "OO Magic Episode 1 - The Magic of Saying What You Are Thinking".to_string())]);
+        assert_eq!(
+            specials_among(&extras, &[specials]),
+            [
+                (1, "OO Magic Episode 1 - The Magic of Saying What You Are Thinking".to_string()),
+                (3, "OO Magic Episode 1 - The Magic of Saying What You Are Thinking + The Spirit of Christmas (Jesus vs. Santa)".to_string())
+            ]
+        );
     }
 
     #[test]
