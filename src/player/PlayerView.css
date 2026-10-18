@@ -35,6 +35,15 @@
   pointer-events: none;
 }
 
+/* The mouse is on another screen: everything over the picture goes, the theme's pause look too. */
+.player--away > :not(.player__error),
+.player--away::before,
+.player--away::after {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
 /* ----- Top: back and what's playing ----- */
 
 .player__top {

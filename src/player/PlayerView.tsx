@@ -128,6 +128,8 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const [mini, setMini] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
+  // The mouse has left the window (onto another screen): only the picture shows, paused or not.
+  const [away, setAway] = useState(false);
   const [menu, setMenu] = useState<Menu>(null);
   const [next, setNext] = useState<PlayItem | null>(null);
   const [upNextClosed, setUpNextClosed] = useState(false);
@@ -419,6 +421,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   }, [next, onNext]);
 
   const showControls = useCallback(() => {
+    setAway(false);
     setControlsVisible(true);
     window.clearTimeout(hideTimer.current);
     hideTimer.current = window.setTimeout(() => setControlsVisible(false), HIDE_CONTROLS_AFTER_MS);
@@ -467,6 +470,11 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
     };
   });
   useEffect(() => () => window.clearTimeout(hideTimer.current), []);
+  useEffect(() => {
+    const onOut = (e: MouseEvent) => e.relatedTarget == null && setAway(true);
+    document.addEventListener("mouseout", onOut);
+    return () => document.removeEventListener("mouseout", onOut);
+  }, []);
 
   // ----- Next episode -----
 
@@ -587,7 +595,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
 
   // ----- Rendering -----
 
-  const visible = controlsVisible || paused || menu != null || ended;
+  const visible = !away && (controlsVisible || paused || menu != null || ended);
 
   // Subtitles: size, position, and moving up while the controls are showing.
   useEffect(() => {
@@ -634,7 +642,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
 
   return (
     <div
-      className={`player ${visible ? "" : "player--hidden"} ${mini ? "player--mini" : ""} ${paused && !ended && !loading ? "player--paused" : ""}`}
+      className={`player ${visible ? "" : "player--hidden"} ${away ? "player--away" : ""}${mini ? "player--mini" : ""} ${paused && !ended && !loading ? "player--paused" : ""}`}
       onMouseMove={showControls}
       onMouseLeave={() => mini && setControlsVisible(false)}
       onPointerDown={onStagePointerDown}
