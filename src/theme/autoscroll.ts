@@ -14,6 +14,8 @@ export interface ScrollLook {
 
 /** No scrolling until the pointer is this far (pixels) from where you clicked. */
 const STILL = 15;
+/** Sideways goes slower (the cover rows are short, and there's less to see on the way). */
+const SIDEWAYS = 0.45;
 /** Clicking on these does what they do instead. */
 const SKIP = 'a[href], input, textarea, select, [contenteditable=""], [contenteditable="true"], .player:not(.player--mini)';
 
@@ -60,6 +62,8 @@ interface Run {
   last: number;
   state: ScrollState | "";
   frame: number;
+  /** The sideways scroller's own snapping to covers (switched off meanwhile, so it glides). */
+  snap: string;
 }
 
 let run: Run | null = null;
@@ -86,13 +90,16 @@ function speed(d: number) {
 }
 
 function start(e: MouseEvent, look: ScrollLook, v: Element | null, h: Element | null) {
-  run = { look, x: e.clientX, y: e.clientY, px: e.clientX, py: e.clientY, v, h, held: true, dragged: false, fx: 0, fy: 0, last: performance.now(), state: "", frame: 0 };
+  const snap = h instanceof HTMLElement ? h.style.scrollSnapType : "";
+  if (h instanceof HTMLElement) h.style.scrollSnapType = "none";
+  run = { look, x: e.clientX, y: e.clientY, px: e.clientX, py: e.clientY, v, h, held: true, dragged: false, fx: 0, fy: 0, last: performance.now(), state: "", frame: 0, snap };
   run.frame = requestAnimationFrame(step);
 }
 
 function stop() {
   if (!run) return;
   cancelAnimationFrame(run.frame);
+  if (run.h instanceof HTMLElement) run.h.style.scrollSnapType = run.snap;
   delete document.documentElement.dataset.autoscroll;
   run = null;
 }
@@ -111,7 +118,7 @@ function step(now: number) {
   if (Math.abs(away) > STILL) {
     state = vertical ? (dy < 0 ? "up" : "down") : dx < 0 ? "left" : "right";
     if (r.v) r.fy += speed(dy) * seconds;
-    if (r.h) r.fx += speed(dx) * seconds;
+    if (r.h) r.fx += speed(dx) * SIDEWAYS * seconds;
     const top = Math.trunc(r.fy);
     const left = Math.trunc(r.fx);
     r.fy -= top;
