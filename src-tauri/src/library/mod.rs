@@ -216,8 +216,9 @@ pub async fn watch_save(
     position: f64,
     duration: f64,
     done: bool,
+    session: Option<i64>,
 ) -> Result<(), String> {
-    let finished = library.with_db(|c| watch::save_progress(c, file_id, position, duration))?;
+    let finished = library.with_db(|c| watch::save_progress(c, file_id, position, duration, session))?;
     if finished {
         // The last episode of a season: the library celebrates when it's next on screen.
         if let Ok(Some(season)) = library.with_db(|c| watch::finished_season(c, file_id)) {

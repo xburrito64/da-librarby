@@ -2446,6 +2446,159 @@
     0 0 40px rgba(255, 117, 24, 0.08);
 }
 
+/* An episode's card: one big carved tablet (tablets.ts carves it like the others), its parts set apart
+   by carved lines rather than tablets of their own. */
+:root[data-theme="hollow"] .modal:has(.epi) {
+  overflow-y: auto;
+  place-items: safe center;
+  padding: 40px 0;
+}
+
+:root[data-theme="hollow"] .modal__panel.epi {
+  position: relative;
+  isolation: isolate;
+  max-height: none;
+  padding: 36px 42px 34px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.7));
+}
+
+:root[data-theme="hollow"] .modal__panel.epi::before,
+:root[data-theme="hollow"] .modal__panel.epi::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+:root[data-theme="hollow"] .modal__panel.epi::before {
+  inset: 0;
+  z-index: -1;
+  clip-path: var(--he-stone-clip, none);
+  background:
+    var(--he-stone, none) 0 0 / 100% 100% no-repeat,
+    var(--he-stone-tint, linear-gradient(170deg, #34293f 0%, #261d31 55%, #1d1626 100%));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -10px 24px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme="hollow"] .modal__panel.epi::after {
+  inset: -28px;
+  z-index: 1;
+  background: var(--he-tablet-bits, none) 0 0 / 100% 100% no-repeat;
+}
+
+:root[data-theme="hollow"] .epi .mabout__group {
+  padding: 16px 0 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="hollow"] .epi .mabout__group::before,
+:root[data-theme="hollow"] .epi .mabout__group::after {
+  content: none;
+}
+
+:root[data-theme="hollow"] .epi__groups {
+  gap: 0 30px;
+  margin-top: 20px;
+}
+
+:root[data-theme="hollow"] .epi .mabout__row dt {
+  color: #9d93b0;
+}
+
+:root[data-theme="hollow"] .epi .mabout__row dd {
+  color: #e2d6c4;
+}
+
+:root[data-theme="hollow"] .epi__name {
+  color: #e6dcef;
+  font-size: 34px;
+  text-shadow:
+    0 -1px 0 rgba(0, 0, 0, 0.85),
+    0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="hollow"] .epi__desc {
+  font-family: var(--he-tablet-font, var(--font-body));
+  font-size: 15.5px;
+  color: #e2d6c4;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="hollow"] .epi__still {
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 2px #1b1524,
+    0 10px 24px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="hollow"] .epi__close {
+  z-index: 3;
+  background: rgba(10, 6, 16, 0.45);
+  color: #cfc4dc;
+}
+
+/* The "i": carved into a little chipped stone; pointed at, it glows like a candle. */
+:root[data-theme="hollow"] .ep__info {
+  width: 32px;
+  height: 34px;
+  border: 0;
+  border-radius: 0;
+  clip-path: polygon(0 5px, 5px 0, 60% 0, 66% 2px, 100% 3px, 100% 70%, 97% 100%, 30% 100%, 25% 97%, 0 100%);
+  background: linear-gradient(165deg, #514760, #3a3149 60%, #2c2437);
+  color: #1b1524;
+  font: 700 21px/1 Georgia, "Times New Roman", serif;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.16),
+    0 -1px 0 rgba(0, 0, 0, 0.75);
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.6));
+  transition:
+    opacity 0.2s,
+    color 0.35s,
+    text-shadow 0.35s,
+    filter 0.35s;
+}
+
+:root[data-theme="hollow"] .ep__info:hover {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 140, 40, 0.35), transparent 60%),
+    linear-gradient(165deg, #514760, #3a3149 60%, #2c2437);
+  color: #ffd38a;
+  box-shadow: none;
+  text-shadow:
+    0 0 2px #fff0c8,
+    0 0 6px #ffa040,
+    0 0 12px #ff7518,
+    0 0 22px rgba(255, 117, 24, 0.9);
+  filter: drop-shadow(0 0 8px rgba(255, 130, 40, 0.65)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.6));
+}
+
+:root[data-theme="hollow"] .ep__info:hover span {
+  animation: he-info-flicker 2.4s ease-in-out infinite;
+}
+
+@keyframes he-info-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.86;
+  }
+  55% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.92;
+  }
+}
+
 :root[data-theme="hollow"] .settings__heading {
   color: var(--he-pumpkin);
 }

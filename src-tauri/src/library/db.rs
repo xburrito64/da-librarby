@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 13;
+const SCHEMA_VERSION: i32 = 14;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -205,6 +205,11 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
     if version < 13 {
         // The name a special kept with the extras was found by ("Shop at Home with Mr Mystery - Gag Reel").
         conn.execute_batch("ALTER TABLE promoted_specials ADD COLUMN name TEXT;")?;
+    }
+    if version < 14 {
+        // Each time a file was watched, what was watched so far worked out from the hours logged.
+        conn.execute_batch(super::watch::SCHEMA_V14)?;
+        super::watch::fill_viewings(&conn)?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
@@ -769,6 +774,8 @@ pub struct FileRow {
     pub extra_movie: bool,
     /// When it showed up in the library (seconds).
     pub added_at: i64,
+    /// When it first aired ("2011-10-30"), as far as known.
+    pub aired: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -894,7 +901,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
     let mut stmt = conn.prepare(
         "SELECT f.id, f.path, f.role, f.season_id, f.episode, f.episode_end, f.name, f.year, f.size,
                 fm.file_id IS NOT NULL, fm.provider_id, fm.locked, fm.name, fm.description, fm.year,
-                fm.cover, fm.thumb, fm.provider_episode, f.extra_group, f.extra_movie, f.added_at
+                fm.cover, fm.thumb, fm.provider_episode, f.extra_group, f.extra_movie, f.added_at, fm.air_date
          FROM files f LEFT JOIN file_meta fm ON fm.file_id = f.id
          WHERE f.title_id = ?1 AND f.present = 1 ORDER BY f.sort",
     )?;
@@ -933,6 +940,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
                 extra_group: r.get(18)?,
                 extra_movie: r.get(19)?,
                 added_at: r.get(20)?,
+                aired: r.get(21)?,
             })
         })?
         .collect::<rusqlite::Result<_>>()?;

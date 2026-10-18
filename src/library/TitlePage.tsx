@@ -30,6 +30,7 @@ import Typed from "../ui/Typed";
 import { formatDuration } from "./WatchStats";
 import { About, Cast, MoreLikeThis, movieDetails, useFileInfo } from "./MovieParts";
 import { Card } from "./Browse";
+import EpisodeInfo from "./EpisodeInfo";
 import { useCopy } from "../theme/copy";
 
 type Picking = { kind: "title" } | { kind: "season"; season: SeasonRow } | { kind: "file"; file: FileRow };
@@ -59,6 +60,9 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
   const copy = useCopy();
   /** The theme's "check" line is shown in place of the description. */
   const [checking, setChecking] = useState(false);
+  /** The episode (or extra) whose card is open. */
+  const [infoId, setInfoId] = useState<number | null>(null);
+  const closeInfo = useCallback(() => setInfoId(null), []);
   const ref = useRef<HTMLDivElement>(null);
   const movieFile = title?.isMovie ? title.files.find((f) => f.role === "movie") : undefined;
   const info = useFileInfo(movieFile?.path);
@@ -116,6 +120,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
     return eps.length > 0 && eps.every((f) => f.progress?.watched);
   };
   const close = () => setPicking(null);
+  const infoFile = infoId != null ? title.files.find((f) => f.id === infoId) : undefined;
   const playFile = (file: FileRow) => onPlay(file.id);
   const playTitle = (titleId: number) =>
     library.title(titleId).then((t) => {
@@ -150,6 +155,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
         onSelect: () => watch.save(file.id, 0, file.progress!.duration, false).then(() => playFile(file)),
       });
     items.push(
+      { label: "More info", icon: <InfoIcon />, onSelect: () => setInfoId(file.id) },
       "divider",
       file.progress?.watched
         ? { label: "Mark as unwatched", icon: <UndoIcon />, onSelect: () => watch.set([file.id], false) }
@@ -339,6 +345,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
                   next={up?.file ?? null}
                   onPlay={playFile}
                   onMenu={fileMenu}
+                  onInfo={(f) => setInfoId(f.id)}
                   note={
                     anime && (
                       <p className="tp__seasonnote">
@@ -390,6 +397,15 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
         {title.isMovie && <MoreLikeThis title={title} all={all} onOpen={onOpen} onPlay={playTitle} />}
       </div>
 
+      {infoFile && (
+        <EpisodeInfo
+          file={infoFile}
+          title={title}
+          code={infoFile.role === "episode" ? episodeCode(infoFile, title.seasons.find((s) => s.id === infoFile.seasonId)?.number ?? null) : ""}
+          onPlay={playFile}
+          onClose={closeInfo}
+        />
+      )}
       {picking?.kind === "title" && (
         <MatchPicker
           heading={`Which ${title.isMovie ? "movie" : "show"} is "${title.name}"?`}
@@ -497,6 +513,7 @@ function SeasonEpisodes({
   note,
   onPlay,
   onMenu,
+  onInfo,
 }: {
   season: SeasonRow;
   episodes: FileRow[];
@@ -504,6 +521,7 @@ function SeasonEpisodes({
   note: React.ReactNode;
   onPlay: (file: FileRow) => void;
   onMenu: (e: React.MouseEvent, file: FileRow) => void;
+  onInfo: (file: FileRow) => void;
 }) {
   const length = useLengths(episodes);
   const allWatched = episodes.length > 0 && episodes.every((f) => f.progress?.watched);
@@ -555,6 +573,7 @@ function SeasonEpisodes({
             seconds={length(f)}
             onPlay={() => onPlay(f)}
             onMenu={(e) => onMenu(e, f)}
+            onInfo={() => onInfo(f)}
           />
         ))}
       </div>
@@ -569,6 +588,7 @@ function Episode({
   seconds,
   onPlay,
   onMenu,
+  onInfo,
 }: {
   file: FileRow;
   code: string;
@@ -578,6 +598,7 @@ function Episode({
   seconds: number;
   onPlay: () => void;
   onMenu: (e: React.MouseEvent) => void;
+  onInfo: () => void;
 }) {
   const watched = !!file.progress?.watched;
   const p = file.progress;
@@ -639,6 +660,17 @@ function Episode({
         title={watched ? "Mark as unwatched" : "Mark as watched"}
       >
         <CheckIcon />
+      </button>
+      <button
+        className="ep__info"
+        onClick={(e) => {
+          e.stopPropagation();
+          onInfo();
+        }}
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && e.stopPropagation()}
+        title="More info"
+      >
+        <span>i</span>
       </button>
     </div>
   );

@@ -50,6 +50,62 @@ INSERT OR IGNORE INTO watch_log (file_id, hour, seconds)
     FROM watch WHERE duration > 0 AND (watched = 1 OR position > 0);
 ";
 
+/// Each time a file was watched: one row per time the player opened it (`session`), or, for what was
+/// watched before this existed, worked out once from `watch_log` (`approx`: only the hour is known).
+pub const SCHEMA_V14: &str = "
+CREATE TABLE IF NOT EXISTS viewings (
+    file_id    INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    session    INTEGER NOT NULL,
+    started_at INTEGER NOT NULL,
+    ended_at   INTEGER NOT NULL,
+    seconds    REAL NOT NULL DEFAULT 0,
+    position   REAL NOT NULL DEFAULT 0,
+    duration   REAL NOT NULL DEFAULT 0,
+    finished   INTEGER NOT NULL DEFAULT 0,
+    approx     INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (file_id, session)
+);
+";
+
+/// A viewing only counts after this much watching (a minute or two to check the quality isn't
+/// watching it), or most of a short file.
+const VIEWING_SECONDS: f64 = 300.0;
+
+/// What was watched before viewings were kept, from the hours in `watch_log`: hours one after
+/// another make one viewing. Most of the file (or all of it) watched is a viewing to the end; the
+/// last one of a file stopped part-way stopped where the file is stopped now.
+pub fn fill_viewings(conn: &Connection) -> rusqlite::Result<()> {
+    let mut stmt = conn.prepare(
+        "SELECT l.file_id, l.hour, l.seconds, COALESCE(w.duration, 0), COALESCE(w.position, 0), COALESCE(w.watched, 0)
+         FROM watch_log l LEFT JOIN watch w ON w.file_id = l.file_id ORDER BY l.file_id, l.hour",
+    )?;
+    let rows: Vec<(i64, i64, f64, f64, f64, bool)> =
+        stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)))?.collect::<rusqlite::Result<_>>()?;
+    // (file, first hour, last hour, seconds, duration, position now, watched now)
+    let mut groups: Vec<(i64, i64, i64, f64, f64, f64, bool)> = Vec::new();
+    for (file, hour, seconds, duration, position, watched) in rows {
+        match groups.last_mut() {
+            Some(g) if g.0 == file && hour - g.2 <= 1 => {
+                g.2 = hour;
+                g.3 += seconds;
+            }
+            _ => groups.push((file, hour, hour, seconds, duration, position, watched)),
+        }
+    }
+    let tx = conn.unchecked_transaction()?;
+    for (i, &(file, first, last, seconds, duration, position_now, watched_now)) in groups.iter().enumerate() {
+        let latest = groups.get(i + 1).is_none_or(|g| g.0 != file);
+        let finished = duration > 0.0 && seconds >= duration * 0.85 || latest && watched_now && seconds >= duration * 0.5;
+        let position = if latest && !finished && !watched_now { position_now } else { 0.0 };
+        tx.execute(
+            "INSERT OR IGNORE INTO viewings (file_id, session, started_at, ended_at, seconds, position, duration, finished, approx)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1)",
+            params![file, -first, first * 3600, (last + 1) * 3600, seconds, position, duration, finished],
+        )?;
+    }
+    tx.commit()
+}
+
 /// Playback moving further than this many times the time that passed (plus a little) between two
 /// saves was a jump, not watching, and isn't counted.
 const MAX_SPEED: f64 = 4.0;
@@ -123,7 +179,9 @@ pub fn progress_for_title(conn: &Connection, title_id: i64) -> rusqlite::Result<
 }
 
 /// Records how far a file has been played. Returns true when it just became watched.
-pub fn save_progress(conn: &Connection, file_id: i64, position: f64, duration: f64) -> rusqlite::Result<bool> {
+/// `session`: the player's opening of the file this is part of, for its viewings (none when it
+/// wasn't played: "play from the beginning" sets it back first).
+pub fn save_progress(conn: &Connection, file_id: i64, position: f64, duration: f64, session: Option<i64>) -> rusqlite::Result<bool> {
     let before = progress(conn, file_id)?;
     let was_watched = before.as_ref().is_some_and(|p| p.watched);
     let finished = duration > 0.0 && position >= duration * WATCHED_AT;
@@ -151,6 +209,15 @@ pub fn save_progress(conn: &Connection, file_id: i64, position: f64, duration: f
             params![file_id, time / 3600, watched],
         )?;
     }
+    if let Some(session) = session {
+        conn.execute(
+            "INSERT INTO viewings (file_id, session, started_at, ended_at, seconds, position, duration, finished)
+             VALUES (?1, ?2, ?3, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT (file_id, session) DO UPDATE SET ended_at = ?3, seconds = seconds + ?4, position = ?5,
+                 duration = ?6, finished = finished OR ?7",
+            params![file_id, session, time, watched, position.max(0.0), duration.max(0.0), finished],
+        )?;
+    }
     Ok(finished && !was_watched)
 }
 
@@ -173,14 +240,41 @@ pub struct FileWatch {
     /// The hours (as seconds since 1970) it was first and last watched in.
     pub first: Option<i64>,
     pub last: Option<i64>,
+    /// Each time it was watched (for a few minutes at least), latest first.
+    pub viewings: Vec<Viewing>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Viewing {
+    pub started_at: i64,
+    pub seconds: f64,
+    /// Where it was stopped (0 = not known).
+    pub position: f64,
+    pub finished: bool,
+    /// From before viewings were kept: only the hour is known.
+    pub approx: bool,
+}
+
+pub fn viewings(conn: &Connection, file_id: i64) -> rusqlite::Result<Vec<Viewing>> {
+    let mut stmt = conn.prepare(
+        "SELECT started_at, seconds, position, finished, approx FROM viewings
+         WHERE file_id = ?1 AND seconds >= MIN(?2, CASE WHEN duration > 0 THEN duration * 0.8 ELSE ?2 END)
+         ORDER BY started_at DESC",
+    )?;
+    let rows = stmt.query_map(params![file_id, VIEWING_SECONDS], |r| {
+        Ok(Viewing { started_at: r.get(0)?, seconds: r.get(1)?, position: r.get(2)?, finished: r.get(3)?, approx: r.get(4)? })
+    })?;
+    rows.collect()
 }
 
 pub fn file_watch(conn: &Connection, file_id: i64) -> rusqlite::Result<FileWatch> {
     conn.query_row(
         "SELECT COALESCE(SUM(seconds), 0), MIN(hour) * 3600, MAX(hour) * 3600 FROM watch_log WHERE file_id = ?1",
         [file_id],
-        |r| Ok(FileWatch { seconds: r.get(0)?, first: r.get(1)?, last: r.get(2)? }),
+        |r| Ok(FileWatch { seconds: r.get(0)?, first: r.get(1)?, last: r.get(2)?, viewings: Vec::new() }),
     )
+    .and_then(|w| Ok(FileWatch { viewings: viewings(conn, file_id)?, ..w }))
 }
 
 pub fn stats(conn: &Connection) -> rusqlite::Result<WatchStats> {
@@ -451,17 +545,17 @@ mod tests {
         assert!(continue_watching(&conn, images).unwrap().is_empty());
 
         // Stopped part-way: resume there.
-        assert!(!save_progress(&conn, 101, 300.0, 1400.0).unwrap());
+        assert!(!save_progress(&conn, 101, 300.0, 1400.0, None).unwrap());
         let list = continue_watching(&conn, images).unwrap();
         assert_eq!((list[0].item.file_id, list[0].reason, list[0].item.resume), (101, "resume", Some(300.0)));
 
         // Finished: the next episode is up.
-        assert!(save_progress(&conn, 101, 1350.0, 1400.0).unwrap());
+        assert!(save_progress(&conn, 101, 1350.0, 1400.0, None).unwrap());
         let list = continue_watching(&conn, images).unwrap();
         assert_eq!((list[0].item.file_id, list[0].reason), (102, "next"));
 
         // Only just started the next one: still offered as up next.
-        save_progress(&conn, 102, 5.0, 1400.0).unwrap();
+        save_progress(&conn, 102, 5.0, 1400.0, None).unwrap();
         let list = continue_watching(&conn, images).unwrap();
         assert_eq!((list[0].item.file_id, list[0].reason, list[0].item.resume), (102, "next", None));
 
@@ -485,18 +579,18 @@ mod tests {
     fn watch_time_counts_playing_but_not_jumps() {
         let conn = setup();
         let logged = || -> f64 { conn.query_row("SELECT COALESCE(SUM(seconds), 0) FROM watch_log", [], |r| r.get(0)).unwrap() };
-        save_progress(&conn, 101, 5.0, 1400.0).unwrap();
+        save_progress(&conn, 101, 5.0, 1400.0, None).unwrap();
         assert_eq!(logged(), 5.0);
         // Five seconds later, five seconds further.
         conn.execute("UPDATE watch SET updated_at = updated_at - 5", []).unwrap();
-        save_progress(&conn, 101, 10.0, 1400.0).unwrap();
+        save_progress(&conn, 101, 10.0, 1400.0, None).unwrap();
         assert_eq!(logged(), 10.0);
         // A jump of ten minutes in five seconds isn't watching.
         conn.execute("UPDATE watch SET updated_at = updated_at - 5", []).unwrap();
-        save_progress(&conn, 101, 610.0, 1400.0).unwrap();
+        save_progress(&conn, 101, 610.0, 1400.0, None).unwrap();
         assert_eq!(logged(), 10.0);
         // Going back neither.
-        save_progress(&conn, 101, 0.0, 1400.0).unwrap();
+        save_progress(&conn, 101, 0.0, 1400.0, None).unwrap();
         assert_eq!(logged(), 10.0);
         let s = stats(&conn).unwrap();
         assert_eq!(s.time.len(), 1);
@@ -505,14 +599,61 @@ mod tests {
     #[test]
     fn finishing_the_last_episode_of_a_season() {
         let conn = setup();
-        save_progress(&conn, 101, 1350.0, 1400.0).unwrap();
+        save_progress(&conn, 101, 1350.0, 1400.0, None).unwrap();
         assert!(finished_season(&conn, 101).unwrap().is_none());
-        save_progress(&conn, 102, 1350.0, 1400.0).unwrap();
+        save_progress(&conn, 102, 1350.0, 1400.0, None).unwrap();
         let done = finished_season(&conn, 102).unwrap().unwrap();
         assert_eq!((done.season.as_str(), done.show_done), ("Season 1", false));
-        save_progress(&conn, 100, 1350.0, 1400.0).unwrap();
-        save_progress(&conn, 103, 1350.0, 1400.0).unwrap();
+        save_progress(&conn, 100, 1350.0, 1400.0, None).unwrap();
+        save_progress(&conn, 103, 1350.0, 1400.0, None).unwrap();
         let done = finished_season(&conn, 103).unwrap().unwrap();
         assert_eq!((done.season.as_str(), done.show_done), ("Season 2", true));
+    }
+
+    /// Plays a file in one opening of the player, a minute at a time.
+    fn play(conn: &Connection, file: i64, session: i64, from: f64, to: f64) {
+        let mut at = from;
+        save_progress(conn, file, at, 1400.0, Some(session)).unwrap();
+        while at < to {
+            conn.execute("UPDATE watch SET updated_at = updated_at - 60", []).unwrap();
+            at = (at + 60.0).min(to);
+            save_progress(conn, file, at, 1400.0, Some(session)).unwrap();
+        }
+    }
+
+    #[test]
+    fn each_viewing_of_a_few_minutes_counts() {
+        let conn = setup();
+        // A quick look at the quality: not a viewing.
+        play(&conn, 101, 1, 0.0, 120.0);
+        assert!(viewings(&conn, 101).unwrap().is_empty());
+        // Watched to the end.
+        play(&conn, 101, 2, 0.0, 1400.0);
+        // Again, stopped at ten minutes.
+        play(&conn, 101, 3, 0.0, 600.0);
+        let v = viewings(&conn, 101).unwrap();
+        assert_eq!(v.len(), 2);
+        assert!(v.iter().any(|v| v.finished));
+        assert!(v.iter().any(|v| !v.finished && v.position == 600.0));
+    }
+
+    #[test]
+    fn viewings_from_before() {
+        let conn = setup();
+        conn.execute_batch(
+            "INSERT INTO watch (file_id, position, duration, watched, updated_at) VALUES (101, 700, 1400, 1, 0), (102, 500, 1400, 0, 0);
+             INSERT INTO watch_log (file_id, hour, seconds) VALUES
+               (101, 100, 1000), (101, 101, 400), (101, 200, 1400), (101, 300, 60),
+               (102, 400, 500);",
+        )
+        .unwrap();
+        fill_viewings(&conn).unwrap();
+        let v = viewings(&conn, 101).unwrap();
+        // Two hours in a row are one viewing; a minute isn't one.
+        assert_eq!(v.len(), 2);
+        assert!(v.iter().all(|v| v.finished && v.approx));
+        assert_eq!(v[1].started_at, 100 * 3600);
+        let v = viewings(&conn, 102).unwrap();
+        assert_eq!((v.len(), v[0].position, v[0].finished), (1, 500.0, false));
     }
 }

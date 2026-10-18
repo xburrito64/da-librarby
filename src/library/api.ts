@@ -113,7 +113,7 @@ export interface MovieExtra {
   cast: { name: string; character: string | null; photo: string | null }[];
 }
 
-/** What's in a movie's file (see src-tauri/src/fileinfo.rs). */
+/** What's in a video file (see src-tauri/src/fileinfo.rs). */
 export interface FileInfo {
   duration: number;
   width: number | null;
@@ -122,6 +122,21 @@ export interface FileInfo {
   bitDepth: number | null;
   hdr: boolean;
   fps: number | null;
+  /** "Main 10" */
+  videoProfile: string | null;
+  /** Bits per second. */
+  videoBitrate: number | null;
+  /** mpv's names: "bt.709", "bt.2020-ncl"... */
+  colorMatrix: string | null;
+  colorPrimaries: string | null;
+  /** "bt.1886" (SDR), "pq" (HDR10), "hlg" */
+  colorTransfer: string | null;
+  /** "limited" or "full" */
+  colorRange: string | null;
+  /** "4:2:0" */
+  chroma: string | null;
+  /** Dolby Vision profile, if it has one. */
+  dolbyVision: number | null;
   container: string | null;
   audio: Track[];
   subs: Track[];
@@ -134,6 +149,15 @@ export interface Track {
   codec: string | null;
   channels: number | null;
   forced: boolean;
+  /** "5.1(side)" */
+  layout: string | null;
+  /** "LC", "DTS-HD MA" */
+  profile: string | null;
+  sampleRate: number | null;
+  /** Bits per second. */
+  bitrate: number | null;
+  default: boolean;
+  hearingImpaired: boolean;
 }
 
 export const fileInfo = {
@@ -179,6 +203,8 @@ export interface FileRow {
   isNew: boolean;
   /** When it showed up in the library (seconds). */
   addedAt: number;
+  /** When it first aired ("2011-10-30"), if known. */
+  aired: string | null;
 }
 
 /** How far a file has been played. Times in seconds. */
@@ -350,16 +376,36 @@ export interface ContinueItem extends PlayItem {
 export const watch = {
   item: (fileId: number) => invoke<PlayItem | null>("watch_item", { fileId }),
   next: (fileId: number) => invoke<PlayItem | null>("watch_next", { fileId }),
-  save: (fileId: number, position: number, duration: number, done: boolean) =>
-    invoke<void>("watch_save", { fileId, position, duration, done }),
+  /** `session`: this opening of the player, so each time it's watched is kept apart. */
+  save: (fileId: number, position: number, duration: number, done: boolean, session?: number) =>
+    invoke<void>("watch_save", { fileId, position, duration, done, session: session ?? null }),
   set: (fileIds: number[], watched: boolean) => invoke<void>("watch_set", { fileIds, watched }),
   continueList: () => invoke<ContinueItem[]>("watch_continue"),
   /** Removes a show from "continue watching" until something of it is watched again. */
   hide: (titleId: number) => invoke<void>("watch_hide", { titleId }),
   setTitle: (titleId: number, watched: boolean) => invoke<void>("watch_set_title", { titleId, watched }),
   /** How much and when a file was watched. */
-  file: (fileId: number) => invoke<{ seconds: number; first: number | null; last: number | null }>("watch_file", { fileId }),
+  file: (fileId: number) => invoke<FileWatch>("watch_file", { fileId }),
 };
+
+/** How much and when a file was watched (seconds; times since 1970). */
+export interface FileWatch {
+  seconds: number;
+  first: number | null;
+  last: number | null;
+  /** Each time it was watched for a few minutes at least, latest first. */
+  viewings: Viewing[];
+}
+
+export interface Viewing {
+  startedAt: number;
+  seconds: number;
+  /** Where it was stopped (0: not known). */
+  position: number;
+  finished: boolean;
+  /** From before each viewing was kept: only the day is certain. */
+  approx: boolean;
+}
 
 /** A newer version on GitHub (src-tauri/src/update.rs). */
 export interface Update {

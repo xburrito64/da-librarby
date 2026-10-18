@@ -9,7 +9,8 @@
 // added inside the page's own elements. The covers' stone frames are carved the same way (frames.ts).
 
 /** Which elements are tablets. */
-const TABLETS = ".hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar, .ep.is-next, .stats__tile, .stats__panel";
+// (An episode's card is one big tablet; the parts on it aren't tablets of their own.)
+const TABLETS = ".hero__desc-box, .tp__desc-box, .mabout__group:not(.epi *), .tp__seasonbar, .ep.is-next, .stats__tile, .stats__panel, .epi";
 
 /** How far the things on a tablet may reach out past its edges (px); hollow.css matches it. */
 const PAD = 28;

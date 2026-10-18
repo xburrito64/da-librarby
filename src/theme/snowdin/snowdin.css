@@ -1923,6 +1923,43 @@
   color: var(--accent);
 }
 
+/* The "i": a little box of the game's; pointed at, it turns yellow like a chosen option. */
+:root[data-theme="snowdin"] .ep__info {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #fff;
+  border-radius: 0;
+  background: #000;
+  color: #fff;
+  font: 400 18px/1 var(--font-display);
+}
+
+:root[data-theme="snowdin"] .ep__info:hover {
+  border-color: #ffff00;
+  color: #ffff00;
+  text-shadow: none;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 0, 0.25),
+    0 0 14px rgba(255, 255, 0, 0.45);
+}
+
+/* An episode's card: a text box, its parts in the stat-screen boxes. */
+:root[data-theme="snowdin"] .epi__still {
+  border: 3px solid #fff;
+  border-radius: 0;
+}
+
+:root[data-theme="snowdin"] .epi__close {
+  border: 3px solid #fff;
+  border-radius: 0;
+  background: #000;
+}
+
+:root[data-theme="snowdin"] .epi__close:hover {
+  border-color: #ffff00;
+  color: #ffff00;
+}
+
 /* Movies & Specials, extras */
 :root[data-theme="snowdin"] .posters {
   gap: 40px var(--card-gap);

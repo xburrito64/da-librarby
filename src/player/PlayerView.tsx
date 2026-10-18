@@ -156,11 +156,15 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const pressRef = useRef<{ x: number; y: number } | null>(null);
   const draggedRef = useRef(false);
   const pictures = useSeekPictures(item.path);
+  /** This opening of the file: each one is kept as its own viewing. */
+  const sessionRef = useRef(0);
 
   // ----- Loading a file -----
 
   useEffect(() => {
     const { fileId, titleId } = item;
+    const session = Date.now();
+    sessionRef.current = session;
     timeRef.current = item.resume ?? 0;
     durationRef.current = item.duration ?? 0;
     setTime(item.resume ?? 0);
@@ -196,7 +200,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
 
     return () => {
       // Leaving this file (back, next episode or closing): remember where it stopped.
-      if (durationRef.current > 0) watch.save(fileId, timeRef.current, durationRef.current, true);
+      if (durationRef.current > 0) watch.save(fileId, timeRef.current, durationRef.current, true, session);
     };
   }, [item]);
 
@@ -278,12 +282,12 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   // Save progress regularly while playing, and whenever playback pauses.
   useEffect(() => {
     const timer = window.setInterval(() => {
-      if (!pausedRef.current && durationRef.current > 0) watch.save(item.fileId, timeRef.current, durationRef.current, false);
+      if (!pausedRef.current && durationRef.current > 0) watch.save(item.fileId, timeRef.current, durationRef.current, false, sessionRef.current);
     }, SAVE_EVERY_MS);
     return () => window.clearInterval(timer);
   }, [item.fileId]);
   useEffect(() => {
-    if (paused && durationRef.current > 0) watch.save(item.fileId, timeRef.current, durationRef.current, false);
+    if (paused && durationRef.current > 0) watch.save(item.fileId, timeRef.current, durationRef.current, false, sessionRef.current);
   }, [paused, item.fileId]);
 
   // ----- Tracks -----

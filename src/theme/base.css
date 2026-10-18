@@ -1350,6 +1350,179 @@
   color: var(--muted);
 }
 
+/* Each time it was watched: when, and how far ("to the end", "stopped at 10:00"). */
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.history__item {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 8px;
+}
+
+.history__how {
+  color: var(--muted);
+}
+
+/* ---------- An episode's card ---------- */
+
+.epi.modal__panel {
+  display: block;
+  width: min(1100px, 92vw);
+  max-height: 90vh;
+  padding: 30px 34px 32px;
+  overflow: auto;
+}
+
+.epi__close {
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--btn-radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.epi__close:hover {
+  background: var(--surface-hover);
+}
+
+.epi__close .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.epi__head {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 30px;
+  align-items: start;
+}
+
+.epi__left {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.epi__main {
+  min-width: 0;
+}
+
+.epi__still {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.epi__still img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.epi__still:hover .ep__play {
+  opacity: 1;
+}
+
+.epi__still .progress {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+}
+
+.epi__where {
+  margin-right: 44px;
+  font-family: var(--font-label);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: var(--label-transform);
+  letter-spacing: var(--label-tracking);
+  color: var(--muted);
+}
+
+.epi__name {
+  margin: 6px 44px 8px 0;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-style: var(--display-style);
+  text-transform: var(--display-transform);
+  letter-spacing: var(--display-tracking);
+  font-size: 30px;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.epi__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.epi__facts b {
+  color: var(--accent);
+}
+
+.epi__desc {
+  max-width: 72ch;
+  margin: 12px 0 16px;
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.epi__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.epi__groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+  margin-top: 22px;
+}
+
+.epi .mabout__rows {
+  gap: 7px;
+}
+
+.epi .mabout__row {
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .epi__head,
+  .epi__groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .mabout__parts .is-owned {
   color: var(--text);
 }
@@ -1611,6 +1784,43 @@
   border-color: var(--accent);
   background: var(--accent);
   color: var(--on-accent);
+}
+
+/* The "i" in the corner: opens the episode's card. It lights up when pointed at. */
+.ep__info {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg-elev);
+  color: var(--muted);
+  font: 700 16px/1 var(--font-body);
+  opacity: 0;
+  transition:
+    opacity 0.2s,
+    color 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s,
+    text-shadow 0.25s;
+}
+
+.ep:hover .ep__info,
+.ep__info:focus-visible {
+  opacity: 1;
+}
+
+.ep__info:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 55%, transparent);
+  text-shadow: 0 0 8px var(--accent);
 }
 
 .ep__play {
