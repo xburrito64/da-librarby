@@ -106,15 +106,26 @@ pub fn anime_show(names: &[&str], year: Option<i32>, known_id: Option<i64>, tmdb
 /// the music videos, is its special 13.
 pub fn specials_among(extras: &[(i64, String, Option<String>)], seasons: &[Season]) -> Vec<(i64, String)> {
     let Some(specials) = seasons.iter().find(|s| s.season_number == 0) else { return Vec::new() };
-    let fitting = |name: &str| {
-        let fits = |e: &&Episode| e.name.as_deref().is_some_and(|n| title_similarity(name, n).max(title_similarity(name, without_show(n))) >= 0.85);
+    // How many specials fit a name: by their whole title, or (`ending`) also by what follows a series
+    // name in front ("Grunkle Stan's Lost Mystery Shack Interview - Zendaya ...").
+    let fitting = |name: &str, ending: bool| {
+        let fits = |e: &&Episode| {
+            e.name.as_deref().is_some_and(|n| title_similarity(name, n).max(if ending { title_similarity(name, without_show(n)) } else { 0.0 }) >= 0.85)
+        };
         specials.episodes.iter().filter(fits).count()
     };
     extras
         .iter()
         .filter_map(|(id, name, heading)| {
-            let headed = heading.as_deref().and_then(|h| h.rsplit(" · ").next()).map(|h| format!("{h} - {name}"));
-            [Some(name.clone()), headed].into_iter().flatten().find(|n| fitting(n) == 1).map(|n| (*id, n))
+            // (With its heading first: "Gag Reel" under "Shop at Home with Mr Mystery" is that one's, not
+            // the show's own "Gag Reel". A season's heading says nothing about which.)
+            let named_heading = heading.as_deref().and_then(|h| h.rsplit(" · ").next()).filter(|h| {
+                let words: Vec<&str> = h.split_whitespace().collect();
+                !(words.len() == 2 && words[0].eq_ignore_ascii_case("season") && words[1].chars().all(|c| c.is_ascii_digit()))
+            });
+            let headed = named_heading.map(|h| format!("{h} - {name}"));
+            let tries = [(headed.clone(), false), (Some(name.clone()), false), (headed, true), (Some(name.clone()), true)];
+            tries.into_iter().find_map(|(n, ending)| n.filter(|n| fitting(n, ending) == 1)).map(|n| (*id, n))
         })
         .collect()
 }
@@ -293,7 +304,9 @@ fn names_of(ep: &EpisodeInput) -> impl Iterator<Item = &str> {
 /// ("Gurren Lagann Parallel Works 1-1: Rap is a Man's Soul!"). A combined title ("Help Wanted & Reef
 /// Blower") is matched part by part when TMDB lists the parts separately.
 fn match_by_name(name: &str, episodes: &[Episode]) -> Vec<Episode> {
-    let named = |theirs: &str, alike: fn(&str, &str) -> f64| alike(name, theirs).max(alike(name, without_show(theirs)));
+    // (A title that is exactly ours wins over one that only ends like it: "Gag Reel" is TMDB's "Gag
+    // Reel", not "Shop at Home with Mr. Mystery - Gag Reel".)
+    let named = |theirs: &str, alike: fn(&str, &str) -> f64| alike(name, theirs).max(alike(name, without_show(theirs)) * 0.99);
     let parts = split_title(name);
     if parts.len() > 1 {
         let mut found: Vec<&Episode> = Vec::new();
@@ -445,11 +458,18 @@ mod tests {
             (3, "Yoko goes to Gainax".to_string(), None),
             (5, "Gravity Paws".to_string(), None),
             (7, "Gag Reel".to_string(), Some("Shop at Home with Mr Mystery".to_string())),
+            (8, "Gag Reel".to_string(), None),
         ];
+        specials.episodes[6].name = Some("Gag Reel".into());
         let found = specials_among(&extras, &[specials]);
         assert_eq!(
             found,
-            [(1, "Kirameki Youko Box- Pieces of Sweet Stars (CBB)".to_string()), (2, "Opening".to_string()), (7, "Shop at Home with Mr Mystery - Gag Reel".to_string())]
+            [
+                (1, "Kirameki Youko Box- Pieces of Sweet Stars (CBB)".to_string()),
+                (2, "Opening".to_string()),
+                (7, "Shop at Home with Mr Mystery - Gag Reel".to_string()),
+                (8, "Gag Reel".to_string())
+            ]
         );
     }
 

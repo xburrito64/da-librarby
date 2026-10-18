@@ -413,8 +413,9 @@ pub fn set_setting(conn: &Connection, key: &str, value: Option<&str>) -> rusqlit
 /// are kept; images already on disk are reused).
 /// (Version 10: extras TMDB lists among a show's specials become specials; 11: only when one special
 /// fits, keeping the name they were found by; 12: bonus material too, and by their heading where
-/// their name alone fits several.) Which extras became specials is decided again too.
-const TMDB_MATCH_VERSION: &str = "12";
+/// their name alone fits several; 13: a title exactly theirs before one only ending like it, a named
+/// heading tried first.) Which extras became specials is decided again too.
+const TMDB_MATCH_VERSION: &str = "13";
 
 pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "tmdb_match_version")?.as_deref() == Some(TMDB_MATCH_VERSION) {
