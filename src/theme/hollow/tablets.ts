@@ -6,7 +6,7 @@
 // show its own. Two or three things on a tablet, kept off the words; tablets side by side differ.
 //
 // Drawn as two pictures the stylesheet puts under and over the tablet (hollow.css), so nothing is
-// added inside the page's own elements.
+// added inside the page's own elements. The covers' stone frames are carved the same way (frames.ts).
 
 /** Which elements are tablets. */
 const TABLETS = ".hero__desc-box, .tp__desc-box, .mabout__group, .tp__seasonbar, .ep.is-next, .stats__tile, .stats__panel";
@@ -51,7 +51,7 @@ interface Carved {
   used: Used;
 }
 
-const hash = (s: string) => {
+export const hash = (s: string) => {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return h >>> 0;
@@ -71,7 +71,7 @@ const n1 = (n: number) => +n.toFixed(1);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 /** Carves a tablet `w`×`h` from `seed`, unlike `beside` (the tablet before it) where it can be. */
-function carve(w: number, h: number, seed: string, beside: Used | null): Carved {
+export function carve(w: number, h: number, seed: string, beside: Used | null): Carved {
   const r = random(seed);
   const R = (a: number, b: number) => a + (b - a) * r();
   const chance = (p: number) => r() < p;

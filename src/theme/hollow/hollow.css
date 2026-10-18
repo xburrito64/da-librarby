@@ -38,6 +38,8 @@
 
   --radius: 14px;
   --radius-card: 12px;
+  /* (Room between covers for their stone frames, see frames.ts.) */
+  --card-gap: 36px;
   --radius-panel: 24px;
   --btn-radius: 999px;
   --app-decor:
@@ -1598,6 +1600,11 @@
   padding-top: 32px;
 }
 
+:root[data-theme="hollow"] .posters {
+  row-gap: 60px;
+  padding-top: 24px;
+}
+
 :root[data-theme="hollow"] .row__arrow {
   border-color: rgba(255, 117, 24, 0.3);
   background: rgba(23, 16, 31, 0.9);
@@ -1608,16 +1615,8 @@
   overflow-clip-margin: 72px;
 }
 
-:root[data-theme="hollow"] .card__art {
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
 :root[data-theme="hollow"] .card:is(:hover, :focus-visible) .card__art {
   transform: translateY(-5px);
-  box-shadow:
-    0 0 0 2px var(--he-pumpkin),
-    0 0 20px rgba(255, 117, 24, 0.45),
-    0 14px 30px rgba(0, 0, 0, 0.6);
 }
 
 :root[data-theme="hollow"] .card:is(:hover, :focus-visible) .card__name {
@@ -1736,11 +1735,19 @@
   }
 }
 
-:root[data-theme="hollow"] .card__name {
-  font-size: 14.5px;
+/* New / Up next on a cover: a little stone tag. */
+:root[data-theme="hollow"] :is(.card__badge, .ccard__badge) {
+  background: linear-gradient(#5e576f, #47415a);
+  color: #ece6f4;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 2px 5px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.8);
 }
 
-:root[data-theme="hollow"] :is(.card__badge, .ep__new, .ccard__badge) {
+:root[data-theme="hollow"] .ep__new {
   background: var(--he-slime);
   color: #0f1a05;
   box-shadow: 0 0 12px rgba(156, 255, 58, 0.45);
@@ -1749,6 +1756,97 @@
 :root[data-theme="hollow"] .watched-badge {
   background: var(--he-pumpkin);
   box-shadow: 0 0 10px rgba(255, 117, 24, 0.6);
+}
+
+/* ---------- The covers' stone frames ---------- */
+
+/* Every cover (and Continue watching episode) set in a chipped stone frame, carved by frames.ts like
+   the tablets, which hands over the stone and what sits on it (a web, moss, mushrooms, ...) as
+   --he-frame, --he-frame-bits, --he-frame-w and --he-frame-h. The name block draws them, behind the
+   cover and over it: the stone reaches 11px past the cover, what sits on it 28px past the stone. */
+:root[data-theme="hollow"] :is(.card, .ccard) {
+  isolation: isolate;
+}
+
+:root[data-theme="hollow"] :is(.card__text, .ccard__text)::before,
+:root[data-theme="hollow"] :is(.card__text, .ccard__text)::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  background: 0 0 / 100% 100% no-repeat;
+  transition:
+    transform 0.35s var(--ease),
+    filter 0.3s ease;
+}
+
+:root[data-theme="hollow"] :is(.card__text, .ccard__text)::before {
+  z-index: -1;
+  left: -11px;
+  top: -11px;
+  width: var(--he-frame-w, 0);
+  height: var(--he-frame-h, 0);
+  background-image: var(--he-frame, none);
+  filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.6));
+}
+
+:root[data-theme="hollow"] :is(.card__text, .ccard__text)::after {
+  z-index: 2;
+  left: -39px;
+  top: -39px;
+  width: calc(var(--he-frame-w, 0px) + 56px);
+  height: calc(var(--he-frame-h, 0px) + 56px);
+  background-image: var(--he-frame-bits, none);
+}
+
+:root[data-theme="hollow"] :is(.card__art, .ccard__art) {
+  border-radius: 3px;
+}
+
+/* Pointed at: the cover rises in its frame, and the frame catches the candlelight. */
+:root[data-theme="hollow"] .card:is(:hover, :focus-visible) .card__text::before,
+:root[data-theme="hollow"] .card:is(:hover, :focus-visible) .card__text::after {
+  transform: translateY(-5px);
+}
+
+:root[data-theme="hollow"] .ccard:hover .ccard__text::before,
+:root[data-theme="hollow"] .ccard:hover .ccard__text::after {
+  transform: translateY(-4px);
+}
+
+:root[data-theme="hollow"] .card:is(:hover, :focus-visible) .card__text::before,
+:root[data-theme="hollow"] .ccard:hover .ccard__text::before {
+  filter: drop-shadow(0 0 1.5px var(--he-pumpkin)) drop-shadow(0 0 14px rgba(255, 140, 50, 0.5)) drop-shadow(0 14px 16px rgba(0, 0, 0, 0.6));
+}
+
+/* The names: carved lettering, below the frame. */
+:root[data-theme="hollow"] .card__text {
+  padding-top: 22px;
+  text-align: center;
+}
+
+:root[data-theme="hollow"] .ccard__text {
+  padding-top: 20px;
+}
+
+:root[data-theme="hollow"] :is(.card__name, .ccard__ep) {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: #d6cde2;
+  text-shadow:
+    0 -1px 0 rgba(0, 0, 0, 0.85),
+    0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="hollow"] .card__name {
+  font-size: 17px;
+}
+
+:root[data-theme="hollow"] .ccard__ep {
+  font-size: 16px;
+}
+
+:root[data-theme="hollow"] .card__sub {
+  color: #8f86a2;
 }
 
 /* Watching progress: a glowing ember along the bottom. */
@@ -1777,17 +1875,6 @@
 }
 
 /* Continue watching */
-:root[data-theme="hollow"] .ccard__art {
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-:root[data-theme="hollow"] .ccard:hover .ccard__art {
-  box-shadow:
-    0 0 0 2px var(--he-pumpkin),
-    0 0 26px rgba(255, 117, 24, 0.45),
-    0 14px 34px rgba(0, 0, 0, 0.6);
-}
-
 :root[data-theme="hollow"] .ccard__code {
   color: var(--he-ember);
 }

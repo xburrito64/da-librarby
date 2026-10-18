@@ -10,6 +10,7 @@ import { startScenes } from "./scenes";
 import { startFriends } from "./friends";
 import { startCat } from "./cat";
 import { startTablets } from "./tablets";
+import { startFrames } from "./frames";
 import { followScroll, startLeaves } from "./leaves";
 
 /** One ember per this many square pixels of window. */
@@ -55,6 +56,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
   useEffect(() => (active ? startFriends({ surprises }) : undefined), [active, surprises]);
   useEffect(() => (active ? startCat({ surprises }) : undefined), [active, surprises]);
   useEffect(() => (active ? startTablets() : undefined), [active]);
+  useEffect(() => (active ? startFrames() : undefined), [active]);
 
   useEffect(() => {
     const root = document.documentElement;
