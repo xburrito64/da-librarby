@@ -9,23 +9,24 @@ Windows only for now.
 ## What it does
 
 - **Finds your shows by itself.** Add a folder or a whole drive. Anime, cartoons, shows and movies
-  are sorted automatically, including seasons, specials, movies inside show folders, extras and
-  oddly numbered releases. New files are picked up when you switch to the app, and drives are
+  are sorted automatically, including seasons, specials, movies inside show folders, extras (those
+  that are really specials go with the specials) and oddly numbered releases. New files are picked up when you switch to the app, and drives are
   noticed when they're plugged in or removed.
 - **Covers and info.** Anime from [AniList](https://anilist.co), shows and movies from
   [TMDB](https://www.themoviedb.org): covers, banners, descriptions, episode names and pictures.
   Everything is saved on your computer, so the library works offline. Wrong match? Fix it by hand.
 - **Movie pages** with the artwork across the whole window, the cast, everything about the film,
-  your copy of it (picture, audio and subtitle tracks) and your watching, and more like it from
-  your library. Movies kept in a show's folder get a page of their own too.
+  your copy of it (picture down to its colour space, audio and subtitle tracks) and your watching,
+  and more like it from your library. Every episode has a card like that too, behind the "i" in
+  its corner. Movies kept in a show's folder get a page of their own too.
 - **A proper player.** Built on [mpv](https://mpv.io), so it plays practically anything without
   converting. Pictures on the seek bar show where you'll land. Chapters, audio and subtitle tracks
   (remembered per show), subtitle size and position, playback speed, skip intro/credits, frame by
   frame, screenshots, a sleep timer, and the next episode plays on its own (or a random one, when
   shuffling a show). A mini player keeps the video small and on top in a corner while you do
-  other things.
+  other things, and moving the mouse to another screen leaves just the picture.
 - **Remembers what you watched.** Resume where you stopped, watched marks, "Continue watching" on
-  the home screen, "New" badges for recently added episodes, My List for things you want to
+  the home screen, every time you watched something, "New" badges for recently added episodes, My List for things you want to
   watch later, where you are in each show, a little celebration when you finish a season, and a
   Watch time page (how much, when and what you watch).
 - **Search, filters, sorting, right-click menus,** "Surprise me", arrow-key browsing and keyboard
