@@ -385,16 +385,19 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
 /// Bonus material by its name (openings, endings, textless versions, trailers, interviews...), which
 /// stays an extra even when TMDB lists something like it among a show's specials.
 pub fn is_bonus(name: &str) -> bool {
-    EXTRAS.is_match(name) || OP_ED.is_match(name) || BONUS_WORDS.is_match(name)
+    // ("Behind-the-Scenes" too.)
+    let name = name.replace(['-', '_'], " ");
+    EXTRAS.is_match(&name) || OP_ED.is_match(&name) || BONUS_WORDS.is_match(&name)
 }
 
 /// An extra that turned out to be one of the show's specials, as a special: its number (when it has
-/// one of its own, not a season's) and its name.
+/// one of its own, not a season's) and its name (the one it was found by: "Zendaya" in "Lost Mystery
+/// Shack Interviews").
 pub fn special_from_extra(stem: &str, extra_name: Option<&str>) -> (Option<f64>, Option<f64>, Option<String>) {
     let p = parse_episode(stem);
     let own = p.season.is_none_or(|s| s == 0);
     let (episode, end) = if own { (p.episode, p.episode_end) } else { (None, None) };
-    (episode, end, p.title.or_else(|| extra_name.map(str::to_string)))
+    (episode, end, extra_name.map(str::to_string).or(p.title))
 }
 
 /// Says outright which episode it is ("S01E05", "E05", "Episode 5"), not just a number at the end

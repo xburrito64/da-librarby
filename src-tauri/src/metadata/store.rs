@@ -411,8 +411,10 @@ pub fn set_setting(conn: &Connection, key: &str, value: Option<&str>) -> rusqlit
 
 /// Bumped when TMDB matching improves, so existing matches are redone once (hand-made choices
 /// are kept; images already on disk are reused).
-/// (Version 10: extras TMDB lists among a show's specials become specials.)
-const TMDB_MATCH_VERSION: &str = "10";
+/// (Version 10: extras TMDB lists among a show's specials become specials; 11: not under a bonus
+/// heading, only when one special fits, keeping the name they were found by.) Which extras became
+/// specials is decided again too.
+const TMDB_MATCH_VERSION: &str = "11";
 
 pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "tmdb_match_version")?.as_deref() == Some(TMDB_MATCH_VERSION) {
@@ -435,6 +437,9 @@ pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Resu
                            WHERE COALESCE(t.kind, l.kind) = 'anime' AND f.role = 'episode')",
         [],
     )?;
+    // (The folders are read again before anything is looked up: the extras go back to being extras
+    // there, then those that are specials move again.)
+    tx.execute("DELETE FROM promoted_specials", [])?;
     set_setting(&tx, "tmdb_match_version", Some(TMDB_MATCH_VERSION))?;
     tx.commit()
 }
@@ -844,12 +849,12 @@ pub fn save_anime_episodes(
     tx.commit()
 }
 
-/// A title's extras that could be specials (not a movie's), with their names.
-pub fn extras_of(conn: &Connection, title_id: i64) -> rusqlite::Result<Vec<(i64, String)>> {
+/// A title's extras that could be specials (not a movie's), with their names and headings.
+pub fn extras_of(conn: &Connection, title_id: i64) -> rusqlite::Result<Vec<(i64, String, Option<String>)>> {
     let mut stmt = conn.prepare(
-        "SELECT id, name FROM files WHERE title_id = ?1 AND present = 1 AND role = 'extra' AND extra_movie = 0 AND name IS NOT NULL",
+        "SELECT id, name, extra_group FROM files WHERE title_id = ?1 AND present = 1 AND role = 'extra' AND extra_movie = 0 AND name IS NOT NULL",
     )?;
-    let rows = stmt.query_map([title_id], |r| Ok((r.get(0)?, r.get(1)?)))?.collect();
+    let rows = stmt.query_map([title_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?.collect();
     rows
 }
 
