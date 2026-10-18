@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use super::anilist::Error;
-use super::anime_match::{best_similarity, global_numbers, similarity, whole, without_show, EpisodeInput, SeasonInput, ShowInput};
+use super::anime_match::{best_similarity, global_numbers, normalize, similarity, whole, without_show, EpisodeInput, SeasonInput, ShowInput};
 use super::tmdb::{Episode, Movie, SearchResult, Season, SeasonSummary, Tmdb, TvShow};
 
 const MIN_SIMILARITY: f64 = 0.8;
@@ -100,34 +100,60 @@ pub fn anime_show(names: &[&str], year: Option<i32>, known_id: Option<i64>, tmdb
 }
 
 /// Which of a show's extras (file id, name, heading) TMDB lists among its specials, and the name each
-/// is found by: its own when exactly one special fits it, otherwise with its heading in front ("Gag
-/// Reel" under "Shop at Home with Mr Mystery" is "Shop at Home with Mr. Mystery - Gag Reel"). One that
-/// still fits several ("Gravity Paws") stays an extra. Gurren Lagann's "Kirameki Yoko Box", kept with
-/// the music videos, is its special 13.
+/// is found by. A title exactly theirs comes first, with the heading in front ("Gag Reel" under "Shop
+/// at Home with Mr Mystery" is "Shop at Home with Mr. Mystery - Gag Reel", not the show's own "Gag
+/// Reel"), then by itself; otherwise the special that fits clearly best ("OO Magic Episode 1: The
+/// Magic of Saying What You Are Thinking", not its "Part 2"). One that fits several as well as each
+/// other ("Gravity Paws") stays an extra. Gurren Lagann's "Kirameki Yoko Box", kept with the music
+/// videos, is its special 13.
 pub fn specials_among(extras: &[(i64, String, Option<String>)], seasons: &[Season]) -> Vec<(i64, String)> {
     let Some(specials) = seasons.iter().find(|s| s.season_number == 0) else { return Vec::new() };
-    // How many specials fit a name: by their whole title, or (`ending`) also by what follows a series
-    // name in front ("Grunkle Stan's Lost Mystery Shack Interview - Zendaya ...").
-    let fitting = |name: &str, ending: bool| {
-        let fits = |e: &&Episode| {
-            e.name.as_deref().is_some_and(|n| title_similarity(name, n).max(if ending { title_similarity(name, without_show(n)) } else { 0.0 }) >= 0.85)
-        };
-        specials.episodes.iter().filter(fits).count()
+    let names: Vec<&str> = specials.episodes.iter().filter_map(|e| e.name.as_deref()).collect();
+    // The best and second best fit for a name, by whole title or (`ending`) also by what follows a
+    // series name in front.
+    let fits = |name: &str, ending: bool| {
+        let mut scores: Vec<f64> = names.iter().map(|n| title_similarity(name, n).max(if ending { ending_similarity(name, n) } else { 0.0 })).collect();
+        scores.sort_by(|a, b| b.total_cmp(a));
+        (scores.first().copied().unwrap_or(0.0), scores.get(1).copied().unwrap_or(0.0))
+    };
+    let exact = |name: &str| {
+        let (best, second) = fits(name, false);
+        best >= 0.97 && second < 0.97
+    };
+    let clear = |name: &str| {
+        let (best, second) = fits(name, true);
+        best >= 0.85 && (second < 0.85 || best - second >= 0.05)
     };
     extras
         .iter()
         .filter_map(|(id, name, heading)| {
-            // (With its heading first: "Gag Reel" under "Shop at Home with Mr Mystery" is that one's, not
-            // the show's own "Gag Reel". A season's heading says nothing about which.)
+            // (A season's heading says nothing about which.)
             let named_heading = heading.as_deref().and_then(|h| h.rsplit(" · ").next()).filter(|h| {
                 let words: Vec<&str> = h.split_whitespace().collect();
                 !(words.len() == 2 && words[0].eq_ignore_ascii_case("season") && words[1].chars().all(|c| c.is_ascii_digit()))
             });
             let headed = named_heading.map(|h| format!("{h} - {name}"));
-            let tries = [(headed.clone(), false), (Some(name.clone()), false), (headed, true), (Some(name.clone()), true)];
-            tries.into_iter().find_map(|(n, ending)| n.filter(|n| fitting(n, ending) == 1)).map(|n| (*id, n))
+            let found = headed
+                .clone()
+                .filter(|n| exact(n))
+                .or_else(|| Some(name.clone()).filter(|n| exact(n)))
+                .or_else(|| Some(name.clone()).filter(|n| clear(n)))
+                .or_else(|| headed.filter(|n| clear(n)));
+            found.map(|n| (*id, n))
         })
         .collect()
+}
+
+/// How alike our name is to what follows the series name in front of theirs ("Zendaya" and "Grunkle
+/// Stan's Lost Mystery Shack Interview - Zendaya from K.C. Undercover"), when ours is the shorter: what's
+/// left of theirs may be too little to say anything ("VH1 Goes Inside: South Park" leaves "South Park",
+/// which every South Park file starts with).
+fn ending_similarity(ours: &str, theirs: &str) -> f64 {
+    let rest = without_show(theirs);
+    if rest == theirs || normalize(rest).len() < normalize(ours).len() {
+        return 0.0;
+    }
+    title_similarity(ours, rest)
 }
 
 fn find_tv(names: &[&str], year: Option<i32>, anime: bool, tmdb: &Tmdb) -> Result<Option<SearchResult>, Error> {
@@ -306,7 +332,7 @@ fn names_of(ep: &EpisodeInput) -> impl Iterator<Item = &str> {
 fn match_by_name(name: &str, episodes: &[Episode]) -> Vec<Episode> {
     // (A title that is exactly ours wins over one that only ends like it: "Gag Reel" is TMDB's "Gag
     // Reel", not "Shop at Home with Mr. Mystery - Gag Reel".)
-    let named = |theirs: &str, alike: fn(&str, &str) -> f64| alike(name, theirs).max(alike(name, without_show(theirs)) * 0.99);
+    let named = |theirs: &str| title_similarity(name, theirs).max(ending_similarity(name, theirs) * 0.99);
     let parts = split_title(name);
     if parts.len() > 1 {
         let mut found: Vec<&Episode> = Vec::new();
@@ -328,7 +354,7 @@ fn match_by_name(name: &str, episodes: &[Episode]) -> Vec<Episode> {
     }
     episodes
         .iter()
-        .filter_map(|e| Some((named(e.name.as_deref()?, title_similarity), e)))
+        .filter_map(|e| Some((named(e.name.as_deref()?), e)))
         .filter(|(score, _)| *score >= 0.85)
         .max_by(|a, b| a.0.total_cmp(&b.0))
         .map(|(_, e)| vec![e.clone()])
@@ -461,7 +487,7 @@ mod tests {
             (8, "Gag Reel".to_string(), None),
         ];
         specials.episodes[6].name = Some("Gag Reel".into());
-        let found = specials_among(&extras, &[specials]);
+        let found = specials_among(&extras, &[specials.clone()]);
         assert_eq!(
             found,
             [
@@ -471,6 +497,24 @@ mod tests {
                 (8, "Gag Reel".to_string())
             ]
         );
+    }
+
+    #[test]
+    fn extras_that_fit_one_special_best() {
+        let mut specials = tmdb_season(0, 4);
+        for (i, name) in [
+            (0, "OO Magic Episode 1: The Magic of Saying What You Are Thinking"),
+            (1, "OO Magic Episode 22: The Magic of Saying What You Are Thinking - Part 2"),
+            (2, "VH1 Goes Inside: South Park"),
+            (3, "The Spirit of Christmas (Jesus vs. Santa)"),
+        ] {
+            specials.episodes[i].name = Some(name.into());
+        }
+        let extras = [
+            (1, "OO Magic Episode 1 - The Magic of Saying What You Are Thinking".to_string(), Some("Season 1".to_string())),
+            (2, "South.Park.Pilot.The.Spirit.Of.Christmas.Jesus.VS.Santa.DVDRip.XviD-SAiNTS".to_string(), None),
+        ];
+        assert_eq!(specials_among(&extras, &[specials]), [(1, "OO Magic Episode 1 - The Magic of Saying What You Are Thinking".to_string())]);
     }
 
     #[test]
