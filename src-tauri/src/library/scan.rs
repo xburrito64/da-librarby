@@ -468,6 +468,32 @@ fn side_series(dir: &Path) -> bool {
     stems.len() >= 3 && episodes * 10 >= stems.len() * 8 && !stems.iter().any(|s| parse::is_op_ed(s))
 }
 
+/// Extras that turned out to be a show's specials (see metadata/mod.rs: TMDB lists them among the
+/// show's specials) go in its Specials tab: `paths`, the files it found so far.
+pub fn promote_specials(titles: &mut [ScannedTitle], paths: &std::collections::HashSet<String>) {
+    for title in titles {
+        let found: Vec<usize> = (0..title.files.len())
+            .filter(|&i| title.files[i].role == Role::Extra && paths.contains(title.files[i].path.to_string_lossy().as_ref()))
+            .collect();
+        if found.is_empty() {
+            continue;
+        }
+        let specials = title.season_by_number(0);
+        for i in found {
+            let file = &mut title.files[i];
+            let stem = file.path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+            let (episode, end, name) = parse::special_from_extra(&stem, file.name.as_deref());
+            file.role = Role::Episode;
+            file.season = Some(specials);
+            file.episode = episode;
+            file.episode_end = end;
+            file.name = name;
+            file.extra = None;
+        }
+        title.finish();
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Movies library: "Movie Name (Year)/Movie Name (Year).mkv", loose files, or collection folders.
 
@@ -765,6 +791,22 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn extras_found_to_be_specials_stay_specials() {
+        let mut title = ScannedTitle::new("Show".into(), None, "Show".into(), None, Path::new("Show"));
+        let entry = |name: &str| Entry { name: name.into(), path: PathBuf::from(format!("Show/Extras/{name}")), is_dir: false, size: 1, mtime: 0 };
+        title.push_extra(&entry("Kirameki Youko Box- Pieces of Sweet Stars (CBB).mkv"), ExtraGroup::general());
+        title.push_extra(&entry("NCOP 01.mkv"), ExtraGroup::general());
+        title.finish();
+        let paths = std::collections::HashSet::from(["Show/Extras/Kirameki Youko Box- Pieces of Sweet Stars (CBB).mkv".to_string()]);
+        let mut titles = [title];
+        promote_specials(&mut titles, &paths);
+        let t = &titles[0];
+        let special = t.files.iter().find(|f| f.role == Role::Episode).unwrap();
+        assert_eq!(t.seasons[special.season.unwrap()].label, "Specials");
+        assert_eq!(t.files.iter().filter(|f| f.role == Role::Extra).count(), 1);
     }
 
     fn fmt_file(f: &ScannedFile) -> String {

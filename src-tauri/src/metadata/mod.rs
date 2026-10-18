@@ -246,7 +246,10 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
     if kind.as_deref() == Some("anime") {
         let (names, year, known) = library.with_db(|c| store::anime_lookup_hints(c, title_id)).map_err(db_error)?;
         let names: Vec<&str> = names.iter().map(String::as_str).collect();
-        let (tmdb_id, episodes) = tmdb_match::anime_episodes(input, &names, year, known, tmdb)?;
+        let (tmdb_id, seasons) = tmdb_match::anime_show(&names, year, known, tmdb)?.map_or((None, Vec::new()), |(id, s)| (Some(id), s));
+        let promoted = promote_extras(&library, title_id, &seasons)?;
+        let input = promoted.as_ref().unwrap_or(input);
+        let episodes = tmdb_match::map_episodes(&input.seasons, &seasons);
         art.stills = save_stills(images, tmdb_id, &episodes);
         return library.with_db(|c| store::save_anime_episodes(c, title_id, tmdb_id, &episodes, &art)).map_err(db_error);
     }
@@ -260,7 +263,10 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
         return library.with_db(|c| store::save_movie_title(c, title_id, input, movie.as_ref(), &parts, &art)).map_err(db_error);
     }
 
-    let matched = tmdb_match::match_tv(input, tmdb)?;
+    let (show, seasons) = tmdb_match::tv_show(input, tmdb)?;
+    let promoted = promote_extras(&library, title_id, &seasons)?;
+    let input = promoted.as_ref().unwrap_or(input);
+    let matched = tmdb_match::match_tv(input, show, &seasons, tmdb)?;
     if let Some(show) = &matched.show {
         save_poster(images, &mut art, &format!("tv-{}", show.id), show.poster_path.as_deref());
         art.banner = images.banner(&format!("tmdb-tv-{}", show.id), tmdb::image_url(show.backdrop_path.as_deref(), "w1280").as_deref());
@@ -279,6 +285,20 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
     }
     art.stills = save_stills(images, matched.show.as_ref().map(|s| s.id), &matched.episodes);
     library.with_db(|c| store::save_tv_match(c, title_id, input, &matched, &art)).map_err(db_error)
+}
+
+/// Extras that TMDB lists among the show's specials (Gurren Lagann's "Kirameki Yoko Box", kept with
+/// the music videos) become specials, now and on every later reading of the folders. Returns the
+/// title as it is then, if anything moved.
+fn promote_extras(library: &Library, title_id: i64, seasons: &[tmdb::Season]) -> Result<Option<anime_match::ShowInput>, anilist::Error> {
+    let db_error = |e: String| anilist::Error::Rejected(e);
+    let extras = library.with_db(|c| store::extras_of(c, title_id)).map_err(db_error)?;
+    let found = tmdb_match::specials_among(&extras, seasons);
+    if found.is_empty() {
+        return Ok(None);
+    }
+    library.with_db(|c| store::make_specials(c, title_id, &found)).map_err(db_error)?;
+    library.with_db(|c| store::load_show_input(c, title_id)).map_err(db_error)
 }
 
 /// The One Pace guide is downloaded again after this long (new episodes come out regularly).

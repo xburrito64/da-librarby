@@ -91,7 +91,11 @@ fn run_scans(app: AppHandle) {
 
         // Reading the folders happens without holding the database, so the interface stays responsive.
         match scan::scan_library(Path::new(&lib.path), lib.kind) {
-            Ok(titles) => match library.with_db(|c| db::apply_scan(c, id, &titles)) {
+            Ok(mut titles) => match library.with_db(|c| {
+                // Extras found to be specials stay specials.
+                scan::promote_specials(&mut titles, &db::promoted_specials(c)?);
+                db::apply_scan(c, id, &titles)
+            }) {
                 Ok(stats) => {
                     if stats.changed() {
                         let _ = app.emit("library:changed", json!({}));

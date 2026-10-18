@@ -36,6 +36,8 @@ re!(RELEASE_TAIL, r"(?i)(?:[\[(][^\])]*?)?[ .(\[](2160p|1080p|720p|480p|blu-?ray
 re!(LEADING_GROUP, r"^\s*\([A-Za-z][A-Za-z0-9._&-]{1,15}\)\s*");
 // ... or after an episode's title: "Parallel Works - Episode 1 (CBB)".
 re!(TRAILING_GROUP, r"\s*\(([A-Z][A-Z0-9]{1,7})\)$");
+// More words only bonus material has.
+re!(BONUS_WORDS, r"(?i)\b(textless|teasers?|promos?|previews?|pvs?|cms?|commercials?|spots?|storyboards?|outtakes?|bloopers?|gag reel|clean (opening|ending))\b");
 // What a folder holding a show's own episodes is called, numbered or not ("01. Series").
 re!(MAIN_SERIES, r"(?i)^(the )?(main )?(tv )?(series|episodes|show|story)$");
 re!(YEAR_PARENS, r"\((19\d{2}|20[0-3]\d)\)");
@@ -378,6 +380,21 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
     }
 
     EpisodeName { title: Some(clean_text(s)).filter(|t| !t.is_empty()), ..Default::default() }
+}
+
+/// Bonus material by its name (openings, endings, textless versions, trailers, interviews...), which
+/// stays an extra even when TMDB lists something like it among a show's specials.
+pub fn is_bonus(name: &str) -> bool {
+    EXTRAS.is_match(name) || OP_ED.is_match(name) || BONUS_WORDS.is_match(name)
+}
+
+/// An extra that turned out to be one of the show's specials, as a special: its number (when it has
+/// one of its own, not a season's) and its name.
+pub fn special_from_extra(stem: &str, extra_name: Option<&str>) -> (Option<f64>, Option<f64>, Option<String>) {
+    let p = parse_episode(stem);
+    let own = p.season.is_none_or(|s| s == 0);
+    let (episode, end) = if own { (p.episode, p.episode_end) } else { (None, None) };
+    (episode, end, p.title.or_else(|| extra_name.map(str::to_string)))
 }
 
 /// Says outright which episode it is ("S01E05", "E05", "Episode 5"), not just a number at the end

@@ -26,18 +26,23 @@ pub struct MovieMatch {
 }
 
 /// A TV show folder (and any movies inside it).
-pub fn match_tv(input: &ShowInput, tmdb: &Tmdb) -> Result<TvMatch, Error> {
+/// The TMDB show for a show folder (the one picked by hand, or found by name), with all its seasons.
+pub fn tv_show(input: &ShowInput, tmdb: &Tmdb) -> Result<(Option<TvShow>, Vec<Season>), Error> {
     let id = match input.locked_root {
         Some(id) => id,
         None => find_tv(&[input.name.as_str()], input.year, false, tmdb)?.map(|r| r.id),
     };
-    let (show, seasons) = match id {
+    Ok(match id {
         Some(id) => {
             let (show, seasons) = tmdb.tv_with_seasons(id)?;
             (Some(show), seasons)
         }
         None => (None, Vec::new()),
-    };
+    })
+}
+
+/// A show's seasons, episodes and movies matched to the TMDB show found for it (`tv_show`).
+pub fn match_tv(input: &ShowInput, show: Option<TvShow>, seasons: &[Season], tmdb: &Tmdb) -> Result<TvMatch, Error> {
 
     let season_matches = input
         .seasons
@@ -49,7 +54,7 @@ pub fn match_tv(input: &ShowInput, tmdb: &Tmdb) -> Result<TvMatch, Error> {
             (s.id, summary)
         })
         .collect();
-    let episodes = map_episodes(&input.seasons, &seasons);
+    let episodes = map_episodes(&input.seasons, seasons);
 
     let mut movies = Vec::new();
     for movie in &input.movies {
@@ -94,21 +99,17 @@ pub fn anime_show(names: &[&str], year: Option<i32>, known_id: Option<i64>, tmdb
     Ok(Some((id, seasons)))
 }
 
-/// Episode descriptions and thumbnails for an anime, using the names AniList knows it by.
-pub fn anime_episodes(
-    input: &ShowInput,
-    names: &[&str],
-    year: Option<i32>,
-    known_id: Option<i64>,
-    tmdb: &Tmdb,
-) -> Result<(Option<i64>, Vec<(i64, Vec<Episode>)>), Error> {
-    let id = match known_id {
-        Some(id) => Some(id),
-        None => find_tv(names, year, true, tmdb)?.map(|r| r.id),
-    };
-    let Some(id) = id else { return Ok((None, Vec::new())) };
-    let (_, seasons) = tmdb.tv_with_seasons(id)?;
-    Ok((Some(id), map_episodes(&input.seasons, &seasons)))
+/// Which of a show's extras (file id, name) TMDB lists among its specials: one special each, by
+/// name, and never bonus material (openings, endings, trailers...). Gurren Lagann's "Kirameki Yoko
+/// Box", kept with the music videos, is its special 13.
+pub fn specials_among(extras: &[(i64, String)], seasons: &[Season]) -> Vec<i64> {
+    let Some(specials) = seasons.iter().find(|s| s.season_number == 0) else { return Vec::new() };
+    extras
+        .iter()
+        .filter(|(_, name)| !crate::library::parse::is_bonus(name))
+        .filter(|(_, name)| match_by_name(name, &specials.episodes).len() == 1)
+        .map(|(id, _)| *id)
+        .collect()
 }
 
 fn find_tv(names: &[&str], year: Option<i32>, anime: bool, tmdb: &Tmdb) -> Result<Option<SearchResult>, Error> {
@@ -420,6 +421,19 @@ mod tests {
         let out = map_episodes(&[tab], &[specials]);
         assert_eq!(names(&out, 100), ["Gurren Lagann Parallel Works 1-1: Rap is a Man's Soul! (Dai-Gurren-Dan Theme)"]);
         assert_eq!(names(&out, 101).len(), 2);
+    }
+
+    #[test]
+    fn extras_that_are_specials() {
+        let mut specials = tmdb_season(0, 14);
+        specials.episodes[12].name = Some("Kirameki Youko Box: Pieces of Sweet Stars".into());
+        specials.episodes[0].name = Some("Opening".into());
+        let extras = [
+            (1, "Kirameki Youko Box- Pieces of Sweet Stars (CBB)".to_string()),
+            (2, "Opening".to_string()),
+            (3, "Yoko goes to Gainax".to_string()),
+        ];
+        assert_eq!(specials_among(&extras, &[specials]), [1]);
     }
 
     #[test]

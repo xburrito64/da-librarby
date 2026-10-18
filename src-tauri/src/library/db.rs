@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 10;
+const SCHEMA_VERSION: i32 = 11;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -187,8 +187,25 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
         // More about a movie for its page (cast, director, tagline, collection), as JSON.
         conn.execute_batch("ALTER TABLE title_meta ADD COLUMN extra TEXT;")?;
     }
+    if version < 11 {
+        // Extras that turned out to be a show's specials (TMDB lists them so): they stay specials
+        // when the folders are read again.
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS promoted_specials (
+                 path     TEXT PRIMARY KEY,
+                 added_at INTEGER NOT NULL
+             );",
+        )?;
+    }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
+}
+
+/// The extras that turned out to be specials (their paths).
+pub fn promoted_specials(conn: &Connection) -> rusqlite::Result<HashSet<String>> {
+    let mut stmt = conn.prepare("SELECT path FROM promoted_specials")?;
+    let paths = stmt.query_map([], |r| r.get(0))?.collect();
+    paths
 }
 
 pub fn now() -> i64 {
