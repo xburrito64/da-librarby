@@ -548,9 +548,18 @@ function Row({ label, count, wide, onMore, children }: { label: string; count: n
     return () => observer.disconnect();
   }, [count]);
 
+  /** About a screen on, landing on a cover's edge (also when the row's snapping to covers is off,
+   *  after scrolling it with the middle button: see theme/autoscroll.ts; it's back on once there). */
   const page = (direction: number) => {
     const el = track.current;
-    if (el) el.scrollBy({ left: direction * el.clientWidth * 0.85, behavior: "smooth" });
+    if (!el) return;
+    const want = el.scrollLeft + direction * el.clientWidth * 0.85;
+    const pad = parseFloat(getComputedStyle(el).scrollPaddingLeft) || 0;
+    const box = el.getBoundingClientRect();
+    const edges = [...el.children].map((card) => card.getBoundingClientRect().left - box.left + el.scrollLeft - pad);
+    const left = edges.reduce((best, edge) => (Math.abs(edge - want) < Math.abs(best - want) ? edge : best), want);
+    if (el.style.scrollSnapType) el.addEventListener("scrollend", () => (el.style.scrollSnapType = ""), { once: true });
+    el.scrollTo({ left, behavior: "smooth" });
   };
 
   return (

@@ -62,8 +62,6 @@ interface Run {
   last: number;
   state: ScrollState | "";
   frame: number;
-  /** The sideways scroller's own snapping to covers (switched off meanwhile, so it glides). */
-  snap: string;
 }
 
 let run: Run | null = null;
@@ -90,16 +88,17 @@ function speed(d: number) {
 }
 
 function start(e: MouseEvent, look: ScrollLook, v: Element | null, h: Element | null) {
-  const snap = h instanceof HTMLElement ? h.style.scrollSnapType : "";
+  // A cover row's snapping to covers goes off, so it glides (each little step would jump a whole
+  // cover), and stays off afterwards, so it stays where it's left (switching it back on would pull
+  // it to the nearest cover). The row's arrows switch it on again (see Browse.tsx).
   if (h instanceof HTMLElement) h.style.scrollSnapType = "none";
-  run = { look, x: e.clientX, y: e.clientY, px: e.clientX, py: e.clientY, v, h, held: true, dragged: false, fx: 0, fy: 0, last: performance.now(), state: "", frame: 0, snap };
+  run = { look, x: e.clientX, y: e.clientY, px: e.clientX, py: e.clientY, v, h, held: true, dragged: false, fx: 0, fy: 0, last: performance.now(), state: "", frame: 0 };
   run.frame = requestAnimationFrame(step);
 }
 
 function stop() {
   if (!run) return;
   cancelAnimationFrame(run.frame);
-  if (run.h instanceof HTMLElement) run.h.style.scrollSnapType = run.snap;
   delete document.documentElement.dataset.autoscroll;
   run = null;
 }
