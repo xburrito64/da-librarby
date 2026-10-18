@@ -101,14 +101,15 @@ pub fn anime_show(names: &[&str], year: Option<i32>, known_id: Option<i64>, tmdb
 
 /// Which of a show's extras (file id, name, heading) TMDB lists among its specials: by name, when
 /// exactly one special fits it ("Gravity Paws" fits six), and never bonus material (openings,
-/// endings, trailers..., or anything kept under such a heading: "Featurettes", "Behind The Scenes &
-/// Easter Eggs"). Gurren Lagann's "Kirameki Yoko Box", kept with the music videos, is its special 13.
+/// endings, trailers..., or anything kept under a heading that only says that: "Featurettes", "Behind
+/// The Scenes & Easter Eggs"; "Lost Mystery Shack Interviews" is a series). Gurren Lagann's "Kirameki
+/// Yoko Box", kept with the music videos, is its special 13.
 pub fn specials_among(extras: &[(i64, String, Option<String>)], seasons: &[Season]) -> Vec<i64> {
-    use crate::library::parse::is_bonus;
+    use crate::library::parse::{is_bonus, is_bonus_heading};
     let Some(specials) = seasons.iter().find(|s| s.season_number == 0) else { return Vec::new() };
     extras
         .iter()
-        .filter(|(_, name, heading)| !is_bonus(name) && !heading.as_deref().is_some_and(is_bonus))
+        .filter(|(_, name, heading)| !is_bonus(name) && !heading.as_deref().is_some_and(is_bonus_heading))
         .filter(|(_, name, _)| {
             let fits = |e: &Episode| e.name.as_deref().is_some_and(|n| title_similarity(name, n).max(title_similarity(name, without_show(n))) >= 0.85);
             specials.episodes.iter().filter(|e| fits(e)).count() == 1

@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 11;
+const SCHEMA_VERSION: i32 = 12;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -196,6 +196,11 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
                  added_at INTEGER NOT NULL
              );",
         )?;
+    }
+    if version < 12 {
+        // When a title's extras were last checked for specials (an extra added or renamed since
+        // gets them checked again).
+        conn.execute_batch("ALTER TABLE title_meta ADD COLUMN extras_at INTEGER;")?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)

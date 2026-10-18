@@ -538,7 +538,12 @@ pub fn titles_needing_tmdb(conn: &Connection) -> rusqlite::Result<Vec<i64>> {
                AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id)
                AND EXISTS (SELECT 1 FROM files f JOIN file_meta fm ON fm.file_id = f.id
                            WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'episode'
-                             AND fm.details_at IS NULL)))
+                             AND fm.details_at IS NULL))
+           -- Extras added (or renamed) since its extras were last checked for specials.
+           OR (NOT t.is_movie AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id)
+               AND EXISTS (SELECT 1 FROM files f WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'extra'
+                             AND f.extra_movie = 0
+                             AND f.added_at > COALESCE((SELECT m.extras_at FROM title_meta m WHERE m.title_id = t.id), 0))))
          ORDER BY t.name",
     )?;
     let ids = stmt.query_map([crate::library::db::MovieExtra::VERSION], |r| r.get(0))?.collect();
@@ -849,6 +854,12 @@ pub fn save_anime_episodes(
     tx.commit()
 }
 
+/// Notes that a title's extras were checked for specials just now.
+pub fn extras_checked(conn: &Connection, title_id: i64) -> rusqlite::Result<()> {
+    conn.execute("UPDATE title_meta SET extras_at = ?2 WHERE title_id = ?1", params![title_id, now()])?;
+    Ok(())
+}
+
 /// A title's extras that could be specials (not a movie's), with their names and headings.
 pub fn extras_of(conn: &Connection, title_id: i64) -> rusqlite::Result<Vec<(i64, String, Option<String>)>> {
     let mut stmt = conn.prepare(
@@ -961,6 +972,12 @@ mod tests {
         )
         .unwrap();
         assert_eq!(extras_of(&conn, 1).unwrap().len(), 1);
+        // A looked-up title with an extra not checked yet needs looking at again; once checked, not.
+        conn.execute("INSERT INTO title_meta (title_id, provider, provider_id, updated_at) VALUES (1, 'anilist', '1', 0)", []).unwrap();
+        conn.execute("UPDATE files SET added_at = 5", []).unwrap();
+        assert_eq!(titles_needing_tmdb(&conn).unwrap(), [1]);
+        extras_checked(&conn, 1).unwrap();
+        assert!(titles_needing_tmdb(&conn).unwrap().is_empty());
         make_specials(&mut conn, 1, &[1]).unwrap();
         let (role, label): (String, String) = conn
             .query_row("SELECT f.role, s.label FROM files f JOIN seasons s ON s.id = f.season_id WHERE f.id = 1", [], |r| Ok((r.get(0)?, r.get(1)?)))

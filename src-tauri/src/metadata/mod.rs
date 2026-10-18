@@ -251,7 +251,12 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
         let input = promoted.as_ref().unwrap_or(input);
         let episodes = tmdb_match::map_episodes(&input.seasons, &seasons);
         art.stills = save_stills(images, tmdb_id, &episodes);
-        return library.with_db(|c| store::save_anime_episodes(c, title_id, tmdb_id, &episodes, &art)).map_err(db_error);
+        return library
+            .with_db(|c| {
+                store::save_anime_episodes(c, title_id, tmdb_id, &episodes, &art)?;
+                store::extras_checked(c, title_id)
+            })
+            .map_err(db_error);
     }
 
     if input.is_movie {
@@ -284,7 +289,12 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
         save_poster(images, &mut art, &format!("movie-{}", movie.id), movie.poster_path.as_deref());
     }
     art.stills = save_stills(images, matched.show.as_ref().map(|s| s.id), &matched.episodes);
-    library.with_db(|c| store::save_tv_match(c, title_id, input, &matched, &art)).map_err(db_error)
+    library
+        .with_db(|c| {
+            store::save_tv_match(c, title_id, input, &matched, &art)?;
+            store::extras_checked(c, title_id)
+        })
+        .map_err(db_error)
 }
 
 /// Extras that TMDB lists among the show's specials (Gurren Lagann's "Kirameki Yoko Box", kept with
