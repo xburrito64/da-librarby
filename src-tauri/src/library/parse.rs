@@ -36,10 +36,6 @@ re!(RELEASE_TAIL, r"(?i)(?:[\[(][^\])]*?)?[ .(\[](2160p|1080p|720p|480p|blu-?ray
 re!(LEADING_GROUP, r"^\s*\([A-Za-z][A-Za-z0-9._&-]{1,15}\)\s*");
 // ... or after an episode's title: "Parallel Works - Episode 1 (CBB)".
 re!(TRAILING_GROUP, r"\s*\(([A-Z][A-Z0-9]{1,7})\)$");
-// More words only bonus material has.
-re!(BONUS_WORDS, r"(?i)\b(textless|teasers?|promos?|previews?|pvs?|cms?|commercials?|spots?|storyboards?|outtakes?|bloopers?|gag reel|clean (opening|ending))\b");
-// Words that go with bonus material in a heading: "Season 2", "Behind The Scenes & Easter Eggs".
-re!(BONUS_HEADING_WORDS, r"(?i)\b(season\s*\d+|s\d+|easter eggs?|and|the|of|special|bonus|clips?|videos?)\b");
 // What a folder holding a show's own episodes is called, numbered or not ("01. Series").
 re!(MAIN_SERIES, r"(?i)^(the )?(main )?(tv )?(series|episodes|show|story)$");
 re!(YEAR_PARENS, r"\((19\d{2}|20[0-3]\d)\)");
@@ -384,28 +380,6 @@ pub fn parse_episode(stem: &str) -> EpisodeName {
     EpisodeName { title: Some(clean_text(s)).filter(|t| !t.is_empty()), ..Default::default() }
 }
 
-/// Bonus material by its name (openings, endings, textless versions, trailers, interviews...), which
-/// stays an extra even when TMDB lists something like it among a show's specials.
-pub fn is_bonus(name: &str) -> bool {
-    // ("Behind-the-Scenes" too.)
-    let name = name.replace(['-', '_'], " ");
-    EXTRAS.is_match(&name) || OP_ED.is_match(&name) || BONUS_WORDS.is_match(&name)
-}
-
-/// A heading that only says it's bonus material ("Interviews", "Featurettes", "Season 2 · Behind The
-/// Scenes & Easter Eggs"), not the name of a series that happens to have such a word in it ("Lost
-/// Mystery Shack Interviews").
-pub fn is_bonus_heading(heading: &str) -> bool {
-    let h = heading.replace(['-', '_'], " ");
-    if !is_bonus(&h) {
-        return false;
-    }
-    let rest = EXTRAS.replace_all(&h, " ");
-    let rest = BONUS_WORDS.replace_all(&rest, " ");
-    let rest = BONUS_HEADING_WORDS.replace_all(&rest, " ");
-    !rest.chars().any(char::is_alphabetic)
-}
-
 /// An extra that turned out to be one of the show's specials, as a special: its number (when it has
 /// one of its own, not a season's) and its name (the one it was found by: "Zendaya" in "Lost Mystery
 /// Shack Interviews").
@@ -506,16 +480,6 @@ mod tests {
         assert_eq!(classify_folder("04. OVA"), FolderKind::Season(0));
         assert_eq!(classify_folder("03. Special"), FolderKind::Season(0));
         assert_eq!(classify_folder("01. Romance Dawn"), FolderKind::Other);
-    }
-
-    #[test]
-    fn bonus_headings() {
-        assert!(is_bonus_heading("Interviews"));
-        assert!(is_bonus_heading("Season 2 · Featurettes"));
-        assert!(is_bonus_heading("Behind The Scenes & Easter Eggs"));
-        assert!(!is_bonus_heading("Lost Mystery Shack Interviews"));
-        assert!(!is_bonus_heading("05. Music Videos"));
-        assert!(!is_bonus_heading("Season 1"));
     }
 
     #[test]

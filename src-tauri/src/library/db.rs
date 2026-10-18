@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 12;
+const SCHEMA_VERSION: i32 = 13;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -202,15 +202,19 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
         // gets them checked again).
         conn.execute_batch("ALTER TABLE title_meta ADD COLUMN extras_at INTEGER;")?;
     }
+    if version < 13 {
+        // The name a special kept with the extras was found by ("Shop at Home with Mr Mystery - Gag Reel").
+        conn.execute_batch("ALTER TABLE promoted_specials ADD COLUMN name TEXT;")?;
+    }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
 }
 
-/// The extras that turned out to be specials (their paths).
-pub fn promoted_specials(conn: &Connection) -> rusqlite::Result<HashSet<String>> {
-    let mut stmt = conn.prepare("SELECT path FROM promoted_specials")?;
-    let paths = stmt.query_map([], |r| r.get(0))?.collect();
-    paths
+/// The extras that turned out to be specials: their paths, and the names they were found by.
+pub fn promoted_specials(conn: &Connection) -> rusqlite::Result<HashMap<String, Option<String>>> {
+    let mut stmt = conn.prepare("SELECT path, name FROM promoted_specials")?;
+    let found = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?.collect();
+    found
 }
 
 pub fn now() -> i64 {

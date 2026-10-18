@@ -469,20 +469,22 @@ fn side_series(dir: &Path) -> bool {
 }
 
 /// Extras that turned out to be a show's specials (see metadata/mod.rs: TMDB lists them among the
-/// show's specials) go in its Specials tab: `paths`, the files it found so far.
-pub fn promote_specials(titles: &mut [ScannedTitle], paths: &std::collections::HashSet<String>) {
+/// show's specials) go in its Specials tab: `found`, the files it found so far and the names they
+/// were found by.
+pub fn promote_specials(titles: &mut [ScannedTitle], found: &std::collections::HashMap<String, Option<String>>) {
     for title in titles {
-        let found: Vec<usize> = (0..title.files.len())
-            .filter(|&i| title.files[i].role == Role::Extra && paths.contains(title.files[i].path.to_string_lossy().as_ref()))
+        let names: Vec<(usize, Option<String>)> = (0..title.files.len())
+            .filter(|&i| title.files[i].role == Role::Extra)
+            .filter_map(|i| found.get(title.files[i].path.to_string_lossy().as_ref()).map(|n| (i, n.clone())))
             .collect();
-        if found.is_empty() {
+        if names.is_empty() {
             continue;
         }
         let specials = title.season_by_number(0);
-        for i in found {
+        for (i, found_as) in names {
             let file = &mut title.files[i];
             let stem = file.path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
-            let (episode, end, name) = parse::special_from_extra(&stem, file.name.as_deref());
+            let (episode, end, name) = parse::special_from_extra(&stem, found_as.as_deref().or(file.name.as_deref()));
             file.role = Role::Episode;
             file.season = Some(specials);
             file.episode = episode;
@@ -800,9 +802,9 @@ mod tests {
         title.push_extra(&entry("Kirameki Youko Box- Pieces of Sweet Stars (CBB).mkv"), ExtraGroup::general());
         title.push_extra(&entry("NCOP 01.mkv"), ExtraGroup::general());
         title.finish();
-        let paths = std::collections::HashSet::from(["Show/Extras/Kirameki Youko Box- Pieces of Sweet Stars (CBB).mkv".to_string()]);
+        let found = std::collections::HashMap::from([("Show/Extras/Kirameki Youko Box- Pieces of Sweet Stars (CBB).mkv".to_string(), None)]);
         let mut titles = [title];
-        promote_specials(&mut titles, &paths);
+        promote_specials(&mut titles, &found);
         let t = &titles[0];
         let special = t.files.iter().find(|f| f.role == Role::Episode).unwrap();
         assert_eq!(t.seasons[special.season.unwrap()].label, "Specials");

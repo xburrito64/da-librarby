@@ -99,22 +99,23 @@ pub fn anime_show(names: &[&str], year: Option<i32>, known_id: Option<i64>, tmdb
     Ok(Some((id, seasons)))
 }
 
-/// Which of a show's extras (file id, name, heading) TMDB lists among its specials: by name, when
-/// exactly one special fits it ("Gravity Paws" fits six), and never bonus material (openings,
-/// endings, trailers..., or anything kept under a heading that only says that: "Featurettes", "Behind
-/// The Scenes & Easter Eggs"; "Lost Mystery Shack Interviews" is a series). Gurren Lagann's "Kirameki
-/// Yoko Box", kept with the music videos, is its special 13.
-pub fn specials_among(extras: &[(i64, String, Option<String>)], seasons: &[Season]) -> Vec<i64> {
-    use crate::library::parse::{is_bonus, is_bonus_heading};
+/// Which of a show's extras (file id, name, heading) TMDB lists among its specials, and the name each
+/// is found by: its own when exactly one special fits it, otherwise with its heading in front ("Gag
+/// Reel" under "Shop at Home with Mr Mystery" is "Shop at Home with Mr. Mystery - Gag Reel"). One that
+/// still fits several ("Gravity Paws") stays an extra. Gurren Lagann's "Kirameki Yoko Box", kept with
+/// the music videos, is its special 13.
+pub fn specials_among(extras: &[(i64, String, Option<String>)], seasons: &[Season]) -> Vec<(i64, String)> {
     let Some(specials) = seasons.iter().find(|s| s.season_number == 0) else { return Vec::new() };
+    let fitting = |name: &str| {
+        let fits = |e: &&Episode| e.name.as_deref().is_some_and(|n| title_similarity(name, n).max(title_similarity(name, without_show(n))) >= 0.85);
+        specials.episodes.iter().filter(fits).count()
+    };
     extras
         .iter()
-        .filter(|(_, name, heading)| !is_bonus(name) && !heading.as_deref().is_some_and(is_bonus_heading))
-        .filter(|(_, name, _)| {
-            let fits = |e: &Episode| e.name.as_deref().is_some_and(|n| title_similarity(name, n).max(title_similarity(name, without_show(n))) >= 0.85);
-            specials.episodes.iter().filter(|e| fits(e)).count() == 1
+        .filter_map(|(id, name, heading)| {
+            let headed = heading.as_deref().and_then(|h| h.rsplit(" · ").next()).map(|h| format!("{h} - {name}"));
+            [Some(name.clone()), headed].into_iter().flatten().find(|n| fitting(n) == 1).map(|n| (*id, n))
         })
-        .map(|(id, _, _)| *id)
         .collect()
 }
 
@@ -434,18 +435,22 @@ mod tests {
         let mut specials = tmdb_season(0, 14);
         specials.episodes[12].name = Some("Kirameki Youko Box: Pieces of Sweet Stars".into());
         specials.episodes[0].name = Some("Opening".into());
-        specials.episodes[1].name = Some("Behind the Scenes of Major Boobage".into());
         specials.episodes[2].name = Some("Gravity Paws - Countdown".into());
         specials.episodes[3].name = Some("Gravity Paws - Behind The Scenes".into());
+        specials.episodes[4].name = Some("Shop at Home with Mr. Mystery - Gag Reel".into());
+        specials.episodes[5].name = Some("Fixin' It with Soos - Gag Reel".into());
         let extras = [
             (1, "Kirameki Youko Box- Pieces of Sweet Stars (CBB)".to_string(), Some("05. Music Videos".to_string())),
             (2, "Opening".to_string(), None),
             (3, "Yoko goes to Gainax".to_string(), None),
-            (4, "Major Boobage Behind-the-Scenes".to_string(), None),
             (5, "Gravity Paws".to_string(), None),
-            (6, "Kirameki Youko Box - Pieces of Sweet Stars".to_string(), Some("Featurettes".to_string())),
+            (7, "Gag Reel".to_string(), Some("Shop at Home with Mr Mystery".to_string())),
         ];
-        assert_eq!(specials_among(&extras, &[specials]), [1]);
+        let found = specials_among(&extras, &[specials]);
+        assert_eq!(
+            found,
+            [(1, "Kirameki Youko Box- Pieces of Sweet Stars (CBB)".to_string()), (2, "Opening".to_string()), (7, "Shop at Home with Mr Mystery - Gag Reel".to_string())]
+        );
     }
 
     #[test]

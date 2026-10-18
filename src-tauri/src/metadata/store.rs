@@ -411,10 +411,10 @@ pub fn set_setting(conn: &Connection, key: &str, value: Option<&str>) -> rusqlit
 
 /// Bumped when TMDB matching improves, so existing matches are redone once (hand-made choices
 /// are kept; images already on disk are reused).
-/// (Version 10: extras TMDB lists among a show's specials become specials; 11: not under a bonus
-/// heading, only when one special fits, keeping the name they were found by.) Which extras became
-/// specials is decided again too.
-const TMDB_MATCH_VERSION: &str = "11";
+/// (Version 10: extras TMDB lists among a show's specials become specials; 11: only when one special
+/// fits, keeping the name they were found by; 12: bonus material too, and by their heading where
+/// their name alone fits several.) Which extras became specials is decided again too.
+const TMDB_MATCH_VERSION: &str = "12";
 
 pub fn refresh_tmdb_matches_if_outdated(conn: &mut Connection) -> rusqlite::Result<()> {
     if setting(conn, "tmdb_match_version")?.as_deref() == Some(TMDB_MATCH_VERSION) {
@@ -871,7 +871,7 @@ pub fn extras_of(conn: &Connection, title_id: i64) -> rusqlite::Result<Vec<(i64,
 
 /// Moves extras into the title's Specials tab (made if it has none), and remembers them, so the next
 /// reading of the folders keeps them there (scan::promote_specials does the same to them).
-pub fn make_specials(conn: &mut Connection, title_id: i64, file_ids: &[i64]) -> rusqlite::Result<()> {
+pub fn make_specials(conn: &mut Connection, title_id: i64, found: &[(i64, String)]) -> rusqlite::Result<()> {
     let tx = conn.transaction()?;
     let now = now();
     tx.execute(
@@ -880,10 +880,10 @@ pub fn make_specials(conn: &mut Connection, title_id: i64, file_ids: &[i64]) -> 
         [title_id],
     )?;
     let season: i64 = tx.query_row("SELECT id FROM seasons WHERE title_id = ?1 AND key = 's0'", [title_id], |r| r.get(0))?;
-    for &id in file_ids {
-        let (path, name): (String, Option<String>) = tx.query_row("SELECT path, name FROM files WHERE id = ?1", [id], |r| Ok((r.get(0)?, r.get(1)?)))?;
+    for (id, found_as) in found {
+        let path: String = tx.query_row("SELECT path FROM files WHERE id = ?1", [id], |r| r.get(0))?;
         let stem = std::path::Path::new(&path).file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
-        let (episode, end, name) = crate::library::parse::special_from_extra(&stem, name.as_deref());
+        let (episode, end, name) = crate::library::parse::special_from_extra(&stem, Some(found_as));
         tx.execute(
             "UPDATE files SET role = 'episode', season_id = ?2, episode = ?3, episode_end = ?4, name = ?5, extra_group = NULL, extra_movie = 0
              WHERE id = ?1",
@@ -892,7 +892,7 @@ pub fn make_specials(conn: &mut Connection, title_id: i64, file_ids: &[i64]) -> 
         // (An empty entry for what's looked up about it, to be filled in.)
         tx.execute("DELETE FROM file_meta WHERE file_id = ?1 AND locked = 0", [id])?;
         tx.execute("INSERT OR IGNORE INTO file_meta (file_id, updated_at) VALUES (?1, ?2)", params![id, now])?;
-        tx.execute("INSERT OR IGNORE INTO promoted_specials (path, added_at) VALUES (?1, ?2)", params![path, now])?;
+        tx.execute("INSERT OR REPLACE INTO promoted_specials (path, added_at, name) VALUES (?1, ?2, ?3)", params![path, now, found_as])?;
     }
     tx.commit()
 }
@@ -978,12 +978,12 @@ mod tests {
         assert_eq!(titles_needing_tmdb(&conn).unwrap(), [1]);
         extras_checked(&conn, 1).unwrap();
         assert!(titles_needing_tmdb(&conn).unwrap().is_empty());
-        make_specials(&mut conn, 1, &[1]).unwrap();
+        make_specials(&mut conn, 1, &[(1, "Kirameki Youko Box- Pieces of Sweet Stars (CBB)".into())]).unwrap();
         let (role, label): (String, String) = conn
             .query_row("SELECT f.role, s.label FROM files f JOIN seasons s ON s.id = f.season_id WHERE f.id = 1", [], |r| Ok((r.get(0)?, r.get(1)?)))
             .unwrap();
         assert_eq!((role.as_str(), label.as_str()), ("episode", "Specials"));
-        assert!(crate::library::db::promoted_specials(&conn).unwrap().contains("D:/Anime/Show/Extras/Kirameki Youko Box- Pieces of Sweet Stars (CBB).mkv"));
+        assert!(crate::library::db::promoted_specials(&conn).unwrap().contains_key("D:/Anime/Show/Extras/Kirameki Youko Box- Pieces of Sweet Stars (CBB).mkv"));
         assert!(extras_of(&conn, 1).unwrap().is_empty());
         drop(conn);
         let _ = std::fs::remove_file(&path);
