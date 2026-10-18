@@ -258,7 +258,7 @@ fn match_specials(input: &ShowInput, root: &Media, last: i32, full: &HashMap<i64
                 let score = titles(n)
                     .iter()
                     .map(|t| {
-                        let named = ep.name.as_deref().map_or(0.0, |name| similarity(name, t).max(similarity(name, without_show(t))));
+                        let named = ep.name.as_deref().map_or(0.0, |name| similarity(name, t).max(similarity(name, without_show(t))).max(same_ending(name, t)));
                         if by_number(t) { named.max(0.95) } else { named }
                     })
                     .fold(0.0, f64::max);
@@ -278,6 +278,19 @@ fn match_specials(input: &ShowInput, root: &Media, last: i32, full: &HashMap<i64
     // The only one left.
     if let ([ep], [n]) = (files.as_slice(), left.as_slice()) {
         assign(ep.file_id, n.id, episodes);
+    }
+}
+
+/// How alike the last parts of two names are ("Tengen Toppa Gurren Lagann Movie Zenyasai - Viral no
+/// Amai Yume" and "Tengen Toppa Gurren Lagann Movie: Lagann-hen Special - Viral no Amai Yume"), when
+/// that part says enough on its own (three words or more).
+fn same_ending(a: &str, b: &str) -> f64 {
+    fn ending(s: &str) -> Option<&str> {
+        s.rsplit([':', '-']).next().map(str::trim).filter(|e| e.split_whitespace().count() >= 3 && e.len() < s.len())
+    }
+    match (ending(a), ending(b)) {
+        (Some(x), Some(y)) => similarity(x, y),
+        _ => 0.0,
     }
 }
 
@@ -912,6 +925,13 @@ mod episode_zero {
         let mut episodes = vec![EpisodeMatch { file_id: 1, media_id: None, episode: None }, claimed];
         match_specials(&input, &root, 170, &HashMap::new(), &[], &mut episodes);
         assert_eq!(episodes[0].media_id, Some(87528));
+    }
+
+    #[test]
+    fn special_with_the_same_ending() {
+        assert_eq!(same_ending("Tengen Toppa Gurren Lagann Movie Zenyasai - Viral no Amai Yume", "Tengen Toppa Gurren Lagann Movie: Lagann-hen Special - Viral no Amai Yume"), 1.0);
+        // An ending too short to say which.
+        assert_eq!(same_ending("Show - Special", "Other Show - Special"), 0.0);
     }
 
     #[test]
