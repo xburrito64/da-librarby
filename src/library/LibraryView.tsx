@@ -19,6 +19,7 @@ import {
 } from "./api";
 import Browse from "./Browse";
 import UpdateNote from "../ui/UpdateNote";
+import { RateHost, RatingNotes } from "../rating/Rating";
 import { ShuffleContext } from "./shuffle";
 import TitlePage from "./TitlePage";
 import Settings, { type SettingsSection } from "./Settings";
@@ -346,6 +347,9 @@ export default function LibraryView({
       )}
 
       <UpdateNote />
+      {/* "How was it?" for things just finished, on the home screen. */}
+      {active && tab === "home" && openTitle == null && !query.trim() && !settings && <RatingNotes />}
+      <RateHost />
       {settings && (
         <Settings
           section={settings}

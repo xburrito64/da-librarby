@@ -4,7 +4,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { canResume, episodeFrames, episodeName, fileName, img, reveal, watch, type FileRow, type FileWatch, type TitleDetail } from "./api";
+import { canResume, episodeFrames, episodeName, fileName, img, ratings, reveal, watch, type FileRow, type FileWatch, type TitleDetail } from "./api";
+import { RatingInput } from "../rating/Rating";
 import { useFileInfo } from "./MovieParts";
 import { clock, date, fileRows, Groups, pictureRows, soundRows, watchingRows } from "./details";
 import { CloseIcon, FolderIcon, PlayIcon, UndoIcon } from "../ui/icons";
@@ -94,6 +95,10 @@ export default function EpisodeInfo({ file, title, code, onPlay, onClose }: Prop
             <div className="epi__where">{where.filter(Boolean).join(" · ")}</div>
             <h2 className="epi__name">{file.role === "extra" ? (file.name ?? fileName(file.path)) : episodeName(file)}</h2>
             {facts.length > 0 && <div className="epi__facts">{facts}</div>}
+            <div className="epi__rate">
+              <span className="epi__rate-label">Your rating</span>
+              <RatingInput score={file.rating} onChange={(score) => ratings.set("file", file.id, score).catch(() => {})} />
+            </div>
             {file.meta?.description && <p className="epi__desc">{file.meta.description}</p>}
             <div className="epi__actions">
               <button className="btn btn--primary" onClick={play}>

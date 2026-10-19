@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { library, img, type TitleSummary } from "./api";
 import { useCopy } from "../theme/copy";
+import { RatingChip } from "../rating/Rating";
+import { describe } from "../rating/scale";
+import { useRatingSettings } from "../rating/settings";
 
 interface Stats {
   /** [title id, hour since 1970, seconds] */
@@ -69,6 +72,9 @@ export default function WatchStats({ titles, onOpen }: { titles: TitleSummary[];
 
   const view = useMemo(() => (stats ? summarize(stats, period) : null), [stats, period]);
   const byId = useMemo(() => new Map(titles.map((t) => [t.id, t])), [titles]);
+  const { style } = useRatingSettings();
+  const rated = useMemo(() => titles.filter((t) => t.rating != null).sort((a, b) => b.rating! - a.rating!), [titles]);
+  const average = rated.length > 0 ? Math.round(rated.reduce((sum, t) => sum + t.rating!, 0) / rated.length) : null;
   const lifetime = useMemo(() => (stats ? stats.time.reduce((sum, [, , s]) => sum + s, 0) : 0), [stats]);
 
   if (!stats || !view) return null;
@@ -219,6 +225,30 @@ export default function WatchStats({ titles, onOpen }: { titles: TitleSummary[];
               </div>
             </div>
           </div>
+
+          {rated.length > 0 && (
+            <div className="stats__panel">
+              <h2 className="stats__heading">Your favourites</h2>
+              <p className="stats__habit">
+                <strong>{rated.length}</strong> rated, on average <strong>{describe(average!, style)}</strong>.
+              </p>
+              <ol className="stats__top">
+                {rated.slice(0, TOP_COUNT).map((t) => (
+                  <li key={t.id}>
+                    <button className="stats__show" onClick={() => onOpen(t.id)}>
+                      <span className="stats__thumb">{t.thumb && <img src={img(t.thumb)} alt="" loading="lazy" />}</span>
+                      <span className="stats__show-text">
+                        <span className="stats__show-name">{t.name}</span>
+                      </span>
+                      <span className="stats__show-time">
+                        <RatingChip score={t.rating!} />
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
 
           <div className="stats__panel">
             <h2 className="stats__heading">Charms</h2>

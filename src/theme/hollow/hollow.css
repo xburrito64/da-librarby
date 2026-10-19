@@ -4083,3 +4083,60 @@
     animation: none !important;
   }
 }
+
+/* ---------- Ratings ---------- */
+
+/* Its own stickers are jack-o'-lanterns: no paper edge, a glow instead. */
+:root[data-theme="hollow"] .rt-stickers--theme {
+  --rt-die: drop-shadow(0 0 5px rgba(255, 140, 40, 0.55)) drop-shadow(0 3px 3px rgba(0, 0, 0, 0.6));
+  --rt-die-small: drop-shadow(0 0 4px rgba(255, 140, 40, 0.5));
+}
+
+/* The corner sticker: a little pumpkin with the rating carved in it. */
+:root[data-theme="hollow"] .rt-coin {
+  position: relative;
+  min-width: 56px;
+  height: 52px;
+  padding: 6px 6px 0;
+  border: 0;
+  border-radius: 48% 48% 44% 44% / 52% 52% 46% 46%;
+  background: radial-gradient(ellipse at 40% 35%, #ffb04a, #ff7a12 60%, #b84b06);
+  color: #3a1500;
+  font: 400 18px/1 var(--font-display);
+  box-shadow:
+    inset 7px 0 0 -4px rgba(120, 40, 0, 0.35),
+    inset -7px 0 0 -4px rgba(120, 40, 0, 0.35),
+    0 0 16px rgba(255, 130, 40, 0.6),
+    0 4px 6px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="hollow"] .rt-coin b {
+  font-weight: 400;
+  text-shadow:
+    0 1px 0 rgba(255, 200, 120, 0.6),
+    0 0 6px #ffe08a;
+}
+
+:root[data-theme="hollow"] .rt-coin::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 7px;
+  height: 11px;
+  margin-left: -3px;
+  border-radius: 3px 3px 2px 2px;
+  background: linear-gradient(#5b7a2a, #34501a);
+  transform: rotate(12deg);
+}
+
+:root[data-theme="hollow"] .rt-cover__label {
+  color: #ffb04a;
+  font: 400 18px/1 var(--font-display);
+  text-shadow: 0 0 8px rgba(255, 140, 40, 0.8);
+}
+
+:root[data-theme="hollow"] .rt-cover--corner {
+  top: -6px;
+  right: -8px;
+}

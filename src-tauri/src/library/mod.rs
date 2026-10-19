@@ -7,6 +7,7 @@
 
 pub mod db;
 pub mod parse;
+pub mod rating;
 pub mod scan;
 pub mod watch;
 pub mod watcher;
@@ -189,6 +190,30 @@ pub async fn library_title(library: State<'_, Library>, id: i64) -> Result<Optio
 #[tauri::command]
 pub async fn watch_item(library: State<'_, Library>, file_id: i64) -> Result<Option<watch::PlayItem>, String> {
     library.with_db(|c| watch::play_item(c, &library.images_dir, file_id))
+}
+
+/// Rates a show or movie ("title"), a season or an episode ("file"); `score` 10..=100, None takes
+/// the rating away.
+#[tauri::command]
+pub async fn rating_set(app: AppHandle, library: State<'_, Library>, kind: String, id: i64, score: Option<i64>) -> Result<(), String> {
+    if !rating::KINDS.contains(&kind.as_str()) {
+        return Err(format!("can't rate a {kind}"));
+    }
+    library.with_db(|c| rating::set_rating(c, &kind, id, score))?;
+    let _ = app.emit("library:changed", json!({}));
+    Ok(())
+}
+
+/// Things finished lately and not rated yet ("How was it?").
+#[tauri::command]
+pub async fn rating_notes(library: State<'_, Library>) -> Result<Vec<rating::RatingNote>, String> {
+    library.with_db(|c| rating::notes(c, &library.images_dir))
+}
+
+/// "Not now" on a "How was it?" note.
+#[tauri::command]
+pub async fn rating_dismiss(library: State<'_, Library>, kind: String, id: i64) -> Result<(), String> {
+    library.with_db(|c| rating::dismiss(c, &kind, id))
 }
 
 /// How much and when a file was watched (for a movie's page).

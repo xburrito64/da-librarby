@@ -22,7 +22,8 @@ import {
 import { useContextMenu } from "../ui/ContextMenu";
 import { getSetting, setSetting } from "../ui/settings";
 import type { Tab } from "./LibraryView";
-import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, UndoIcon } from "../ui/icons";
+import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, StarIcon, UndoIcon } from "../ui/icons";
+import { CoverRating, openRate } from "../rating/Rating";
 import Typed from "../ui/Typed";
 import WatchStats from "./WatchStats";
 import { useShuffle } from "./shuffle";
@@ -55,14 +56,18 @@ interface Props {
   onSetupKey?: () => void;
 }
 
-type SortKey = "name" | "added" | "watched" | "year";
+type SortKey = "name" | "added" | "watched" | "year" | "rating";
 
 const SORTS: { id: SortKey; label: string }[] = [
   { id: "name", label: "A–Z" },
   { id: "added", label: "Recently added" },
   { id: "watched", label: "Recently watched" },
   { id: "year", label: "Newest first" },
+  { id: "rating", label: "Your rating" },
 ];
+
+/** Rated this or better (8 out of 10, 4 stars, "Loved it"), it's among your favourites. */
+const FAVOURITE_FROM = 80;
 
 type Status = "all" | "new" | "started" | "unstarted" | "finished";
 
@@ -102,6 +107,8 @@ function sortTitles(titles: TitleSummary[], sort: SortKey) {
   if (sort === "added") list.sort((a, b) => b.addedAt - a.addedAt);
   else if (sort === "watched") list.sort((a, b) => (b.lastWatched ?? 0) - (a.lastWatched ?? 0));
   else if (sort === "year") list.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+  // Best rated first; what isn't rated after, as it was.
+  else if (sort === "rating") list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
   return list;
 }
 
@@ -133,6 +140,11 @@ export default function Browse({ tab, titles, offline, query, continueList, load
   // Saved for later, the latest first.
   const myList = useMemo(
     () => titles.filter((t) => t.listedAt != null).sort((a, b) => b.listedAt! - a.listedAt!),
+    [titles],
+  );
+  // What you rated 8 or more, the best first.
+  const favourites = useMemo(
+    () => titles.filter((t) => t.rating != null && t.rating >= FAVOURITE_FROM).sort((a, b) => b.rating! - a.rating! || a.name.localeCompare(b.name)),
     [titles],
   );
 
@@ -178,6 +190,13 @@ export default function Browse({ tab, titles, offline, query, continueList, load
           {myList.length > 0 && (
             <Row label="My List" count={myList.length}>
               {myList.map((t) => (
+                <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
+              ))}
+            </Row>
+          )}
+          {favourites.length > 0 && (
+            <Row label="Your favourites" count={favourites.length}>
+              {favourites.map((t) => (
                 <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
               ))}
             </Row>
@@ -667,6 +686,11 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
             ? [{ label: "Shuffle episodes", icon: <ShuffleIcon />, onSelect: () => shuffle(title.id) }]
             : []),
           { label: "Show details", icon: <InfoIcon />, onSelect: () => onOpen(title.id) },
+          {
+            label: title.rating == null ? "Rate…" : "Change rating…",
+            icon: <StarIcon />,
+            onSelect: () => openRate({ kind: "title", id: title.id, name: title.name, thumb: title.thumb, score: title.rating }),
+          },
           "divider",
           finished
             ? { label: "Mark all as unwatched", icon: <UndoIcon />, onSelect: () => watch.setTitle(title.id, false) }
@@ -707,7 +731,9 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
             </span>
           )
         )}
+        <CoverRating score={title.rating} corner={false} />
       </span>
+      <CoverRating score={title.rating} corner />
       <span className="card__text">
         <span className="card__name">{title.name}</span>
         <span className="card__sub">{describe(title)}</span>

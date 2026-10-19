@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 14;
+const SCHEMA_VERSION: i32 = 15;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -210,6 +210,10 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
         // Each time a file was watched, what was watched so far worked out from the hours logged.
         conn.execute_batch(super::watch::SCHEMA_V14)?;
         super::watch::fill_viewings(&conn)?;
+    }
+    if version < 15 {
+        // Your ratings, and the "How was it?" notes waved away.
+        conn.execute_batch(super::rating::SCHEMA_V15)?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
@@ -554,6 +558,8 @@ pub struct TitleSummary {
     pub parent_name: Option<String>,
     /// For movies: the TMDB movie, to tell which of a collection's movies are here.
     pub tmdb_movie_id: Option<i64>,
+    /// Your rating (10..=100), if you gave one.
+    pub rating: Option<i64>,
     /// For movies: how far in it was stopped (0..1), when it can be picked up again there
     /// (a movie only watched before has none: it isn't part-way through).
     pub partway: Option<f64>,
@@ -600,7 +606,8 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                 (SELECT w.position / w.duration FROM watch w JOIN files f ON f.id = w.file_id
                   WHERE t.is_movie = 1 AND f.title_id = t.id AND f.present = 1 AND f.role = 'movie'
                     AND w.duration > 0 AND w.position >= ?3 AND w.position < w.duration * ?4
-                  ORDER BY w.updated_at DESC LIMIT 1)
+                  ORDER BY w.updated_at DESC LIMIT 1),
+                (SELECT score FROM ratings WHERE kind = 'title' AND item_id = t.id)
          FROM titles t JOIN libraries l ON l.id = t.library_id
          LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
@@ -650,6 +657,7 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                 .and_then(|i| i.parse().ok())
                 .or(extra.as_ref().and_then(|e| e.tmdb_id)),
             partway: r.get(28)?,
+            rating: r.get(29)?,
         })
     },
     )?;
@@ -776,6 +784,8 @@ pub struct FileRow {
     pub added_at: i64,
     /// When it first aired ("2011-10-30"), as far as known.
     pub aired: Option<String>,
+    /// Your rating (10..=100), if you gave one.
+    pub rating: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -785,6 +795,8 @@ pub struct SeasonRow {
     pub number: Option<i32>,
     pub label: String,
     pub meta: Option<Meta>,
+    /// Your rating (10..=100), if you gave one.
+    pub rating: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -804,6 +816,8 @@ pub struct TitleDetail {
     /// The show a movie (or spin-off) is part of.
     pub parent_id: Option<i64>,
     pub parent_name: Option<String>,
+    /// Your rating (10..=100), if you gave one.
+    pub rating: Option<i64>,
 }
 
 pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Result<Option<TitleDetail>> {
@@ -860,6 +874,8 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
         )
         .optional()?;
     let provider = meta.as_ref().and_then(|m| m.base.provider.clone());
+    let season_ratings = super::rating::ratings(conn, "season")?;
+    let file_ratings = super::rating::ratings(conn, "file")?;
 
     // Specials go last, like on streaming services (tabs without a season number, like a spin-off's,
     // go by their place).
@@ -892,7 +908,8 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
             } else {
                 None
             };
-            Ok(SeasonRow { id: r.get(0)?, number: r.get(1)?, label: r.get(2)?, meta })
+            let id: i64 = r.get(0)?;
+            Ok(SeasonRow { id, number: r.get(1)?, label: r.get(2)?, meta, rating: season_ratings.get(&id).copied() })
         })?
         .collect::<rusqlite::Result<_>>()?;
 
@@ -941,12 +958,14 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
                 extra_movie: r.get(19)?,
                 added_at: r.get(20)?,
                 aired: r.get(21)?,
+                rating: file_ratings.get(&r.get::<_, i64>(0)?).copied(),
             })
         })?
         .collect::<rusqlite::Result<_>>()?;
 
     let listed_at = conn.query_row("SELECT added_at FROM my_list WHERE title_id = ?1", [id], |r| r.get(0)).optional()?;
-    Ok(Some(TitleDetail { id, kind, name, year, is_movie, folder, meta, seasons, files, listed_at, parent_id, parent_name }))
+    let rating = super::rating::ratings(conn, "title")?.get(&id).copied();
+    Ok(Some(TitleDetail { id, kind, name, year, is_movie, folder, meta, seasons, files, listed_at, parent_id, parent_name, rating }))
 }
 
 /// Puts a title on My List or takes it off.

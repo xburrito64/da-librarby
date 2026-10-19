@@ -532,3 +532,8 @@
   font: 500 12.5px var(--font-label);
   letter-spacing: 0.04em;
 }
+
+/* Ratings: its own stars glow by themselves (no paper edge). */
+:root[data-theme="neon"] .rt-stickers--theme {
+  --rt-die: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+}

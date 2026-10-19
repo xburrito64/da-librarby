@@ -13,11 +13,15 @@ import { setSeasonalSwitch, setTheme, useSeasonalSwitch, useTheme, useThemeInfo 
 import { setThemeOption, useThemeOptions } from "../theme/options";
 import { loadOwnFiles, musicFiles, openOwnFolder, useOwnFiles } from "../theme/ownFiles";
 import { CheckIcon, CloseIcon, FolderIcon, RefreshIcon } from "../ui/icons";
+import { Stickers } from "../rating/Rating";
+import { STYLES, type CoverMode } from "../rating/scale";
+import { setRatingSettings, useRatingSettings } from "../rating/settings";
 
-export type SettingsSection = "appearance" | "general" | "library" | "online" | "shortcuts" | "about";
+export type SettingsSection = "appearance" | "ratings" | "general" | "library" | "online" | "shortcuts" | "about";
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: "appearance", label: "Appearance" },
+  { id: "ratings", label: "Ratings" },
   { id: "general", label: "General" },
   { id: "library", label: "Library folders" },
   { id: "online", label: "Online info" },
@@ -58,6 +62,7 @@ export default function Settings({ section, onSection, libraries, titles, onLibr
             <CloseIcon />
           </button>
           {section === "appearance" && <Appearance titles={titles} />}
+          {section === "ratings" && <Ratings />}
           {section === "general" && <General onError={onError} />}
           {section === "library" && <Folders libraries={libraries} onChange={onLibraries} onError={onError} />}
           {section === "online" && <Online onError={onError} />}
@@ -323,6 +328,71 @@ function OwnFiles() {
         </button>
       </div>
     </div>
+  );
+}
+
+const COVER_MODES: { id: CoverMode; label: string }[] = [
+  { id: "row", label: "Row of stickers" },
+  { id: "hover", label: "When pointed at" },
+  { id: "corner", label: "Corner sticker" },
+  { id: "off", label: "Off" },
+];
+
+/** How ratings look: the style, on the covers, on season tabs and episodes. */
+function Ratings() {
+  const settings = useRatingSettings();
+  const example = 87;
+  return (
+    <section>
+      <h3 className="settings__title">Ratings</h3>
+      <p className="settings__text">
+        Rate shows, movies, seasons and episodes on their page, with a right-click, or on an episode's card. Every style shows the same rating its own
+        way, so switching never loses one. (Here: 8.7 out of 10.)
+      </p>
+      <div className="rate-styles" role="radiogroup" aria-label="Rating style">
+        {STYLES.map((s) => (
+          <button
+            key={s.id}
+            role="radio"
+            aria-checked={settings.style === s.id}
+            className={`rate-style ${settings.style === s.id ? "is-on" : ""}`}
+            onClick={() => setRatingSettings({ style: s.id })}
+          >
+            <span className="rate-style__preview">
+              {s.id === "score" ? <span className="rt-num rate-style__num">8.7</span> : <Stickers score={example} style={s.id} size={s.id === "feelings" ? 34 : 22} />}
+            </span>
+            <span className="rate-style__label">{s.label}</span>
+            <span className="rate-style__hint">{s.hint}</span>
+          </button>
+        ))}
+      </div>
+      <div className="toggle-row choice-row">
+        <span className="toggle-row__text">
+          <span className="toggle-row__label">On the covers</span>
+          <span className="toggle-row__hint">How a rated show or movie shows its rating on its cover.</span>
+        </span>
+        <span className="choice-row__choices" role="radiogroup" aria-label="On the covers">
+          {COVER_MODES.map((m) => (
+            <button
+              key={m.id}
+              role="radio"
+              aria-checked={settings.covers === m.id}
+              className={`choice ${settings.covers === m.id ? "is-on" : ""}`}
+              onClick={() => setRatingSettings({ covers: m.id })}
+            >
+              {m.label}
+            </button>
+          ))}
+        </span>
+      </div>
+      <button className="toggle-row" role="switch" aria-checked={settings.small} onClick={() => setRatingSettings({ small: !settings.small })}>
+        <span className="toggle-row__text">
+          <span className="toggle-row__label">On season tabs and episodes</span>
+          <span className="toggle-row__hint">A small rating on each rated season's tab and episode's picture. Off, they show only in the season's header and the episode's card.</span>
+        </span>
+        <span className={`toggle ${settings.small ? "is-on" : ""}`} />
+      </button>
+    </section>
   );
 }
 

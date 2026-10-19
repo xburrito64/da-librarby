@@ -97,6 +97,11 @@
   outline-offset: 3px;
 }
 
+/* (A dialog takes the keys when it opens; it isn't something chosen with them.) */
+.app .modal__panel:focus-visible {
+  outline: none;
+}
+
 /* Moving with the arrow keys keeps what's chosen clear of the navigation bar and the edges. */
 :where(.card, .ccard__main, .ep, .extra, .seasons__tab, .filter, .btn, .stats__show, .section-title--toggle) {
   scroll-margin: calc(var(--nav-h) + 24px) 32px 40px;
@@ -3683,4 +3688,605 @@ select.input {
   min-width: 48px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Ratings (src/rating) ---------- */
+
+/* Stickers: five (stars, a theme's own) or one (a thumb, a tier, a feeling), --rt-size each. A
+   theme can change how they're cut out with --rt-die (a white edge and a shadow, like real
+   stickers). */
+:root {
+  --rt-die: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+    drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+  --rt-die-small: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+
+.rt-stickers {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--rt-size) * 0.12);
+  vertical-align: middle;
+  line-height: 0;
+}
+
+.rt-st {
+  display: inline-block;
+  flex: none;
+  width: var(--rt-size);
+  height: var(--rt-size);
+  background: center / contain no-repeat;
+}
+
+.rt-st.is-px {
+  image-rendering: pixelated;
+}
+
+.rt-stickers--one .rt-st {
+  width: calc(var(--rt-size) * 1.5);
+  height: calc(var(--rt-size) * 1.5);
+}
+
+.rt-thumb {
+  display: inline-flex;
+  align-items: center;
+  height: var(--rt-size);
+  color: var(--muted);
+}
+
+.rt-thumb svg {
+  width: var(--rt-size);
+  height: var(--rt-size);
+}
+
+.rt-thumb svg + svg {
+  margin-left: calc(var(--rt-size) * -0.35);
+}
+
+.rt-thumb--1,
+.rt-thumb--2 {
+  color: var(--accent);
+}
+
+.rt-thumb--2 {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 60%, transparent));
+}
+
+.rt-tier {
+  display: inline-grid;
+  place-items: center;
+  min-width: calc(var(--rt-size, 18px) * 1.3);
+  height: calc(var(--rt-size, 18px) * 1.3);
+  border-radius: 5px;
+  color: #1a1a1a;
+  font: 800 calc(var(--rt-size, 18px) * 0.8) / 1 var(--font-body);
+}
+
+.rt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rt-num {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* On the covers. */
+.card {
+  position: relative;
+}
+
+.rt-cover {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.rt-cover--row,
+.rt-cover--hover {
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.rt-cover--row {
+  bottom: 9px;
+}
+
+/* (Above the progress bar, when there is one.) */
+.card__art:has(.card__progress) .rt-cover--row {
+  bottom: 15px;
+}
+
+.rt-cover--row .rt-stickers,
+.rt-cover--hover .rt-stickers {
+  filter: var(--rt-die);
+}
+
+.rt-cover--hover {
+  bottom: 0;
+  padding: 30px 8px 12px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.82));
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.card:hover .rt-cover--hover,
+.card:focus-visible .rt-cover--hover {
+  opacity: 1;
+  transform: none;
+}
+
+.rt-cover__label {
+  color: #fff;
+  font: 800 13.5px/1 var(--font-body);
+  text-shadow: 0 1px 2px #000;
+}
+
+.rt-cover--corner {
+  top: calc(var(--card-frame) - 9px);
+  right: calc(var(--card-frame) - 9px);
+  transform: rotate(8deg);
+}
+
+.rt-cover--corner .rt-stickers {
+  filter: var(--rt-die);
+}
+
+/* The corner sticker for a score or stars: a little coin. */
+.rt-coin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 46px;
+  height: 46px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 45%, #fff), var(--accent) 50%, color-mix(in srgb, var(--accent) 70%, #000));
+  color: var(--on-accent);
+  font: 800 16px/1 var(--font-body);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+/* (A score says it with the number alone; Snowdin's box keeps its save star.) */
+.rt-coin--score .rt-coin__star {
+  display: none;
+}
+
+.rt-coin__star {
+  width: 11px;
+  height: 11px;
+  background: currentColor;
+  clip-path: polygon(50% 0, 62% 36%, 100% 38%, 70% 60%, 80% 98%, 50% 76%, 20% 98%, 30% 60%, 0 38%, 38% 36%);
+}
+
+/* Small ones: on a season's tab, an episode's picture. */
+.seasons__tab .rt-chip {
+  margin-left: 8px;
+  vertical-align: -1px;
+}
+
+.ep__rating {
+  position: absolute;
+  z-index: 2;
+  top: 7px;
+  left: 7px;
+  padding: 3px 7px;
+  border-radius: var(--btn-radius);
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ep__rating .rt-stickers {
+  filter: var(--rt-die-small);
+}
+
+/* "Rate" / your rating, beside a name (a show's, a season's). */
+.rt-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--btn-radius);
+  background: none;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    background-color 0.2s;
+}
+
+.rt-button:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.rt-button:not(.is-empty) {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+}
+
+.rt-button__plus {
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  clip-path: polygon(50% 0, 62% 36%, 100% 38%, 70% 60%, 80% 98%, 50% 76%, 20% 98%, 30% 60%, 0 38%, 38% 36%);
+}
+
+.rt-button__yours {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.tp__seasonrate {
+  display: inline-flex;
+  margin-left: 4px;
+}
+
+/* Giving a rating. */
+.rt-input {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rt-input--five {
+  gap: 4px;
+  --rt-size: 34px;
+}
+
+.rt-five {
+  padding: 2px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  line-height: 0;
+  transition: transform 0.15s var(--spring);
+}
+
+.rt-five:hover {
+  transform: scale(1.12);
+}
+
+.rt-five .rt-st {
+  filter: var(--rt-die-small);
+}
+
+.rt-input--score {
+  display: grid;
+  grid-template-columns: auto auto minmax(160px, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  width: 100%;
+}
+
+.rt-input__number {
+  width: 3.4ch;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid var(--line);
+  background: none;
+  color: var(--text);
+  font: var(--display-style) var(--display-weight) 38px/1.1 var(--font-display);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+.rt-input__number::-webkit-inner-spin-button,
+.rt-input__number::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.rt-input__number:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.rt-input__of {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.rt-input__slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  margin: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent) var(--p), var(--surface-hover) var(--p));
+  cursor: pointer;
+}
+
+.rt-input__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 3px var(--accent),
+    0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.rt-input__steps {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.rt-input__step {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.rt-input__step:hover {
+  background: var(--surface-hover);
+}
+
+.rt-input--levels {
+  gap: 8px;
+}
+
+.rt-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--btn-radius);
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  --rt-size: 20px;
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    background-color 0.2s;
+}
+
+.rt-input--feelings .rt-level {
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px 8px;
+  border-radius: var(--radius);
+}
+
+.rt-input--feelings .rt-st {
+  width: 48px;
+  height: 48px;
+  filter: var(--rt-die-small);
+  transition: transform 0.15s var(--spring);
+}
+
+.rt-level:hover {
+  color: var(--text);
+}
+
+.rt-input--feelings .rt-level:hover .rt-st {
+  transform: scale(1.1) rotate(-4deg);
+}
+
+.rt-level.is-on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.rt-input--tier {
+  gap: 6px;
+}
+
+.rt-tier--pick {
+  --rt-size: 30px;
+  border: 0;
+  opacity: 0.45;
+  transition:
+    opacity 0.15s,
+    transform 0.15s var(--spring);
+}
+
+.rt-tier--pick:hover {
+  opacity: 0.8;
+}
+
+.rt-tier--pick.is-on {
+  opacity: 1;
+  transform: translateY(-3px) scale(1.1);
+  box-shadow:
+    0 0 0 2px #fff,
+    0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+/* The "Rate" window. */
+.rate.modal__panel {
+  display: grid;
+  gap: 18px;
+  width: min(520px, 92vw);
+  padding: 24px 26px 20px;
+  overflow: visible;
+}
+
+.rate__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.rate__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-right: 30px;
+}
+
+.rate__thumb {
+  width: 54px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.rate__eyebrow {
+  font: 700 11.5px var(--font-label);
+  text-transform: var(--label-transform);
+  letter-spacing: var(--label-tracking);
+  color: var(--accent);
+}
+
+.rate__name {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-style: var(--display-style);
+  text-transform: var(--display-transform);
+  letter-spacing: var(--display-tracking);
+  font-size: 22px;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.rate__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rate__says {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* "How was it?": on the left, so it doesn't sit on the update note. */
+.update-note.rate-note {
+  left: 24px;
+  right: auto;
+  width: min(380px, calc(100vw - 48px));
+}
+
+.rate-note__body {
+  display: flex;
+  gap: 12px;
+}
+
+.rate-note__thumb {
+  width: 52px;
+  aspect-ratio: 2 / 3;
+  flex: none;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+/* An episode's card: your rating under the facts. */
+.epi__rate {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 12px;
+}
+
+.epi__rate-label {
+  font: 700 11.5px var(--font-label);
+  text-transform: var(--label-transform);
+  letter-spacing: var(--label-tracking);
+  color: var(--muted);
+}
+
+.epi__rate .rt-input--five {
+  --rt-size: 26px;
+}
+
+.epi__rate .rt-input--score {
+  width: auto;
+  grid-template-columns: auto auto 200px auto;
+}
+
+.epi__rate .rt-input__number {
+  font-size: 28px;
+}
+
+/* Settings → Ratings: the styles to pick from. */
+.rate-styles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.rate-style {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.rate-style:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+}
+
+.rate-style.is-on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.rate-style__preview {
+  display: flex;
+  align-items: center;
+  height: 52px;
+}
+
+.rate-style__preview .rt-stickers {
+  filter: var(--rt-die-small);
+}
+
+.rate-style__num {
+  font: var(--display-style) var(--display-weight) 34px/1 var(--font-display);
+}
+
+.rate-style__label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.rate-style__hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
 }

@@ -23,7 +23,9 @@ import {
   type TitleSummary,
 } from "./api";
 import MatchPicker from "./MatchPicker";
-import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, UndoIcon } from "../ui/icons";
+import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, StarIcon, UndoIcon } from "../ui/icons";
+import { openRate, RateButton, RatingChip } from "../rating/Rating";
+import { useRatingSettings } from "../rating/settings";
 import { useShuffle } from "./shuffle";
 import { useContextMenu, type MenuEntry } from "../ui/ContextMenu";
 import Typed from "../ui/Typed";
@@ -58,6 +60,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
   const openMenu = useContextMenu();
   const shuffle = useShuffle();
   const copy = useCopy();
+  const { small } = useRatingSettings();
   /** The theme's "check" line is shown in place of the description. */
   const [checking, setChecking] = useState(false);
   /** The episode (or extra) whose card is open. */
@@ -146,6 +149,11 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
         })
       : null;
   const description = checking && checkText ? checkText : meta?.description;
+  /** "S1E5 · Hisoka × is × Sneaky", or an extra's name. */
+  const fileTitle = (f: FileRow) =>
+    f.role === "episode"
+      ? [episodeCode(f, title.seasons.find((s) => s.id === f.seasonId)?.number ?? null), episodeName(f)].filter(Boolean).join(" · ")
+      : (f.name ?? fileName(f.path));
   // Right-click menu of an episode or movie.
   const fileMenu = (e: React.MouseEvent, file: FileRow) => {
     const items: MenuEntry[] = [{ label: "Play", icon: <PlayIcon />, onSelect: () => playFile(file) }];
@@ -157,6 +165,11 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
       });
     items.push(
       { label: "More info", icon: <InfoIcon />, onSelect: () => setInfoId(file.id) },
+      {
+        label: file.rating == null ? "Rate…" : "Change rating…",
+        icon: <StarIcon />,
+        onSelect: () => openRate({ kind: "file", id: file.id, name: fileTitle(file), thumb: file.meta?.thumb, score: file.rating }),
+      },
       "divider",
       file.progress?.watched
         ? { label: "Mark as unwatched", icon: <UndoIcon />, onSelect: () => watch.set([file.id], false) }
@@ -201,16 +214,19 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
           <h1 className="tp__title">{title.name}</h1>
           {meta?.name && meta.name.toLowerCase() !== title.name.toLowerCase() && <div className="tp__alt">{meta.name}</div>}
           {extra?.tagline && <div className="tp__tagline">{extra.tagline}</div>}
-          {(meta?.score != null || (meta?.genres.length ?? 0) > 0) && (
-            <div className="tp__facts">
-              {meta?.score != null && <span className="chip chip--score">{meta.score}%</span>}
-              {meta?.genres.map((g) => (
-                <span key={g} className="chip">
-                  {g}
-                </span>
-              ))}
-            </div>
-          )}
+          <div className="tp__facts">
+            <RateButton target={{ kind: "title", id: title.id, name: title.name, thumb: meta?.thumb, score: title.rating }} />
+            {meta?.score != null && (
+              <span className="chip chip--score" title={`On ${meta.provider === "anilist" ? "AniList" : "TMDB"}`}>
+                {meta.score}%
+              </span>
+            )}
+            {meta?.genres.map((g) => (
+              <span key={g} className="chip">
+                {g}
+              </span>
+            ))}
+          </div>
           {details.length > 0 && (
             <div className="tp__details">
               {details.map((d) => (
@@ -314,6 +330,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
                     title={seasonDone(s.id) ? `${s.label}: all watched` : undefined}
                   >
                     {s.label}
+                    {small && s.rating != null && <RatingChip score={s.rating} size={12} />}
                     {seasonDone(s.id) && (
                       <span className="seasons__done" aria-label="all watched">
                         <CheckIcon />
@@ -342,6 +359,8 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
               season && (
                 <SeasonEpisodes
                   season={season}
+                  titleName={title.name}
+                  thumb={meta?.thumb ?? null}
                   episodes={episodes}
                   next={up?.file ?? null}
                   onPlay={playFile}
@@ -510,6 +529,8 @@ function useLengths(files: FileRow[]) {
  *  show as much of the top as suits them; `note`: what it was matched to, for anime.) */
 function SeasonEpisodes({
   season,
+  titleName,
+  thumb,
   episodes,
   next,
   note,
@@ -518,6 +539,9 @@ function SeasonEpisodes({
   onInfo,
 }: {
   season: SeasonRow;
+  titleName: string;
+  /** The show's picture, for a season that has none of its own. */
+  thumb: string | null;
   episodes: FileRow[];
   next: FileRow | null;
   note: React.ReactNode;
@@ -548,6 +572,9 @@ function SeasonEpisodes({
         <div className="tp__seasonsum">
           <span className="tp__seasonname">{season.label}</span>
           <span className="tp__seasonfacts">{facts.join(" · ")}</span>
+          <span className="tp__seasonrate">
+            <RateButton target={{ kind: "season", id: season.id, name: `${titleName} · ${season.label}`, thumb: season.meta?.thumb ?? thumb, score: season.rating }} size={13} />
+          </span>
           <span className="progress tp__seasonprogress">
             <span style={{ width: `${(watched / Math.max(1, episodes.length)) * 100}%` }} />
           </span>
@@ -604,6 +631,7 @@ function Episode({
 }) {
   const watched = !!file.progress?.watched;
   const p = file.progress;
+  const { small } = useRatingSettings();
   const still = useRef<HTMLSpanElement>(null);
   const frame = useFrame(file.meta?.thumb ? null : file.path, still);
   const left = canResume(p) && p!.duration > 0 ? Math.max(1, Math.round((p!.duration - p!.position) / 60)) : null;
@@ -635,6 +663,11 @@ function Episode({
           <PlayIcon />
         </span>
         <WatchMarks file={file} />
+        {small && file.rating != null && (
+          <span className="ep__rating">
+            <RatingChip score={file.rating} size={13} />
+          </span>
+        )}
       </span>
       <span className="ep__main">
         {next && <span className="ep__upnext">Up next</span>}

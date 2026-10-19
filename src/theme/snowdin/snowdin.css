@@ -2755,3 +2755,60 @@
     animation: none;
   }
 }
+
+/* ---------- Ratings ---------- */
+
+/* Its own stickers (save stars) and feelings (the SOUL) are pixels: they glow, no paper edge. */
+:root[data-theme="snowdin"] :is(.rt-stickers--theme, .rt-stickers--feel),
+:root[data-theme="snowdin"] .rt-input--feelings {
+  --rt-die: drop-shadow(0 0 4px rgba(255, 255, 0, 0.45)) drop-shadow(0 2px 0 #000);
+  --rt-die-small: drop-shadow(0 2px 0 #000);
+}
+
+/* The corner sticker: a little text box with a save star. */
+:root[data-theme="snowdin"] .rt-coin {
+  gap: 6px;
+  height: auto;
+  min-width: 0;
+  padding: 5px 8px 5px 7px;
+  border: 3px solid #fff;
+  border-radius: 0;
+  background: #000;
+  color: #fff;
+  font: 400 16px/1 var(--font-display);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="snowdin"] .rt-coin b {
+  font-weight: 400;
+}
+
+:root[data-theme="snowdin"] .rt-coin__star,
+:root[data-theme="snowdin"] .rt-coin--score .rt-coin__star {
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: #ffff00;
+  clip-path: polygon(40% 0, 60% 0, 60% 30%, 70% 30%, 70% 40%, 100% 40%, 100% 60%, 70% 60%, 70% 70%, 60% 70%, 60% 100%, 40% 100%, 40% 70%, 30% 70%, 30% 60%, 0 60%, 0 40%, 30% 40%, 30% 30%, 40% 30%);
+  filter: drop-shadow(0 0 3px rgba(255, 255, 0, 0.8));
+}
+
+:root[data-theme="snowdin"] .rt-cover--corner {
+  top: 6px;
+  right: 6px;
+  transform: none;
+}
+
+:root[data-theme="snowdin"] .rt-cover__label {
+  color: #ffff00;
+  font: 400 15px/1 var(--font-display);
+}
+
+:root[data-theme="snowdin"] :is(.rt-button, .rt-level, .rt-input__step, .rate-style, .rt-tier) {
+  border-radius: 0;
+}
+
+:root[data-theme="snowdin"] .rt-stickers--feel .rt-st {
+  width: calc(var(--rt-size) * 1.9);
+  height: calc(var(--rt-size) * 1.9);
+}

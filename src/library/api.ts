@@ -59,6 +59,8 @@ export interface TitleSummary {
   parentName: string | null;
   /** Movies: the TMDB movie, to tell which of a collection's movies are here. */
   tmdbMovieId: number | null;
+  /** Your rating (10..100, i.e. 1.0..10.0), if you gave one. */
+  rating: number | null;
 }
 
 /** Information from AniList/TMDB. */
@@ -180,6 +182,8 @@ export interface SeasonRow {
   number: number | null;
   label: string;
   meta: Meta | null;
+  /** Your rating (10..100), if you gave one. */
+  rating: number | null;
 }
 
 export interface FileRow {
@@ -205,7 +209,30 @@ export interface FileRow {
   addedAt: number;
   /** When it first aired ("2011-10-30"), if known. */
   aired: string | null;
+  /** Your rating (10..100), if you gave one. */
+  rating: number | null;
 }
+
+/** What can be rated: a show or movie, a season, an episode (or any other file). */
+export type RatingKind = "title" | "season" | "file";
+
+/** Something finished lately and not rated yet: "How was it?" */
+export interface RatingNote {
+  kind: "title" | "season";
+  id: number;
+  titleId: number;
+  name: string;
+  season: string | null;
+  thumb: string | null;
+  finishedAt: number;
+}
+
+export const ratings = {
+  /** `score` 10..100 (1.0..10.0), null takes the rating away. */
+  set: (kind: RatingKind, id: number, score: number | null) => invoke<void>("rating_set", { kind, id, score }),
+  notes: () => invoke<RatingNote[]>("rating_notes"),
+  dismiss: (kind: RatingKind, id: number) => invoke<void>("rating_dismiss", { kind, id }),
+};
 
 /** How far a file has been played. Times in seconds. */
 export interface Progress {
@@ -230,6 +257,8 @@ export interface TitleDetail {
   /** The show a movie (or spin-off) is part of. */
   parentId: number | null;
   parentName: string | null;
+  /** Your rating (10..100), if you gave one. */
+  rating: number | null;
 }
 
 export const library = {
