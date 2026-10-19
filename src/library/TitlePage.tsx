@@ -89,7 +89,8 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
   if (!title) return <div className={`view view--hero tp ${still ? "tp--still" : ""}`} />;
 
   const anime = title.kind === "anime";
-  const titleSource: MatchSource = anime ? "anilist" : title.isMovie ? "tmdb-movie" : "tmdb-tv";
+  // (AniList doesn't have every anime movie: those can be picked on TMDB too.)
+  const titleSource: MatchSource = anime ? (title.isMovie ? "anime-movie" : "anilist") : title.isMovie ? "tmdb-movie" : "tmdb-tv";
   const movieSource: MatchSource = anime ? "anilist" : "tmdb-movie";
   // The show's movies are titles of their own, each with its page.
   const movies = title.isMovie
@@ -412,7 +413,8 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
           source={titleSource}
           initialQuery={title.name}
           current={meta?.providerIds.map(Number)}
-          onSave={([pick]) => metadata.matchTitle(title.id, "pick", pick).then(close)}
+          currentTmdb={meta?.provider === "tmdb"}
+          onSave={([pick], [c]) => metadata.matchTitle(title.id, anime && c?.tmdb ? "pick-tmdb" : "pick", pick).then(close)}
           onAutomatic={() => metadata.matchTitle(title.id, "auto").then(close)}
           onNone={() => metadata.matchTitle(title.id, "none").then(close)}
           onClose={close}

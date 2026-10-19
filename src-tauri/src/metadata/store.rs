@@ -29,6 +29,30 @@ pub fn anime_titles_needing_work(conn: &Connection) -> rusqlite::Result<Vec<i64>
     ids
 }
 
+/// Where an anime movie's info comes from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MovieSource {
+    /// AniList (matched there, not looked up yet, or "no match" chosen); TMDB adds its cast and facts.
+    AniList,
+    /// TMDB, as AniList doesn't have it (Attack on Titan: THE LAST ATTACK).
+    Tmdb,
+    /// TMDB, picked by hand.
+    TmdbPicked,
+}
+
+pub fn anime_movie_source(conn: &Connection, title_id: i64) -> rusqlite::Result<MovieSource> {
+    let row: Option<(String, Option<String>, bool)> = conn
+        .query_row("SELECT provider, provider_id, locked FROM title_meta WHERE title_id = ?1", [title_id], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+        })
+        .optional()?;
+    Ok(match row {
+        Some((provider, _, locked)) if provider == "tmdb" => if locked { MovieSource::TmdbPicked } else { MovieSource::Tmdb },
+        Some((_, None, false)) => MovieSource::Tmdb,
+        _ => MovieSource::AniList,
+    })
+}
+
 pub fn is_anime(conn: &Connection, title_id: i64) -> rusqlite::Result<bool> {
     conn.query_row(
         "SELECT COALESCE(t.kind, l.kind) = 'anime' FROM titles t JOIN libraries l ON l.id = t.library_id WHERE t.id = ?1",
@@ -303,16 +327,18 @@ pub fn save_show_match(
 // ---------------------------------------------------------------------------------------------
 // Fixing matches by hand
 
-/// "auto" clears the hand-made choice, "none" says there's no match, "pick" uses `id`.
+/// "auto" clears the hand-made choice, "none" says there's no match, "pick" uses `id` (on AniList for
+/// an anime, TMDB otherwise), "pick-tmdb" an anime movie's `id` on TMDB.
 pub fn set_title_choice(conn: &Connection, title_id: i64, mode: &str, id: Option<i64>) -> rusqlite::Result<()> {
-    let provider = if title_kind(conn, title_id)?.as_deref() == Some("anime") { "anilist" } else { "tmdb" };
+    let anime = title_kind(conn, title_id)?.as_deref() == Some("anime");
+    let provider = if anime && mode != "pick-tmdb" { "anilist" } else { "tmdb" };
     clear_unlocked_children(conn, title_id)?;
     match mode {
         "auto" => {
             conn.execute("DELETE FROM title_meta WHERE title_id = ?1", [title_id])?;
         }
         _ => {
-            let id = if mode == "pick" { id.map(|i| i.to_string()) } else { None };
+            let id = if mode.starts_with("pick") { id.map(|i| i.to_string()) } else { None };
             conn.execute(
                 "INSERT OR REPLACE INTO title_meta (title_id, provider, provider_id, locked, updated_at)
                  VALUES (?1, ?2, ?3, 1, ?4)",
@@ -536,6 +562,10 @@ pub fn titles_needing_tmdb(conn: &Connection) -> rusqlite::Result<Vec<i64>> {
            OR (COALESCE(t.kind, l.kind) = 'anime' AND t.is_movie = 1
                AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id
                            AND COALESCE(json_extract(m.extra, '$.v'), 0) < ?1))
+           -- Anime movies AniList doesn't have: all of them from TMDB.
+           OR (COALESCE(t.kind, l.kind) = 'anime' AND t.is_movie = 1
+               AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id
+                           AND m.provider = 'anilist' AND m.provider_id IS NULL AND m.locked = 0))
            OR (COALESCE(t.kind, l.kind) = 'anime'
                AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id)
                AND EXISTS (SELECT 1 FROM files f JOIN file_meta fm ON fm.file_id = f.id
@@ -987,6 +1017,37 @@ mod tests {
         assert_eq!((role.as_str(), label.as_str()), ("episode", "Specials"));
         assert!(crate::library::db::promoted_specials(&conn).unwrap().contains_key("D:/Anime/Show/Extras/Kirameki Youko Box- Pieces of Sweet Stars (CBB).mkv"));
         assert!(extras_of(&conn, 1).unwrap().is_empty());
+        drop(conn);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn anime_movies_anilist_lacks_come_from_tmdb() {
+        let path = std::env::temp_dir().join(format!("dalibrarby-movie-test-{}.db", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let conn = crate::library::db::open(&path).unwrap();
+        conn.execute_batch(
+            "INSERT INTO libraries (id, path, kind) VALUES (1, 'D:/Anime', 'anime');
+             INSERT INTO titles (id, library_id, key, is_movie, name, folder, added_at) VALUES (1, 1, 'Movie', 1, 'Attack on Titan The Last Attack', 'D:/Anime/Movie', 0);",
+        )
+        .unwrap();
+        let source = || anime_movie_source(&conn, 1).unwrap();
+        assert_eq!(source(), MovieSource::AniList);
+        // Matched on AniList: TMDB only adds to it.
+        conn.execute("INSERT INTO title_meta (title_id, provider, provider_id, updated_at) VALUES (1, 'anilist', '5', 0)", []).unwrap();
+        assert_eq!(source(), MovieSource::AniList);
+        // AniList doesn't have it: TMDB, and it's looked up there.
+        conn.execute("UPDATE title_meta SET provider_id = NULL", []).unwrap();
+        assert_eq!(source(), MovieSource::Tmdb);
+        assert_eq!(titles_needing_tmdb(&conn).unwrap(), [1]);
+        // "No match" chosen: still nothing.
+        set_title_choice(&conn, 1, "none", None).unwrap();
+        assert_eq!(source(), MovieSource::AniList);
+        // Picked on TMDB by hand.
+        set_title_choice(&conn, 1, "pick-tmdb", Some(1333100)).unwrap();
+        assert_eq!(source(), MovieSource::TmdbPicked);
+        let locked = load_show_input(&conn, 1).unwrap().unwrap().locked_root;
+        assert_eq!(locked, Some(Some(1333100)));
         drop(conn);
         let _ = std::fs::remove_file(&path);
     }

@@ -280,13 +280,16 @@ export interface Candidate {
   year: number | null;
   episodes: number | null;
   coverUrl: string | null;
+  /** Found on TMDB (an anime movie's picker lists AniList's and TMDB's). */
+  tmdb: boolean;
 }
 
-/** Where the fix-match picker searches. */
-export type MatchSource = "anilist" | "tmdb-tv" | "tmdb-movie";
+/** Where the fix-match picker searches ("anime-movie": AniList, then TMDB's movies). */
+export type MatchSource = "anilist" | "tmdb-tv" | "tmdb-movie" | "anime-movie";
 
-/** "auto" = let the app decide, "none" = no match, "pick" = use the given id. */
-export type MatchMode = "auto" | "none" | "pick";
+/** "auto" = let the app decide, "none" = no match, "pick" = use the given id, "pick-tmdb" = an
+ *  anime movie's id on TMDB. */
+export type MatchMode = "auto" | "none" | "pick" | "pick-tmdb";
 
 export const metadata = {
   status: () => invoke<MetadataStatus>("metadata_status"),

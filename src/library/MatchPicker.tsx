@@ -10,14 +10,17 @@ interface Props {
   multiple?: boolean;
   /** The current choice, to show what's selected. */
   current?: number[];
-  onSave: (ids: number[]) => void;
+  /** The current choice is TMDB's (an anime movie's). */
+  currentTmdb?: boolean;
+  /** `picked`: the entries themselves (one picked on TMDB says so). */
+  onSave: (ids: number[], picked: Candidate[]) => void;
   onAutomatic: () => void;
   onNone?: () => void;
   onClose: () => void;
 }
 
-export default function MatchPicker({ heading, source, initialQuery, multiple, current, onSave, onAutomatic, onNone, onClose }: Props) {
-  const serviceName = source === "anilist" ? "AniList" : "TMDB";
+export default function MatchPicker({ heading, source, initialQuery, multiple, current, currentTmdb, onSave, onAutomatic, onNone, onClose }: Props) {
+  const serviceName = source === "anilist" ? "AniList" : source === "anime-movie" ? "AniList and TMDB" : "TMDB";
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<Candidate[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -46,7 +49,7 @@ export default function MatchPicker({ heading, source, initialQuery, multiple, c
   }, [onClose]);
 
   const choose = (c: Candidate) => {
-    if (!multiple) return onSave([c.id]);
+    if (!multiple) return onSave([c.id], [c]);
     setPicked((p) => (p.some((x) => x.id === c.id) ? p.filter((x) => x.id !== c.id) : [...p, c]));
   };
 
@@ -78,9 +81,9 @@ export default function MatchPicker({ heading, source, initialQuery, multiple, c
           {results?.length === 0 && <p className="picker__hint">Nothing found. Try another name.</p>}
           {results?.map((c) => {
             const order = picked.findIndex((p) => p.id === c.id);
-            const isCurrent = current?.includes(c.id);
+            const isCurrent = current?.includes(c.id) && c.tmdb === (currentTmdb ?? (source !== "anilist" && source !== "anime-movie"));
             return (
-              <button key={c.id} className={`picker__result ${order >= 0 ? "is-picked" : ""}`} onClick={() => choose(c)}>
+              <button key={`${c.tmdb}-${c.id}`} className={`picker__result ${order >= 0 ? "is-picked" : ""}`} onClick={() => choose(c)}>
                 <span className="picker__cover">{c.coverUrl && <img src={c.coverUrl} alt="" />}</span>
                 <span className="picker__info">
                   <span className="picker__name">
@@ -90,6 +93,7 @@ export default function MatchPicker({ heading, source, initialQuery, multiple, c
                   {c.altTitle && <span className="picker__alt">{c.altTitle}</span>}
                   <span className="picker__meta">
                     {[formatLabel(c.format), c.year, c.episodes != null && `${c.episodes} episode${c.episodes === 1 ? "" : "s"}`].filter(Boolean).join(" · ")}
+                    {source === "anime-movie" && c.tmdb && <span className="chip">TMDB</span>}
                     {isCurrent && <span className="chip chip--score">current match</span>}
                   </span>
                 </span>
@@ -112,7 +116,7 @@ export default function MatchPicker({ heading, source, initialQuery, multiple, c
             Cancel
           </button>
           {multiple && (
-            <button className="btn btn--small btn--primary" disabled={picked.length === 0} onClick={() => onSave(picked.map((p) => p.id))}>
+            <button className="btn btn--small btn--primary" disabled={picked.length === 0} onClick={() => onSave(picked.map((p) => p.id), picked)}>
               Save
             </button>
           )}

@@ -231,7 +231,14 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
         return process_one_pace(&library, images, title_id, tmdb);
     }
 
-    if kind.as_deref() == Some("anime") && input.is_movie {
+    // An anime movie AniList doesn't have (Attack on Titan: THE LAST ATTACK), or picked on TMDB by
+    // hand: all of it from TMDB, like any movie.
+    let anime_movie = kind.as_deref() == Some("anime") && input.is_movie;
+    if anime_movie && library.with_db(|c| store::anime_movie_source(c, title_id)).map_err(db_error)? != store::MovieSource::AniList {
+        return save_tmdb_movie(&library, images, title_id, input, tmdb);
+    }
+
+    if anime_movie {
         // Matched on AniList already; TMDB adds the cast, the facts and the big artwork.
         let (mut names, year, _) = library.with_db(|c| store::anime_lookup_hints(c, title_id)).map_err(db_error)?;
         if let Some(show) = &input.parent {
@@ -260,12 +267,7 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
     }
 
     if input.is_movie {
-        let movie = tmdb_match::match_movie(input, tmdb)?;
-        if let Some(m) = &movie {
-            save_poster(images, &mut art, &format!("movie-{}", m.id), m.poster_path.as_deref());
-        }
-        let parts = movie_art(images, movie.as_ref(), tmdb, &mut art);
-        return library.with_db(|c| store::save_movie_title(c, title_id, input, movie.as_ref(), &parts, &art)).map_err(db_error);
+        return save_tmdb_movie(&library, images, title_id, input, tmdb);
     }
 
     let (show, seasons) = tmdb_match::tv_show(input, tmdb)?;
@@ -295,6 +297,19 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
             store::extras_checked(c, title_id)
         })
         .map_err(db_error)
+}
+
+/// A movie's match on TMDB, with its poster, artwork and everything for its page.
+fn save_tmdb_movie(library: &Library, images: &Images, title_id: i64, input: &anime_match::ShowInput, tmdb: &Tmdb) -> Result<(), anilist::Error> {
+    let mut art = store::TmdbArt::default();
+    let movie = tmdb_match::match_movie(input, tmdb)?;
+    if let Some(m) = &movie {
+        save_poster(images, &mut art, &format!("movie-{}", m.id), m.poster_path.as_deref());
+    }
+    let parts = movie_art(images, movie.as_ref(), tmdb, &mut art);
+    library
+        .with_db(|c| store::save_movie_title(c, title_id, input, movie.as_ref(), &parts, &art))
+        .map_err(anilist::Error::Rejected)
 }
 
 /// Extras that TMDB lists among the show's specials (Gurren Lagann's "Kirameki Yoko Box", kept with
@@ -402,6 +417,10 @@ fn save_stills(images: &Images, show_id: Option<i64>, episodes: &[(i64, Vec<tmdb
 fn process(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput) -> Result<(), anilist::Error> {
     let metadata = app.state::<Metadata>();
     let library = app.state::<Library>();
+    // An anime movie picked on TMDB by hand is TMDB's (process_tmdb).
+    if library.with_db(|c| store::anime_movie_source(c, title_id)).map_err(anilist::Error::Rejected)? == store::MovieSource::TmdbPicked {
+        return Ok(());
+    }
     let mut source = CachedSource { library: &library, anilist: &metadata.anilist };
     let matched = anime_match::match_show(input, &mut source)?;
 
@@ -479,9 +498,13 @@ pub struct Candidate {
     year: Option<i32>,
     episodes: Option<i32>,
     cover_url: Option<String>,
+    /// Found on TMDB (an anime movie's picker lists AniList's and TMDB's).
+    tmdb: bool,
 }
 
-/// Searches for the "fix match" picker. `source`: "anilist", "tmdb-tv" or "tmdb-movie".
+/// Searches for the "fix match" picker. `source`: "anilist", "tmdb-tv", "tmdb-movie", or
+/// "anime-movie": AniList, then TMDB's movies (AniList doesn't have every anime movie, like Attack on
+/// Titan: THE LAST ATTACK).
 #[tauri::command]
 pub async fn metadata_search(
     metadata: State<'_, Metadata>,
@@ -489,9 +512,23 @@ pub async fn metadata_search(
     query: String,
     source: String,
 ) -> Result<Vec<Candidate>, String> {
+    if source == "anime-movie" {
+        let mut found = search_anilist(&metadata, &query)?;
+        if let Some(key) = tmdb_key(&library) {
+            found.extend(search_tmdb(&Tmdb::new(&key), &query, true)?);
+        }
+        return Ok(found);
+    }
     if source == "anilist" {
-        let results = metadata.anilist.search(&query, None).map_err(|e| e.to_string())?;
-        return Ok(results
+        return search_anilist(&metadata, &query);
+    }
+    let key = tmdb_key(&library).ok_or("Add your TMDB key in Settings first.")?;
+    search_tmdb(&Tmdb::new(&key), &query, source == "tmdb-movie")
+}
+
+fn search_anilist(metadata: &Metadata, query: &str) -> Result<Vec<Candidate>, String> {
+    let results = metadata.anilist.search(query, None).map_err(|e| e.to_string())?;
+    Ok(results
             .into_iter()
             .map(|m| Candidate {
                 id: m.id,
@@ -501,14 +538,13 @@ pub async fn metadata_search(
                 year: m.year(),
                 episodes: m.episodes,
                 cover_url: m.cover_image.as_ref().and_then(|c| c.large.clone()),
+                tmdb: false,
             })
-            .collect());
-    }
-    let key = tmdb_key(&library).ok_or("Add your TMDB key in Settings first.")?;
-    let tmdb = Tmdb::new(&key);
-    let movie = source == "tmdb-movie";
-    let results = if movie { tmdb.search_movie(&query, None) } else { tmdb.search_tv(&query, None) }
-        .map_err(|e| e.to_string())?;
+            .collect())
+}
+
+fn search_tmdb(tmdb: &Tmdb, query: &str, movie: bool) -> Result<Vec<Candidate>, String> {
+    let results = if movie { tmdb.search_movie(query, None) } else { tmdb.search_tv(query, None) }.map_err(|e| e.to_string())?;
     Ok(results
         .into_iter()
         .map(|r| Candidate {
@@ -519,11 +555,13 @@ pub async fn metadata_search(
             year: r.year(),
             episodes: None,
             cover_url: tmdb::image_url(r.poster_path.as_deref(), "w185"),
+            tmdb: true,
         })
         .collect())
 }
 
-/// mode: "auto" (let the app decide), "none" (no match), or "pick" (use `id`).
+/// mode: "auto" (let the app decide), "none" (no match), "pick" (use `id`) or "pick-tmdb" (an anime
+/// movie's `id` on TMDB).
 #[tauri::command]
 pub async fn metadata_match_title(
     app: AppHandle,
