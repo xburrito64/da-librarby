@@ -370,6 +370,8 @@
 
 :root[data-theme="paper"] .seasons {
   gap: 0;
+  /* (Its tabs stand on the line under them, all down to it.) */
+  align-items: stretch;
   border-bottom: 1px solid var(--line);
 }
 

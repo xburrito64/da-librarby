@@ -1634,6 +1634,9 @@
 .seasons {
   display: flex;
   flex-wrap: wrap;
+  /* Each tab as tall as itself (one with its rating under its name is taller; the others don't
+     stretch to match it). */
+  align-items: flex-start;
   gap: 8px;
   margin-bottom: 14px;
 }
