@@ -4105,12 +4105,13 @@
   background:
     radial-gradient(circle at 50% 50%, rgba(255, 140, 40, 0.22), transparent 62%),
     linear-gradient(160deg, #5a5068, #3d344b 55%, #2a2335);
-  color: #ffd38a;
-  font: 800 17px/1 var(--font-body);
+  color: #ffd9a0;
+  font: 600 16px/1 var(--font-body);
+  letter-spacing: 0.02em;
+  /* Carved in and lit from inside: a dark edge keeps the digits sharp, a soft glow around them. */
   text-shadow:
-    0 0 2px #fff0c8,
-    0 0 6px #ffa040,
-    0 0 12px #ff7518;
+    0 1px 0 rgba(20, 8, 0, 0.85),
+    0 0 4px rgba(255, 140, 40, 0.55);
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.12),
     inset 0 -5px 8px rgba(0, 0, 0, 0.45);

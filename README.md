@@ -29,6 +29,8 @@ Windows only for now.
   the home screen, every time you watched something, "New" badges for recently added episodes, My List for things you want to
   watch later, where you are in each show, a little celebration when you finish a season, and a
   Watch time page (how much, when and what you watch).
+- **Your ratings** of shows, movies, seasons and episodes, in the style you like: stars, a 1–10
+  score with decimals, thumbs, a tier list, or each theme's own stickers, shown on the covers too.
 - **Search, filters, sorting, right-click menus,** "Surprise me", arrow-key browsing and keyboard
   shortcuts for everything. Everything grows with the window on big screens, and an interface size
   slider makes it bigger or smaller.
