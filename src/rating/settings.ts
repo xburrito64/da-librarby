@@ -1,17 +1,20 @@
-// How ratings look, kept in the library database as "ui.rating": the style, how covers show them,
-// and whether season tabs and episodes show theirs.
+// How ratings look, kept in the library database as "ui.rating": the style, how covers and season
+// tabs show them, whether episode pictures do, and whether Home has a row of favourites.
 import { useSyncExternalStore } from "react";
 import { getSetting, setSetting } from "../ui/settings";
-import type { CoverMode, RatingStyle } from "./scale";
+import type { CoverMode, RatingStyle, TabMode } from "./scale";
 
 export interface RatingSettings {
   style: RatingStyle;
   covers: CoverMode;
-  /** Ratings on season tabs and episode pictures too (not only in their headers and cards). */
-  small: boolean;
+  tabs: TabMode;
+  /** A small rating on each rated episode's picture. */
+  episodes: boolean;
+  /** A "Your favourites" row on Home. */
+  favourites: boolean;
 }
 
-const DEFAULTS: RatingSettings = { style: "stars", covers: "row", small: true };
+const DEFAULTS: RatingSettings = { style: "stars", covers: "row", tabs: "corner", episodes: true, favourites: false };
 const KEY = "ui.rating";
 
 let current = DEFAULTS;
@@ -21,9 +24,12 @@ let loaded = false;
 function load() {
   if (loaded) return;
   loaded = true;
-  getSetting<Partial<RatingSettings>>(KEY).then((saved) => {
+  getSetting<Partial<RatingSettings> & { small?: boolean }>(KEY).then((saved) => {
     if (!saved) return;
-    current = { ...DEFAULTS, ...saved };
+    // (Season tabs and episodes were one switch at first.)
+    const { small, ...rest } = saved;
+    const before = small === false ? { tabs: "off" as const, episodes: false } : {};
+    current = { ...DEFAULTS, ...before, ...rest };
     listeners.forEach((l) => l());
   });
 }

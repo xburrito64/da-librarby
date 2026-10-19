@@ -24,7 +24,7 @@ import {
 } from "./api";
 import MatchPicker from "./MatchPicker";
 import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, StarIcon, UndoIcon } from "../ui/icons";
-import { openRate, RateButton, RatingChip } from "../rating/Rating";
+import { openRate, RateFact, RatingChip, TabRating } from "../rating/Rating";
 import { useRatingSettings } from "../rating/settings";
 import { useShuffle } from "./shuffle";
 import { useContextMenu, type MenuEntry } from "../ui/ContextMenu";
@@ -60,7 +60,6 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
   const openMenu = useContextMenu();
   const shuffle = useShuffle();
   const copy = useCopy();
-  const { small } = useRatingSettings();
   /** The theme's "check" line is shown in place of the description. */
   const [checking, setChecking] = useState(false);
   /** The episode (or extra) whose card is open. */
@@ -215,7 +214,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
           {meta?.name && meta.name.toLowerCase() !== title.name.toLowerCase() && <div className="tp__alt">{meta.name}</div>}
           {extra?.tagline && <div className="tp__tagline">{extra.tagline}</div>}
           <div className="tp__facts">
-            <RateButton target={{ kind: "title", id: title.id, name: title.name, thumb: meta?.thumb, score: title.rating }} />
+            <RateFact target={{ kind: "title", id: title.id, name: title.name, thumb: meta?.thumb, score: title.rating }} label="your rating" />
             {meta?.score != null && (
               <span className="chip chip--score" title={`On ${meta.provider === "anilist" ? "AniList" : "TMDB"}`}>
                 {meta.score}%
@@ -330,7 +329,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
                     title={seasonDone(s.id) ? `${s.label}: all watched` : undefined}
                   >
                     {s.label}
-                    {small && s.rating != null && <RatingChip score={s.rating} size={12} />}
+                    <TabRating score={s.rating} />
                     {seasonDone(s.id) && (
                       <span className="seasons__done" aria-label="all watched">
                         <CheckIcon />
@@ -566,14 +565,16 @@ function SeasonEpisodes({
     allWatched ? "all watched" : watched > 0 ? `${watched} watched` : null,
     !allWatched && left > 60 ? `about ${formatDuration(left)} left` : null,
   ].filter(Boolean);
+  const rateSeason = { kind: "season" as const, id: season.id, name: `${titleName} · ${season.label}`, thumb: season.meta?.thumb ?? thumb, score: season.rating };
   return (
     <>
       <div className="tp__seasonbar">
         <div className="tp__seasonsum">
           <span className="tp__seasonname">{season.label}</span>
-          <span className="tp__seasonfacts">{facts.join(" · ")}</span>
-          <span className="tp__seasonrate">
-            <RateButton target={{ kind: "season", id: season.id, name: `${titleName} · ${season.label}`, thumb: season.meta?.thumb ?? thumb, score: season.rating }} size={13} />
+          <span className="tp__seasonfacts">
+            {facts.join(" · ")}
+            {" · "}
+            <RateFact target={rateSeason} />
           </span>
           <span className="progress tp__seasonprogress">
             <span style={{ width: `${(watched / Math.max(1, episodes.length)) * 100}%` }} />
@@ -587,6 +588,10 @@ function SeasonEpisodes({
               {canResume(here.progress) ? "Resume" : "Play"} {episodeCode(here, season.number)}
             </button>
           )}
+          {/* (Themes that don't show the season's summary: your rating on the bar.) */}
+          <span className="tp__seasonrate">
+            <RateFact target={rateSeason} label="your rating" />
+          </span>
           <button className="link tp__markall" onClick={() => watch.set(episodes.map((f) => f.id), !allWatched)} data-sfx={allWatched ? undefined : "save"}>
             {allWatched ? "Mark season as unwatched" : "Mark season as watched"}
           </button>
@@ -631,7 +636,7 @@ function Episode({
 }) {
   const watched = !!file.progress?.watched;
   const p = file.progress;
-  const { small } = useRatingSettings();
+  const { episodes: onPictures } = useRatingSettings();
   const still = useRef<HTMLSpanElement>(null);
   const frame = useFrame(file.meta?.thumb ? null : file.path, still);
   const left = canResume(p) && p!.duration > 0 ? Math.max(1, Math.round((p!.duration - p!.position) / 60)) : null;
@@ -663,7 +668,7 @@ function Episode({
           <PlayIcon />
         </span>
         <WatchMarks file={file} />
-        {small && file.rating != null && (
+        {onPictures && file.rating != null && (
           <span className="ep__rating">
             <RatingChip score={file.rating} size={13} />
           </span>

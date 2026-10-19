@@ -14,7 +14,7 @@ import { setThemeOption, useThemeOptions } from "../theme/options";
 import { loadOwnFiles, musicFiles, openOwnFolder, useOwnFiles } from "../theme/ownFiles";
 import { CheckIcon, CloseIcon, FolderIcon, RefreshIcon } from "../ui/icons";
 import { Stickers } from "../rating/Rating";
-import { STYLES, type CoverMode } from "../rating/scale";
+import { STYLES, type CoverMode, type TabMode } from "../rating/scale";
 import { setRatingSettings, useRatingSettings } from "../rating/settings";
 
 export type SettingsSection = "appearance" | "ratings" | "general" | "library" | "online" | "shortcuts" | "about";
@@ -331,6 +331,12 @@ function OwnFiles() {
   );
 }
 
+const TAB_MODES: { id: TabMode; label: string }[] = [
+  { id: "corner", label: "Corner sticker" },
+  { id: "under", label: "Under the name" },
+  { id: "off", label: "Off" },
+];
+
 const COVER_MODES: { id: CoverMode; label: string }[] = [
   { id: "row", label: "Row of stickers" },
   { id: "hover", label: "When pointed at" },
@@ -385,12 +391,38 @@ function Ratings() {
           ))}
         </span>
       </div>
-      <button className="toggle-row" role="switch" aria-checked={settings.small} onClick={() => setRatingSettings({ small: !settings.small })}>
+      <div className="toggle-row choice-row">
         <span className="toggle-row__text">
-          <span className="toggle-row__label">On season tabs and episodes</span>
-          <span className="toggle-row__hint">A small rating on each rated season's tab and episode's picture. Off, they show only in the season's header and the episode's card.</span>
+          <span className="toggle-row__label">On the season tabs</span>
+          <span className="toggle-row__hint">A rated season's tab: a sticker on its corner, or its rating under its name.</span>
         </span>
-        <span className={`toggle ${settings.small ? "is-on" : ""}`} />
+        <span className="choice-row__choices" role="radiogroup" aria-label="On the season tabs">
+          {TAB_MODES.map((m) => (
+            <button
+              key={m.id}
+              role="radio"
+              aria-checked={settings.tabs === m.id}
+              className={`choice ${settings.tabs === m.id ? "is-on" : ""}`}
+              onClick={() => setRatingSettings({ tabs: m.id })}
+            >
+              {m.label}
+            </button>
+          ))}
+        </span>
+      </div>
+      <button className="toggle-row" role="switch" aria-checked={settings.episodes} onClick={() => setRatingSettings({ episodes: !settings.episodes })}>
+        <span className="toggle-row__text">
+          <span className="toggle-row__label">On episode pictures</span>
+          <span className="toggle-row__hint">A small rating on each rated episode's picture. Off, it shows on the episode's card only.</span>
+        </span>
+        <span className={`toggle ${settings.episodes ? "is-on" : ""}`} />
+      </button>
+      <button className="toggle-row" role="switch" aria-checked={settings.favourites} onClick={() => setRatingSettings({ favourites: !settings.favourites })}>
+        <span className="toggle-row__text">
+          <span className="toggle-row__label">"Your favourites" on Home</span>
+          <span className="toggle-row__hint">A row of everything you rated 8 out of 10 or more (4 stars, "Loved it"), the best first.</span>
+        </span>
+        <span className={`toggle ${settings.favourites ? "is-on" : ""}`} />
       </button>
     </section>
   );

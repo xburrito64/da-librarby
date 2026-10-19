@@ -24,6 +24,7 @@ import { getSetting, setSetting } from "../ui/settings";
 import type { Tab } from "./LibraryView";
 import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, StarIcon, UndoIcon } from "../ui/icons";
 import { CoverRating, openRate } from "../rating/Rating";
+import { useRatingSettings } from "../rating/settings";
 import Typed from "../ui/Typed";
 import WatchStats from "./WatchStats";
 import { useShuffle } from "./shuffle";
@@ -142,7 +143,8 @@ export default function Browse({ tab, titles, offline, query, continueList, load
     () => titles.filter((t) => t.listedAt != null).sort((a, b) => b.listedAt! - a.listedAt!),
     [titles],
   );
-  // What you rated 8 or more, the best first.
+  // What you rated 8 or more, the best first (a row on Home, if Settings says so).
+  const { favourites: showFavourites } = useRatingSettings();
   const favourites = useMemo(
     () => titles.filter((t) => t.rating != null && t.rating >= FAVOURITE_FROM).sort((a, b) => b.rating! - a.rating! || a.name.localeCompare(b.name)),
     [titles],
@@ -194,7 +196,7 @@ export default function Browse({ tab, titles, offline, query, continueList, load
               ))}
             </Row>
           )}
-          {favourites.length > 0 && (
+          {showFavourites && favourites.length > 0 && (
             <Row label="Your favourites" count={favourites.length}>
               {favourites.map((t) => (
                 <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />

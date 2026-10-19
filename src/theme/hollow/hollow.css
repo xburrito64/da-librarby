@@ -4092,42 +4092,47 @@
   --rt-die-small: drop-shadow(0 0 4px rgba(255, 140, 40, 0.5));
 }
 
-/* The corner sticker: a little pumpkin with the rating carved in it. */
+/* The corner sticker (covers, season tabs): a little chipped stone, the rating carved in it and
+   glowing like the "i". (The shadow is on its holder: the stone's outline would cut it off.) */
 :root[data-theme="hollow"] .rt-coin {
-  position: relative;
-  min-width: 56px;
-  height: 52px;
-  padding: 6px 6px 0;
+  gap: 3px;
+  min-width: 50px;
+  height: 44px;
+  padding: 0 9px;
   border: 0;
-  border-radius: 48% 48% 44% 44% / 52% 52% 46% 46%;
-  background: radial-gradient(ellipse at 40% 35%, #ffb04a, #ff7a12 60%, #b84b06);
-  color: #3a1500;
-  font: 400 18px/1 var(--font-display);
-  box-shadow:
-    inset 7px 0 0 -4px rgba(120, 40, 0, 0.35),
-    inset -7px 0 0 -4px rgba(120, 40, 0, 0.35),
-    0 0 16px rgba(255, 130, 40, 0.6),
-    0 4px 6px rgba(0, 0, 0, 0.6);
-}
-
-:root[data-theme="hollow"] .rt-coin b {
-  font-weight: 400;
+  border-radius: 0;
+  clip-path: polygon(12% 6%, 38% 0, 66% 3%, 90% 12%, 100% 40%, 97% 72%, 84% 95%, 54% 100%, 24% 96%, 5% 80%, 0 48%, 4% 22%);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 140, 40, 0.22), transparent 62%),
+    linear-gradient(160deg, #5a5068, #3d344b 55%, #2a2335);
+  color: #ffd38a;
+  font: 800 17px/1 var(--font-body);
   text-shadow:
-    0 1px 0 rgba(255, 200, 120, 0.6),
-    0 0 6px #ffe08a;
+    0 0 2px #fff0c8,
+    0 0 6px #ffa040,
+    0 0 12px #ff7518;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -5px 8px rgba(0, 0, 0, 0.45);
 }
 
-:root[data-theme="hollow"] .rt-coin::before {
-  content: "";
-  position: absolute;
-  top: -7px;
-  left: 50%;
-  width: 7px;
-  height: 11px;
-  margin-left: -3px;
-  border-radius: 3px 3px 2px 2px;
-  background: linear-gradient(#5b7a2a, #34501a);
-  transform: rotate(12deg);
+:root[data-theme="hollow"] .rt-coin__star {
+  color: #ffb04a;
+  filter: drop-shadow(0 0 4px #ff7518);
+}
+
+:root[data-theme="hollow"] :is(.rt-cover--corner, .rt-tab--corner) {
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.65)) drop-shadow(0 0 6px rgba(255, 130, 40, 0.35));
+}
+
+:root[data-theme="hollow"] .rt-fact__value {
+  color: #ffb04a;
+  text-shadow: 0 0 8px rgba(255, 140, 40, 0.55);
+}
+
+/* (Its seasons have their summary: the rating is among its facts there, not on the bar.) */
+:root[data-theme="hollow"] .tp__seasonrate {
+  display: none;
 }
 
 :root[data-theme="hollow"] .rt-cover__label {

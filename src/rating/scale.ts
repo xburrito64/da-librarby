@@ -3,6 +3,7 @@
 
 export type RatingStyle = "stars" | "score" | "thumbs" | "tier" | "theme" | "feelings";
 export type CoverMode = "row" | "hover" | "corner" | "off";
+export type TabMode = "corner" | "under" | "off";
 
 export const STYLES: { id: RatingStyle; label: string; hint: string }[] = [
   { id: "stars", label: "1–5 stars", hint: "Gold stars, halves too." },

@@ -537,3 +537,16 @@
 :root[data-theme="neon"] .rt-stickers--theme {
   --rt-die: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
 }
+
+/* A season tab's corner sticker: its corners are cut off, so it sits just inside one. */
+:root[data-theme="neon"] .seasons__tab:has(.rt-tab--corner) {
+  margin-right: 0;
+  padding-right: 40px;
+}
+
+:root[data-theme="neon"] .rt-tab--corner {
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%) scale(0.5);
+  transform-origin: 100% 50%;
+}

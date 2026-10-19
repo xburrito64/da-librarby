@@ -80,6 +80,88 @@ export function RatingChip({ score, size = 14 }: { score: number; size?: number 
   );
 }
 
+const isOne = (style: RatingStyle) => style === "thumbs" || style === "tier" || style === "feelings";
+
+/** A sticker stuck on a corner (a cover's, a season tab's): a score or stars on a little coin (the
+ *  theme dresses it), or the one sticker of a thumb, a tier, a feeling. */
+function CornerSticker({ score, size }: { score: number; size: number }) {
+  const { style } = useRatingSettings();
+  if (isOne(style)) return <Stickers score={score} style={style} size={size} />;
+  return (
+    <span className={`rt-coin ${style === "score" ? "rt-coin--score" : ""}`}>
+      <i className="rt-coin__star" />
+      <b>{style === "score" ? toTen(score) : starsText(toStars(score))}</b>
+    </span>
+  );
+}
+
+/** A rating told in a few words, as in a line of facts: one sticker of the style (the theme's own
+ *  for a score), and the score, the stars or the feeling. */
+function FactBody({ score }: { score: number }) {
+  const { style } = useRatingSettings();
+  const theme = useTheme();
+  const level = toLevel(score);
+  const icon =
+    style === "thumbs" ? (
+      <Thumb level={level} />
+    ) : style === "tier" ? (
+      <span className="rt-tier" style={{ background: toTier(score).color }}>
+        {toTier(score).tier}
+      </span>
+    ) : (
+      <i
+        className={`rt-st ${style !== "stars" && isPixel(theme) ? "is-px" : ""}`}
+        style={{ backgroundImage: style === "feelings" ? feeling(level, theme) : sticker(1, style === "stars" ? null : theme) }}
+      />
+    );
+  const text = style === "score" ? toTen(score) : style === "stars" || style === "theme" ? starsText(toStars(score)) : style === "tier" ? null : LEVELS[level];
+  return (
+    <>
+      <span className="rt-fact__icon">{icon}</span>
+      {text && <b className="rt-fact__value">{text}</b>}
+    </>
+  );
+}
+
+/** Your rating as one of the facts about something ("· 🎃 9.3 yours"), or "Rate it": opens the
+ *  "Rate" window. */
+export function RateFact({ target, label = "yours" }: { target: RateTarget; label?: string }) {
+  const { style } = useRatingSettings();
+  return (
+    <button
+      className={`rt-fact ${target.score == null ? "is-empty" : ""}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        openRate(target);
+      }}
+      title={target.score == null ? "Rate it" : `Your rating: ${describe(target.score, style)} (change it)`}
+    >
+      {target.score == null ? (
+        <>
+          <i className="rt-fact__star" />
+          Rate it
+        </>
+      ) : (
+        <>
+          <FactBody score={target.score} />
+          <span className="rt-fact__label">{label}</span>
+        </>
+      )}
+    </button>
+  );
+}
+
+/** A season tab's rating, as Settings says: a sticker on the tab's corner, under its name, or none. */
+export function TabRating({ score }: { score: number | null }) {
+  const { tabs, style } = useRatingSettings();
+  if (score == null || tabs === "off") return null;
+  return (
+    <span className={`rt-tab rt-tab--${tabs}`} title={`Your rating: ${describe(score, style)}`}>
+      {tabs === "corner" ? <CornerSticker score={score} size={22} /> : <FactBody score={score} />}
+    </span>
+  );
+}
+
 /** A cover's rating, as Settings says: a row of stickers, only when pointed at, a sticker in the
  *  corner, or none. (The corner sticker sits on the card, over the cover's edge; the others on the
  *  cover.) */
@@ -87,21 +169,13 @@ export function CoverRating({ score, corner }: { score: number | null; corner: b
   const { style, covers } = useRatingSettings();
   if (score == null || covers === "off" || (covers === "corner") !== corner) return null;
   const label = describe(score, style);
-  const one = style === "thumbs" || style === "tier" || style === "feelings";
-  if (covers === "corner") {
+  const one = isOne(style);
+  if (covers === "corner")
     return (
       <span className="rt-cover rt-cover--corner" title={`Your rating: ${label}`}>
-        {one ? (
-          <Stickers score={score} style={style} size={40} />
-        ) : (
-          <span className={`rt-coin ${style === "score" ? "rt-coin--score" : ""}`}>
-            <i className="rt-coin__star" />
-            <b>{style === "score" ? toTen(score) : starsText(toStars(score))}</b>
-          </span>
-        )}
+        <CornerSticker score={score} size={40} />
       </span>
     );
-  }
   return (
     <span className={`rt-cover rt-cover--${covers}`} title={`Your rating: ${label}`}>
       <Stickers score={score} style={style} size={one ? 30 : covers === "row" ? 20 : 22} />
@@ -325,33 +399,6 @@ function RateDialog({ target, onClose }: { target: RateTarget; onClose: () => vo
       </div>
     </div>,
     document.querySelector(".app") ?? document.body,
-  );
-}
-
-/** Your rating beside a name, or "Rate" when there's none: opens the "Rate" window. */
-export function RateButton({ target, size = 15 }: { target: RateTarget; size?: number }) {
-  const { style } = useRatingSettings();
-  return (
-    <button
-      className={`rt-button ${target.score == null ? "is-empty" : ""}`}
-      onClick={(e) => {
-        e.stopPropagation();
-        openRate(target);
-      }}
-      title={target.score == null ? "Rate it" : `Your rating: ${describe(target.score, style)} (change it)`}
-    >
-      {target.score == null ? (
-        <>
-          <i className="rt-button__plus" />
-          Rate
-        </>
-      ) : (
-        <>
-          <RatingChip score={target.score} size={size} />
-          <span className="rt-button__yours">yours</span>
-        </>
-      )}
-    </button>
   );
 }
 

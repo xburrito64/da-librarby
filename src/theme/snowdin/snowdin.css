@@ -2804,7 +2804,7 @@
   font: 400 15px/1 var(--font-display);
 }
 
-:root[data-theme="snowdin"] :is(.rt-button, .rt-level, .rt-input__step, .rate-style, .rt-tier) {
+:root[data-theme="snowdin"] :is(.rt-level, .rt-input__step, .rate-style, .rt-tier) {
   border-radius: 0;
 }
 

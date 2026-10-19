@@ -3797,9 +3797,9 @@ select.input {
   bottom: 9px;
 }
 
-/* (Above the progress bar, when there is one.) */
+/* (Clear of the progress bar, when there is one.) */
 .card__art:has(.card__progress) .rt-cover--row {
-  bottom: 15px;
+  bottom: 24px;
 }
 
 .rt-cover--row .rt-stickers,
@@ -3872,12 +3872,7 @@ select.input {
   clip-path: polygon(50% 0, 62% 36%, 100% 38%, 70% 60%, 80% 98%, 50% 76%, 20% 98%, 30% 60%, 0 38%, 38% 36%);
 }
 
-/* Small ones: on a season's tab, an episode's picture. */
-.seasons__tab .rt-chip {
-  margin-left: 8px;
-  vertical-align: -1px;
-}
-
+/* A small one on an episode's picture. */
 .ep__rating {
   position: absolute;
   z-index: 2;
@@ -3895,51 +3890,122 @@ select.input {
   filter: var(--rt-die-small);
 }
 
-/* "Rate" / your rating, beside a name (a show's, a season's). */
-.rt-button {
+/* Your rating as one of the facts (a show's, a season's): its sticker, the rating and a quiet
+   "yours"; or "Rate it" when there's none. */
+.rt-fact {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 12px;
-  border: 1px dashed var(--line);
-  border-radius: var(--btn-radius);
+  gap: 5px;
+  padding: 0;
+  border: 0;
   background: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  vertical-align: baseline;
+  --rt-size: 1.25em;
+}
+
+.rt-fact__icon {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+}
+
+.rt-fact__icon .rt-st {
+  filter: var(--rt-die-small);
+}
+
+.rt-fact__icon .rt-tier {
+  min-width: 1.4em;
+  height: 1.4em;
+  font-size: 0.85em;
+}
+
+.rt-fact__value {
+  color: var(--accent);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.rt-fact__label {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 0.85em;
+}
+
+.rt-fact:hover .rt-fact__label {
+  color: var(--text);
+}
+
+.rt-fact.is-empty {
+  color: var(--accent);
   font-weight: 700;
-  transition:
-    color 0.2s,
-    border-color 0.2s,
-    background-color 0.2s;
+  font-size: 0.92em;
 }
 
-.rt-button:hover {
-  border-color: var(--accent);
-  color: var(--text);
+.rt-fact.is-empty:hover {
+  text-decoration: underline;
 }
 
-.rt-button:not(.is-empty) {
-  border-style: solid;
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--text);
-}
-
-.rt-button__plus {
-  width: 12px;
-  height: 12px;
+.rt-fact__star {
+  width: 0.9em;
+  height: 0.9em;
   background: currentColor;
   clip-path: polygon(50% 0, 62% 36%, 100% 38%, 70% 60%, 80% 98%, 50% 76%, 20% 98%, 30% 60%, 0 38%, 38% 36%);
 }
 
-.rt-button__yours {
-  color: var(--muted);
-  font-weight: 600;
+/* On a show's page, first of its facts, a little bigger. */
+.tp__facts .rt-fact {
+  margin-right: 6px;
+  font-size: 14px;
+  --rt-size: 22px;
 }
 
+.tp__facts .rt-fact__value {
+  font-size: 16px;
+}
+
+/* On the season's bar, beside "Mark season as watched" (themes that don't show the season's
+   summary); the others have it among the summary's facts. */
 .tp__seasonrate {
   display: inline-flex;
-  margin-left: 4px;
+  font-size: 12.5px;
+}
+
+/* A season tab's rating: a sticker on its corner, or under its name. */
+.seasons__tab {
+  position: relative;
+}
+
+.seasons__tab:has(.rt-tab--corner) {
+  margin-right: 20px;
+}
+
+.rt-tab--corner {
+  position: absolute;
+  z-index: 2;
+  top: -17px;
+  right: -26px;
+  transform: rotate(10deg) scale(0.78);
+  transform-origin: 70% 30%;
+  pointer-events: none;
+}
+
+.rt-tab--under {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 3px;
+  color: var(--muted);
+  font: 600 12px/1 var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  --rt-size: 13px;
+}
+
+.rt-tab--under .rt-fact__icon .rt-st {
+  filter: var(--rt-die-small);
 }
 
 /* Giving a rating. */
