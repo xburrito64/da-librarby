@@ -106,13 +106,15 @@ enum Job {
     AniList,
     /// Shows and movies; for anime, episode descriptions and thumbnails.
     Tmdb,
+    /// The big TMDB picture, full size (for anime: beside AniList's).
+    Banner,
 }
 
 impl Job {
     fn label(self) -> &'static str {
         match self {
             Job::AniList => "AniList",
-            Job::Tmdb => "TMDB",
+            Job::Tmdb | Job::Banner => "TMDB",
         }
     }
 }
@@ -142,6 +144,7 @@ fn find_jobs(library: &Library, forced: &[i64], attempted: &HashSet<(i64, Job)>,
     add(library.with_db(|c| store::anime_titles_needing_work(c)).unwrap_or_default(), Job::AniList);
     if has_key {
         add(library.with_db(|c| store::titles_needing_tmdb(c)).unwrap_or_default(), Job::Tmdb);
+        add(library.with_db(|c| store::titles_needing_banners(c)).unwrap_or_default(), Job::Banner);
     }
     jobs
 }
@@ -220,7 +223,8 @@ fn run(app: AppHandle) {
                 },
                 (Job::AniList, _) => tmdb_fallback(&app, id, &input, tmdb.as_ref()),
                 (Job::Tmdb, Some(tmdb)) => process_tmdb(&app, id, &input, tmdb),
-                (Job::Tmdb, None) => Ok(()),
+                (Job::Banner, Some(tmdb)) => save_banner(&app, id, tmdb),
+                (Job::Tmdb | Job::Banner, None) => Ok(()),
             };
             match result {
                 Ok(()) => {
@@ -249,6 +253,27 @@ fn run(app: AppHandle) {
         }
     }
     set_status(&app, Status::default());
+}
+
+/// Fetches a title's big TMDB picture again, full size and without writing on it.
+fn save_banner(app: &AppHandle, title_id: i64, tmdb: &Tmdb) -> Result<(), anilist::Error> {
+    let metadata = app.state::<Metadata>();
+    let library = app.state::<Library>();
+    let db_error = |e: String| anilist::Error::Rejected(e);
+    let Some((movie, id)) = library.with_db(|c| store::banner_source(c, title_id)).map_err(db_error)? else { return Ok(()) };
+    let name = tmdb_banner(&metadata.images, tmdb, movie, id, None);
+    library.with_db(|c| store::save_banner(c, title_id, name.as_deref())).map_err(db_error)
+}
+
+/// A show's or movie's big picture from TMDB, full size: the best-liked one without writing on it,
+/// or else `fallback` (the one TMDB shows first).
+fn tmdb_banner(images: &Images, tmdb: &Tmdb, movie: bool, id: i64, fallback: Option<&str>) -> Option<String> {
+    let path = match tmdb.backdrop(movie, id) {
+        Ok(Some(path)) => Some(path),
+        _ => fallback.map(str::to_string),
+    };
+    let kind = if movie { "movie" } else { "tv" };
+    images.banner(&format!("tmdb-{kind}-{id}-full"), tmdb::image_url(path.as_deref(), "original").as_deref())
 }
 
 /// AniList is down: an anime is matched on TMDB like any show or movie, and marked so it's matched on
@@ -303,6 +328,7 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
         let (names, year, known) = library.with_db(|c| store::anime_lookup_hints(c, title_id)).map_err(db_error)?;
         let names: Vec<&str> = names.iter().map(String::as_str).collect();
         let (tmdb_id, seasons) = tmdb_match::anime_show(&names, year, known, tmdb)?.map_or((None, Vec::new()), |(id, s)| (Some(id), s));
+        art.banner = tmdb_id.and_then(|id| tmdb_banner(images, tmdb, false, id, None));
         let promoted = promote_extras(&library, title_id, &seasons)?;
         let input = promoted.as_ref().unwrap_or(input);
         let episodes = tmdb_match::map_episodes(&input.seasons, &seasons);
@@ -332,7 +358,7 @@ fn show_or_movie(library: &Library, images: &Images, title_id: i64, input: &anim
     let matched = tmdb_match::match_tv(input, show, &seasons, tmdb)?;
     if let Some(show) = &matched.show {
         save_poster(images, &mut art, &format!("tv-{}", show.id), show.poster_path.as_deref());
-        art.banner = images.banner(&format!("tmdb-tv-{}", show.id), tmdb::image_url(show.backdrop_path.as_deref(), "w1280").as_deref());
+        art.banner = tmdb_banner(images, tmdb, false, show.id, show.backdrop_path.as_deref());
         for summary in matched.seasons.iter().filter_map(|(_, s)| s.as_ref()) {
             let key = format!("season-{}", summary.season_number);
             if let Some(saved) = images.cover(
@@ -350,6 +376,7 @@ fn show_or_movie(library: &Library, images: &Images, title_id: i64, input: &anim
     library
         .with_db(|c| {
             store::save_tv_match(c, title_id, input, &matched, &art)?;
+            store::save_banner(c, title_id, None)?;
             store::extras_checked(c, title_id)
         })
         .map_err(db_error)
@@ -364,7 +391,10 @@ fn save_tmdb_movie(library: &Library, images: &Images, title_id: i64, input: &an
     }
     let parts = movie_art(images, movie.as_ref(), tmdb, &mut art);
     library
-        .with_db(|c| store::save_movie_title(c, title_id, input, movie.as_ref(), &parts, &art))
+        .with_db(|c| {
+            store::save_movie_title(c, title_id, input, movie.as_ref(), &parts, &art)?;
+            store::save_banner(c, title_id, None)
+        })
         .map_err(anilist::Error::Rejected)
 }
 
@@ -421,7 +451,7 @@ fn process_one_pace(library: &Library, images: &Images, title_id: i64, tmdb: &Tm
 /// A movie's wide artwork and cast photos, and the movies of its collection.
 fn movie_art(images: &Images, movie: Option<&tmdb::Movie>, tmdb: &Tmdb, art: &mut store::TmdbArt) -> Vec<tmdb::CollectionPart> {
     let Some(m) = movie else { return Vec::new() };
-    art.banner = images.banner(&format!("tmdb-movie-{}", m.id), tmdb::image_url(m.backdrop_path.as_deref(), "w1280").as_deref());
+    art.banner = tmdb_banner(images, tmdb, true, m.id, m.backdrop_path.as_deref());
     let cast = m.credits.as_ref().map(|c| &c.cast[..c.cast.len().min(store::CAST_SHOWN)]).unwrap_or_default();
     for person in cast {
         let url = tmdb::image_url(person.profile_path.as_deref(), "w185");

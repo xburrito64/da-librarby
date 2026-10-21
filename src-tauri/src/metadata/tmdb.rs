@@ -233,7 +233,24 @@ pub fn year_of(date: Option<&str>) -> Option<i32> {
     date.and_then(|d| d.get(..4)).and_then(|y| y.parse().ok())
 }
 
-/// Full image URL. Sizes: posters "w780", backdrops "w1280", episode stills "w300".
+#[derive(Debug, Clone, Deserialize)]
+struct ImageList {
+    #[serde(default)]
+    backdrops: Vec<ImageInfo>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ImageInfo {
+    file_path: String,
+    /// None: no writing on it.
+    iso_639_1: Option<String>,
+    #[serde(default)]
+    width: u32,
+    #[serde(default)]
+    vote_average: f64,
+}
+
+/// Full image URL. Sizes: posters "w780", backdrops "original", episode stills "w300".
 pub fn image_url(path: Option<&str>, size: &str) -> Option<String> {
     path.filter(|p| p.starts_with('/')).map(|p| format!("{IMAGES}/{size}{p}"))
 }
@@ -293,6 +310,19 @@ impl Tmdb {
     /// A movie with its cast and crew.
     pub fn movie(&self, id: i64) -> Result<Movie, Error> {
         self.get(&format!("/movie/{id}"), &[("append_to_response", "credits,release_dates".to_string())])
+    }
+
+    /// The best-liked wide picture of a show or movie without writing on it (the name's shown
+    /// beside it), full size where there's one.
+    pub fn backdrop(&self, movie: bool, id: i64) -> Result<Option<String>, Error> {
+        let kind = if movie { "movie" } else { "tv" };
+        let list: ImageList = self.get(&format!("/{kind}/{id}/images"), &[("include_image_language", "null".to_string())])?;
+        let mut plain: Vec<&ImageInfo> = list.backdrops.iter().filter(|b| b.iso_639_1.is_none()).collect();
+        if plain.iter().any(|b| b.width >= 1920) {
+            plain.retain(|b| b.width >= 1920);
+        }
+        plain.sort_by(|a, b| b.vote_average.total_cmp(&a.vote_average));
+        Ok(plain.first().map(|b| b.file_path.clone()))
     }
 
     /// The movies of a collection ("The Lord of the Rings Collection").

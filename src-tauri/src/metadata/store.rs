@@ -873,8 +873,47 @@ pub fn save_movie_title(
 /// description and cover stay).
 pub fn save_anime_movie(conn: &Connection, title_id: i64, movie: Option<&Movie>, parts: &[CollectionPart], art: &TmdbArt) -> rusqlite::Result<()> {
     conn.execute(
-        "UPDATE title_meta SET extra = ?2, tmdb_id = ?3, banner = COALESCE(?4, banner) WHERE title_id = ?1",
-        params![title_id, movie_extra(movie, parts, art), movie.map(|m| m.id.to_string()), art.banner],
+        "UPDATE title_meta SET extra = ?2, tmdb_id = ?3, banner_tmdb = COALESCE(?4, banner_tmdb), banners_at = ?5 WHERE title_id = ?1",
+        params![title_id, movie_extra(movie, parts, art), movie.map(|m| m.id.to_string()), art.banner, now()],
+    )?;
+    Ok(())
+}
+
+/// Titles whose big TMDB picture hasn't been fetched (full size) yet: shows and movies matched on
+/// TMDB, and anime found there too.
+pub fn titles_needing_banners(conn: &Connection) -> rusqlite::Result<Vec<i64>> {
+    let mut stmt = conn.prepare(
+        "SELECT m.title_id FROM title_meta m JOIN titles t ON t.id = m.title_id
+         WHERE t.present = 1 AND m.banners_at IS NULL
+           AND (m.tmdb_id IS NOT NULL OR (m.provider = 'tmdb' AND m.provider_id IS NOT NULL))",
+    )?;
+    let ids = stmt.query_map([], |r| r.get(0))?.collect();
+    ids
+}
+
+/// The TMDB show or movie a title's big picture comes from: (is a movie, TMDB id).
+pub fn banner_source(conn: &Connection, title_id: i64) -> rusqlite::Result<Option<(bool, i64)>> {
+    let row: Option<(bool, Option<String>)> = conn
+        .query_row(
+            "SELECT t.is_movie, CASE WHEN m.provider = 'tmdb' THEN m.provider_id ELSE m.tmdb_id END
+             FROM title_meta m JOIN titles t ON t.id = m.title_id WHERE m.title_id = ?1",
+            [title_id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .optional()?;
+    Ok(row.and_then(|(movie, id)| Some((movie, id?.parse().ok()?))))
+}
+
+/// Keeps a title's big TMDB picture (None: nothing new, it's just been asked): its banner when
+/// it's matched on TMDB, beside AniList's otherwise.
+pub fn save_banner(conn: &Connection, title_id: i64, name: Option<&str>) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE title_meta SET
+           banner = CASE WHEN provider = 'tmdb' THEN COALESCE(?2, banner) ELSE banner END,
+           banner_tmdb = CASE WHEN provider = 'tmdb' THEN banner_tmdb ELSE COALESCE(?2, banner_tmdb) END,
+           banners_at = ?3
+         WHERE title_id = ?1",
+        params![title_id, name, now()],
     )?;
     Ok(())
 }
@@ -889,7 +928,12 @@ pub fn save_anime_episodes(
 ) -> rusqlite::Result<()> {
     let tx = conn.transaction()?;
     let now = now();
-    tx.execute("UPDATE title_meta SET tmdb_id = ?2 WHERE title_id = ?1", params![title_id, tmdb_id.map(|i| i.to_string())])?;
+    tx.execute(
+        "UPDATE title_meta SET tmdb_id = ?2, banner_tmdb = COALESCE(?3, banner_tmdb),
+           banners_at = CASE WHEN ?3 IS NOT NULL THEN ?4 WHEN tmdb_id IS ?2 THEN banners_at END
+         WHERE title_id = ?1",
+        params![title_id, tmdb_id.map(|i| i.to_string()), art.banner, now],
+    )?;
     for (file_id, eps) in episodes {
         tx.execute(
             "UPDATE file_meta SET name = ?2, description = ?3, air_date = ?4, thumb = ?5, details_at = ?6
@@ -1082,6 +1126,42 @@ mod tests {
             .unwrap();
         assert_eq!(left, (0, 0, 0));
         assert_eq!(anime_titles_needing_work(&conn).unwrap(), [1]);
+        drop(conn);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn big_pictures_from_tmdb() {
+        let path = std::env::temp_dir().join(format!("dalibrarby-banner-test-{}.db", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let conn = crate::library::db::open(&path).unwrap();
+        conn.execute_batch(
+            "INSERT INTO libraries (id, path, kind) VALUES (1, 'D:/Anime', 'anime');
+             INSERT INTO titles (id, library_id, key, is_movie, name, folder, added_at) VALUES (1, 1, 'A', 0, 'Naruto', 'D:/Anime/A', 0);
+             INSERT INTO titles (id, library_id, key, is_movie, name, folder, added_at) VALUES (2, 1, 'B', 1, 'Some Movie', 'D:/Anime/B', 0);
+             INSERT INTO titles (id, library_id, key, is_movie, name, folder, added_at) VALUES (3, 1, 'C', 0, 'Not on TMDB', 'D:/Anime/C', 0);
+             INSERT INTO title_meta (title_id, provider, provider_id, banner, tmdb_id, updated_at) VALUES (1, 'anilist', '20', 'anilist-20-banner.jpg', '46260', 0);
+             INSERT INTO title_meta (title_id, provider, provider_id, banner, updated_at) VALUES (2, 'tmdb', '18861', 'tmdb-movie-18861-banner.jpg', 0);
+             INSERT INTO title_meta (title_id, provider, provider_id, updated_at) VALUES (3, 'anilist', '7', 0);",
+        )
+        .unwrap();
+        assert_eq!(titles_needing_banners(&conn).unwrap(), [1, 2]);
+        assert_eq!(banner_source(&conn, 1).unwrap(), Some((false, 46260)));
+        assert_eq!(banner_source(&conn, 2).unwrap(), Some((true, 18861)));
+        // An anime keeps AniList's beside TMDB's; a title matched on TMDB gets the new one.
+        save_banner(&conn, 1, Some("tmdb-tv-46260-full-banner.jpg")).unwrap();
+        save_banner(&conn, 2, Some("tmdb-movie-18861-full-banner.jpg")).unwrap();
+        let banners = |id: i64| -> (Option<String>, Option<String>) {
+            conn.query_row("SELECT banner, banner_tmdb FROM title_meta WHERE title_id = ?1", [id], |r| Ok((r.get(0)?, r.get(1)?))).unwrap()
+        };
+        assert_eq!(banners(1), (Some("anilist-20-banner.jpg".into()), Some("tmdb-tv-46260-full-banner.jpg".into())));
+        assert_eq!(banners(2), (Some("tmdb-movie-18861-full-banner.jpg".into()), None));
+        assert!(titles_needing_banners(&conn).unwrap().is_empty());
+        // Nothing found: the old one stays, and it isn't asked again.
+        conn.execute("UPDATE title_meta SET banners_at = NULL WHERE title_id = 2", []).unwrap();
+        save_banner(&conn, 2, None).unwrap();
+        assert_eq!(banners(2).0.as_deref(), Some("tmdb-movie-18861-full-banner.jpg"));
+        assert!(titles_needing_banners(&conn).unwrap().is_empty());
         drop(conn);
         let _ = std::fs::remove_file(&path);
     }

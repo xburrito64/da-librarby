@@ -283,6 +283,15 @@ pub async fn library_list_set(app: AppHandle, library: State<'_, Library>, title
     Ok(())
 }
 
+/// Picks the wide picture an anime shows (AniList's or TMDB's), or lets the app decide (None).
+#[tauri::command]
+pub async fn library_banner_set(app: AppHandle, library: State<'_, Library>, title_id: i64, source: Option<String>) -> Result<(), String> {
+    let source = source.filter(|s| s == "anilist" || s == "tmdb");
+    library.with_db(|c| db::set_banner_choice(c, title_id, source.as_deref()))?;
+    let _ = app.emit("library:changed", json!({}));
+    Ok(())
+}
+
 /// Removes a show from "continue watching" (until something of it is watched again).
 #[tauri::command]
 pub async fn watch_hide(app: AppHandle, library: State<'_, Library>, title_id: i64) -> Result<(), String> {

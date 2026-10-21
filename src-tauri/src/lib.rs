@@ -141,6 +141,7 @@ pub fn run() {
             library::watch_set_title,
             library::library_search,
             library::library_list_set,
+            library::library_banner_set,
             metadata::metadata_status,
             metadata::metadata_search,
             metadata::metadata_match_title,

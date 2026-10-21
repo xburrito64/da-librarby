@@ -23,6 +23,7 @@ import {
   type TitleSummary,
 } from "./api";
 import MatchPicker from "./MatchPicker";
+import BannerPicker from "./BannerPicker";
 import { BackIcon, CheckIcon, ChevronDown, EditIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, StarIcon, UndoIcon } from "../ui/icons";
 import { openRate, RateFact, RatingChip, TabRating } from "../rating/Rating";
 import { useRatingSettings } from "../rating/settings";
@@ -35,7 +36,7 @@ import { Card } from "./Browse";
 import EpisodeInfo from "./EpisodeInfo";
 import { useCopy } from "../theme/copy";
 
-type Picking = { kind: "title" } | { kind: "season"; season: SeasonRow } | { kind: "file"; file: FileRow };
+type Picking = { kind: "title" } | { kind: "season"; season: SeasonRow } | { kind: "file"; file: FileRow } | { kind: "banner" };
 
 interface Props {
   id: number;
@@ -300,6 +301,14 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
           )}
           <div className="tp__note">
             {matchNote(title)} · {title.folder}
+            {meta?.banners && (
+              <>
+                {" · "}
+                <button className="tp__notelink" onClick={() => setPicking({ kind: "banner" })} title="AniList's or TMDB's">
+                  Background picture
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -438,6 +447,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
           onClose={close}
         />
       )}
+      {picking?.kind === "banner" && meta?.banners && <BannerPicker titleId={title.id} name={title.name} choice={meta.banners} onClose={close} />}
       {picking?.kind === "season" && (
         <MatchPicker
           heading={`${title.name}: ${picking.season.label}`}

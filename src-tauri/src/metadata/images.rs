@@ -10,7 +10,7 @@ use image::DynamicImage;
 /// Widths in pixels. Thumbnails are what the cover grid shows.
 const COVER_WIDTH: u32 = 600;
 const THUMB_WIDTH: u32 = 300;
-const BANNER_WIDTH: u32 = 1920;
+const BANNER_WIDTH: u32 = 2560;
 const STILL_WIDTH: u32 = 400;
 
 pub struct Images {

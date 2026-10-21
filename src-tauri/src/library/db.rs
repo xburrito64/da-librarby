@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 16;
+const SCHEMA_VERSION: i32 = 17;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -218,6 +218,20 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
     if version < 16 {
         // An anime matched on TMDB while AniList was down, to be matched on AniList again once it's back.
         conn.execute_batch("ALTER TABLE title_meta ADD COLUMN fallback INTEGER NOT NULL DEFAULT 0;")?;
+    }
+    if version < 17 {
+        // An anime's wide picture from TMDB beside AniList's (the sharper one is shown, or the one picked),
+        // and when the big TMDB pictures were last fetched (empty: fetched again, full size).
+        // An anime movie's TMDB picture was kept as its banner; it's TMDB's.
+        conn.execute_batch(
+            "ALTER TABLE title_meta ADD COLUMN banner_tmdb TEXT;
+             ALTER TABLE title_meta ADD COLUMN banners_at INTEGER;
+             CREATE TABLE IF NOT EXISTS banner_choice (
+                 title_id INTEGER PRIMARY KEY REFERENCES titles(id) ON DELETE CASCADE,
+                 source   TEXT NOT NULL
+             );
+             UPDATE title_meta SET banner_tmdb = banner, banner = NULL WHERE provider = 'anilist' AND banner LIKE 'tmdb-%';",
+        )?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
@@ -519,6 +533,71 @@ fn image_path(dir: &Path, name: Option<String>) -> Option<String> {
     name.map(|n| dir.join(n).to_string_lossy().into_owned())
 }
 
+/// Width and height of a saved picture (remembered: a file's name stays with its picture).
+fn image_size(dir: &Path, name: &str) -> Option<(u32, u32)> {
+    static SIZES: std::sync::OnceLock<std::sync::Mutex<HashMap<String, (u32, u32)>>> = std::sync::OnceLock::new();
+    let sizes = SIZES.get_or_init(Default::default);
+    if let Some(size) = sizes.lock().unwrap().get(name) {
+        return Some(*size);
+    }
+    let size = image::image_dimensions(dir.join(name)).ok()?;
+    sizes.lock().unwrap().insert(name.to_string(), size);
+    Some(size)
+}
+
+/// A thin strip (most of AniList's banners are 1900 x 400) goes blurry stretched over a big header.
+fn is_strip(dir: &Path, name: &str) -> bool {
+    image_size(dir, name).is_none_or(|(w, h)| w < 1280 || w as f64 / h.max(1) as f64 > 3.0)
+}
+
+/// The wide picture shown for a title: the one picked, or else AniList's unless it's a thin strip
+/// and TMDB has one. `own` is the matched service's.
+fn pick_banner(dir: &Path, own: Option<String>, tmdb: Option<String>, choice: Option<&str>) -> Option<String> {
+    let name = match (own, tmdb) {
+        (Some(own), Some(tmdb)) => match choice {
+            Some("anilist") => own,
+            Some("tmdb") => tmdb,
+            _ if is_strip(dir, &own) => tmdb,
+            _ => own,
+        },
+        (own, tmdb) => own.or(tmdb)?,
+    };
+    image_path(dir, Some(name))
+}
+
+/// The two wide pictures of an anime to pick from (only when there are two).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BannerChoice {
+    pub anilist: BannerOption,
+    pub tmdb: BannerOption,
+    /// "anilist" or "tmdb" when picked by hand; None = the app decides.
+    pub picked: Option<String>,
+    /// The one the app would show by itself.
+    pub automatic: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BannerOption {
+    pub path: String,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+}
+
+fn banner_choice(dir: &Path, own: Option<String>, tmdb: Option<String>, picked: Option<String>) -> Option<BannerChoice> {
+    let (own, tmdb) = (own?, tmdb?);
+    let option = |name: &str| {
+        let size = image_size(dir, name);
+        BannerOption { path: dir.join(name).to_string_lossy().into_owned(), width: size.map(|s| s.0), height: size.map(|s| s.1) }
+    };
+    Some(BannerChoice {
+        automatic: if is_strip(dir, &own) { "tmdb" } else { "anilist" }.into(),
+        anilist: option(&own),
+        tmdb: option(&tmdb),
+        picked,
+    })
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TitleSummary {
@@ -611,7 +690,8 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
                   WHERE t.is_movie = 1 AND f.title_id = t.id AND f.present = 1 AND f.role = 'movie'
                     AND w.duration > 0 AND w.position >= ?3 AND w.position < w.duration * ?4
                   ORDER BY w.updated_at DESC LIMIT 1),
-                (SELECT score FROM ratings WHERE kind = 'title' AND item_id = t.id)
+                (SELECT score FROM ratings WHERE kind = 'title' AND item_id = t.id),
+                m.banner_tmdb, (SELECT source FROM banner_choice WHERE title_id = t.id)
          FROM titles t JOIN libraries l ON l.id = t.library_id
          LEFT JOIN title_meta m ON m.title_id = t.id
          WHERE t.present = 1",
@@ -644,7 +724,7 @@ pub fn titles(conn: &Connection, images: &Path) -> rusqlite::Result<Vec<TitleSum
             color: r.get(13)?,
             matched: if looked_up { Some(r.get(15)?) } else { None },
             genres: r.get::<_, Option<String>>(16)?.and_then(|g| serde_json::from_str(&g).ok()).unwrap_or_default(),
-            banner: image_path(images, r.get(17)?),
+            banner: pick_banner(images, r.get(17)?, r.get(30)?, r.get::<_, Option<String>>(31)?.as_deref()),
             score: r.get(18)?,
             watched: watched.get(&id).copied().unwrap_or(0),
             new_count: new_counts.get(&id).copied().unwrap_or(0),
@@ -695,6 +775,8 @@ pub struct TitleMeta {
     pub studio: Option<String>,
     pub color: Option<String>,
     pub banner: Option<String>,
+    /// An anime's wide pictures from AniList and TMDB, to pick from.
+    pub banners: Option<BannerChoice>,
     /// For movies: cast, director, tagline, collection (photos as full paths).
     pub extra: Option<MovieExtra>,
     /// An anime matched on TMDB while AniList was down (matched on AniList again once it's back).
@@ -843,10 +925,12 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
     let meta = conn
         .query_row(
             "SELECT provider, provider_id, locked, name, description, year, score, cover, thumb,
-                    genres, status, studio, color, banner, extra, fallback
+                    genres, status, studio, color, banner, extra, fallback, banner_tmdb,
+                    (SELECT source FROM banner_choice WHERE title_id = ?1)
              FROM title_meta WHERE title_id = ?1",
             [id],
             |r| {
+                let (own, tmdb, picked): (Option<String>, Option<String>, Option<String>) = (r.get(13)?, r.get(16)?, r.get(17)?);
                 Ok(TitleMeta {
                     base: Meta {
                         provider: r.get(0)?,
@@ -866,7 +950,8 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
                     status: r.get(10)?,
                     studio: r.get(11)?,
                     color: r.get(12)?,
-                    banner: image_path(images, r.get(13)?),
+                    banner: pick_banner(images, own.clone(), tmdb.clone(), picked.as_deref()),
+                    banners: banner_choice(images, own, tmdb, picked),
                     extra: r.get::<_, Option<String>>(14)?.and_then(|e| serde_json::from_str::<MovieExtra>(&e).ok()).map(
                         |mut e| {
                             for p in &mut e.cast {
@@ -973,6 +1058,15 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
     let listed_at = conn.query_row("SELECT added_at FROM my_list WHERE title_id = ?1", [id], |r| r.get(0)).optional()?;
     let rating = super::rating::ratings(conn, "title")?.get(&id).copied();
     Ok(Some(TitleDetail { id, kind, name, year, is_movie, folder, meta, seasons, files, listed_at, parent_id, parent_name, rating }))
+}
+
+/// Which wide picture an anime shows: "anilist", "tmdb", or None to let the app decide.
+pub fn set_banner_choice(conn: &Connection, title_id: i64, source: Option<&str>) -> rusqlite::Result<()> {
+    match source {
+        Some(s) => conn.execute("INSERT OR REPLACE INTO banner_choice (title_id, source) VALUES (?1, ?2)", params![title_id, s])?,
+        None => conn.execute("DELETE FROM banner_choice WHERE title_id = ?1", [title_id])?,
+    };
+    Ok(())
 }
 
 /// Puts a title on My List or takes it off.

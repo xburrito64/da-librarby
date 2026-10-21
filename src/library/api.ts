@@ -84,10 +84,29 @@ export interface TitleMeta extends Meta {
   studio: string | null;
   color: string | null;
   banner: string | null;
+  /** An anime's wide pictures from AniList and TMDB, to pick from (when there are both). */
+  banners: BannerChoice | null;
   /** Movies: cast, director, tagline, collection. */
   extra: MovieExtra | null;
   /** An anime matched on TMDB while AniList was down (matched on AniList again once it's back). */
   fallback: boolean;
+}
+
+export type BannerSource = "anilist" | "tmdb";
+
+export interface BannerChoice {
+  anilist: BannerOption;
+  tmdb: BannerOption;
+  /** Picked by hand; null = the app decides. */
+  picked: BannerSource | null;
+  /** The one the app shows by itself (the sharper one). */
+  automatic: BannerSource;
+}
+
+export interface BannerOption {
+  path: string;
+  width: number | null;
+  height: number | null;
 }
 
 export interface MovieExtra {
@@ -276,6 +295,8 @@ export const library = {
   search: (query: string) => invoke<SearchResults>("library_search", { query }),
   /** Puts a show or movie on My List, or takes it off. */
   setListed: (titleId: number, on: boolean) => invoke<void>("library_list_set", { titleId, on }),
+  /** Which wide picture an anime shows; null lets the app decide. */
+  setBanner: (titleId: number, source: BannerSource | null) => invoke<void>("library_banner_set", { titleId, source }),
 
   onScan: (callback: (status: { running: boolean; library: string | null }) => void) =>
     listen<{ running: boolean; library: string | null }>("library:scan", (e) => callback(e.payload)),
