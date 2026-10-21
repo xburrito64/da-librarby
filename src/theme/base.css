@@ -1634,9 +1634,6 @@
 .seasons {
   display: flex;
   flex-wrap: wrap;
-  /* Each tab as tall as itself (one with its rating under its name is taller; the others don't
-     stretch to match it). */
-  align-items: flex-start;
   gap: 8px;
   margin-bottom: 14px;
 }
@@ -3975,6 +3972,13 @@ select.input {
   font-size: 12.5px;
 }
 
+/* A season tab's rating: a sticker on its corner, or under its name. With ratings under the
+   names, the rows of tabs leave room for them. */
+.seasons:has(.rt-tab--under) {
+  row-gap: 22px;
+  padding-bottom: 18px;
+}
+
 /* A season tab's rating: a sticker on its corner, or under its name. */
 .seasons__tab {
   position: relative;
@@ -3994,12 +3998,17 @@ select.input {
   pointer-events: none;
 }
 
+/* (Hanging under the tab, so the tab stays as tall as the others and their names stay in line.) */
 .rt-tab--under {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 3px);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  margin-top: 3px;
+  white-space: nowrap;
   color: var(--muted);
   font: 600 12px/1 var(--font-body);
   letter-spacing: 0;

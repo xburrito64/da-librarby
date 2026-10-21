@@ -756,6 +756,8 @@ mod tests {
             (r"H:\Cartoons", LibraryKind::Shows),
             (r"F:\Mobies", LibraryKind::Movies),
             (r"D:\Anime", LibraryKind::Anime),
+            (r"D:\Cartoons", LibraryKind::Shows),
+            (r"D:\Mobies", LibraryKind::Movies),
         ] {
             println!("########## {root}");
             let Ok(titles) = scan_library(Path::new(root), kind) else {

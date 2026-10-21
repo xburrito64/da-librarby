@@ -57,7 +57,8 @@ re!(MOVIE_NUMBER, r"(?i)(^|[\s\-–:])movie\s*0*\d{1,2}($|[\s\-–:])");
 re!(THE_MOVIE_NUMBER, r"(?i)\b(the movie)\s*0*\d{1,2}\b");
 re!(DOUBLE_DASH, r"\s*[-–]\s*[-–:]\s*");
 re!(LEADING_SEASON, r"(?i)^(season\s*\d{1,3}|s\d{1,3}(e\d{1,4})?)(\s*[-–:.]\s+|\s+)");
-re!(MOVIES_FOLDER,r"(?i)^(movies|films)$");
+// "Movies", or "Made in Abyss Movies" (the show's name in front).
+re!(MOVIES_FOLDER, r"(?i)^(.*\s)?(movies|films)$");
 re!(THE_MOVIE, r"(?i)\bthe movie\b");
 re!(SXXEYY, r"(?i)\bS(\d{1,3})\s*E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?(?:-?E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?)?");
 // (Several in one file: "Episode 9-15", "E09-E15".)
@@ -134,7 +135,9 @@ fn without_release_words(title: &str) -> String {
 /// Removes release tags: `[Group]`, `(Group)` in front, `(1080p BluRay x265)`, `.1080p.BluRay.x264-GROUP`
 /// tails, stray brackets.
 pub fn strip_tags(s: &str) -> String {
-    let s = LEADING_GROUP.replace(s, "");
+    // Underscores for spaces: "[DB]Made in Abyss_-_01_(Dual Audio_10bit_BD1080p_x265)".
+    let s = s.replace('_', " ");
+    let s = LEADING_GROUP.replace(&s, "");
     let s = RELEASE_TAIL.replace(&s, "");
     let s = BRACKETS.replace_all(&s, " ");
     let s = PARENS.replace_all(&s, |caps: &regex::Captures| {
@@ -717,5 +720,22 @@ mod tests {
         assert_eq!(e.title.as_deref(), Some("Krusty Koncessionaires + Dream Hoppers"));
         let e = parse_episode(file_stem("SpongeBob SquarePants - S08E09 - Mr. Krabs Takes a Vacation.mkv"));
         assert_eq!(e.title.as_deref(), Some("Mr. Krabs Takes a Vacation"));
+    }
+
+    #[test]
+    fn underscores_for_spaces() {
+        let e = parse_episode("[DB]Made in Abyss_-_01_(Dual Audio_10bit_BD1080p_x265)");
+        assert_eq!((e.episode, e.title), (Some(1.0), None));
+        let e = parse_episode("[DB]Made in Abyss Retsujitsu no Ougonkyou_-_03_(Dual Audio_10bit_BD1080p_x265)");
+        assert_eq!(e.episode, Some(3.0));
+        let e = parse_episode("[DB]Made in Abyss Movie - 02 - Hourou Suru Tasogare_-_(Dual Audio_10bit_BD1080p_x265)");
+        assert_eq!(e.title.as_deref(), Some("Hourou Suru Tasogare"));
+    }
+
+    #[test]
+    fn movies_folders() {
+        assert_eq!(classify_folder("Movies"), FolderKind::Movies);
+        assert_eq!(classify_folder("Made in Abyss Movies"), FolderKind::Movies);
+        assert_eq!(classify_folder("Made in Abyss S01"), FolderKind::Season(1));
     }
 }

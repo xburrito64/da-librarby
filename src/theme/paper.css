@@ -370,8 +370,6 @@
 
 :root[data-theme="paper"] .seasons {
   gap: 0;
-  /* (Its tabs stand on the line under them, all down to it.) */
-  align-items: stretch;
   border-bottom: 1px solid var(--line);
 }
 
@@ -524,4 +522,20 @@
 :root[data-theme="paper"] .tp--movie .tp__head {
   min-height: 0;
   padding-top: calc(52vh + 72px + 56px);
+}
+
+/* Its tabs stand on the line under them: a rating under a name stays inside its tab, all of them a
+   little taller for it so their names stay in line. */
+:root[data-theme="paper"] .seasons:has(.rt-tab--under) .seasons__tab {
+  padding-bottom: 26px;
+}
+
+:root[data-theme="paper"] .rt-tab--under {
+  top: auto;
+  bottom: 8px;
+}
+
+:root[data-theme="paper"] .seasons:has(.rt-tab--under) {
+  row-gap: 0;
+  padding-bottom: 0;
 }

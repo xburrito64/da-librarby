@@ -4146,3 +4146,18 @@
   top: -6px;
   right: -8px;
 }
+
+/* A season tab with its rating under its name: under its padding, and the slime of the chosen one
+   below the rating. */
+:root[data-theme="hollow"] .rt-tab--under {
+  top: calc(100% - 8px);
+}
+
+:root[data-theme="hollow"] .seasons__tab:has(.rt-tab--under) {
+  --he-goo-top: calc(100% + 10px);
+}
+
+:root[data-theme="hollow"] .seasons:has(.rt-tab--under) {
+  row-gap: 16px;
+  padding-bottom: 20px;
+}
