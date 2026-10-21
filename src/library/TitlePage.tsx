@@ -369,7 +369,7 @@ export default function TitlePage({ id, initial, still, onBack, onPlay, onOpen, 
                     anime && (
                       <p className="tp__seasonnote">
                         {season.meta?.providerIds.length
-                          ? `AniList: ${season.meta.name ?? ""}${season.meta.providerIds.length > 1 ? ` + ${season.meta.providerIds.length - 1} more part${season.meta.providerIds.length > 2 ? "s" : ""}` : ""}`
+                          ? `${meta?.fallback ? "TMDB" : "AniList"}: ${season.meta.name ?? ""}${season.meta.providerIds.length > 1 ? ` + ${season.meta.providerIds.length - 1} more part${season.meta.providerIds.length > 2 ? "s" : ""}` : ""}`
                           : season.meta
                             ? "No AniList entry"
                             : "Looking up…"}
@@ -770,7 +770,8 @@ function WatchMarks({ file }: { file: FileRow }) {
 }
 
 function matchNote(title: TitleDetail) {
-  const source = title.kind === "anime" ? "AniList" : "TMDB";
+  if (title.meta?.fallback) return "Info from TMDB for now: AniList is down, it's matched there again once it's back";
+  const source = title.kind === "anime" && title.meta?.provider !== "tmdb" ? "AniList" : "TMDB";
   if (!title.meta) return "Not looked up yet";
   if (title.meta.providerIds.length === 0) return `No ${source} match${title.meta.locked ? " (set by hand)" : ""}`;
   return `Info from ${source}${title.meta.locked ? " (matched by hand)" : ""}`;

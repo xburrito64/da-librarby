@@ -22,7 +22,9 @@ pub fn anime_titles_needing_work(conn: &Connection) -> rusqlite::Result<Vec<i64>
                         AND NOT EXISTS (SELECT 1 FROM season_meta sm WHERE sm.season_id = s.id))
              OR EXISTS (SELECT 1 FROM files f WHERE f.title_id = t.id AND f.present = 1
                         AND f.role IN ('episode', 'movie')
-                        AND NOT EXISTS (SELECT 1 FROM file_meta fm WHERE fm.file_id = f.id)))
+                        AND NOT EXISTS (SELECT 1 FROM file_meta fm WHERE fm.file_id = f.id))
+             -- Matched on TMDB while AniList was down: on AniList again once it's back.
+             OR EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id AND m.fallback = 1))
          ORDER BY t.name",
     )?;
     let ids = stmt.query_map([], |r| r.get(0))?.collect();
@@ -51,6 +53,31 @@ pub fn anime_movie_source(conn: &Connection, title_id: i64) -> rusqlite::Result<
         Some((_, None, false)) => MovieSource::Tmdb,
         _ => MovieSource::AniList,
     })
+}
+
+/// Whether an anime was matched on TMDB while AniList was down (see `mark_fallback`).
+pub fn is_fallback(conn: &Connection, title_id: i64) -> rusqlite::Result<bool> {
+    conn.query_row("SELECT fallback FROM title_meta WHERE title_id = ?1", [title_id], |r| r.get(0))
+        .optional()
+        .map(|v| v.unwrap_or(false))
+}
+
+/// Notes that an anime's info came from TMDB because AniList was down: it's matched on AniList again
+/// once AniList is back.
+pub fn mark_fallback(conn: &Connection, title_id: i64) -> rusqlite::Result<()> {
+    conn.execute("UPDATE title_meta SET fallback = 1 WHERE title_id = ?1", [title_id])?;
+    Ok(())
+}
+
+/// AniList is back: an anime matched on TMDB meanwhile forgets that match (not what was chosen by
+/// hand), to be matched on AniList like a new one.
+pub fn forget_fallback(conn: &Connection, title_id: i64) -> rusqlite::Result<()> {
+    if !is_fallback(conn, title_id)? {
+        return Ok(());
+    }
+    conn.execute("DELETE FROM title_meta WHERE title_id = ?1 AND locked = 0", [title_id])?;
+    conn.execute("UPDATE title_meta SET fallback = 0 WHERE title_id = ?1", [title_id])?;
+    clear_unlocked_children(conn, title_id)
 }
 
 pub fn is_anime(conn: &Connection, title_id: i64) -> rusqlite::Result<bool> {
@@ -567,7 +594,7 @@ pub fn titles_needing_tmdb(conn: &Connection) -> rusqlite::Result<Vec<i64>> {
                AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id
                            AND m.provider = 'anilist' AND m.provider_id IS NULL AND m.locked = 0))
            OR (COALESCE(t.kind, l.kind) = 'anime'
-               AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id)
+               AND EXISTS (SELECT 1 FROM title_meta m WHERE m.title_id = t.id AND m.fallback = 0)
                AND EXISTS (SELECT 1 FROM files f JOIN file_meta fm ON fm.file_id = f.id
                            WHERE f.title_id = t.id AND f.present = 1 AND f.role = 'episode'
                              AND fm.details_at IS NULL))
@@ -1017,6 +1044,44 @@ mod tests {
         assert_eq!((role.as_str(), label.as_str()), ("episode", "Specials"));
         assert!(crate::library::db::promoted_specials(&conn).unwrap().contains_key("D:/Anime/Show/Extras/Kirameki Youko Box- Pieces of Sweet Stars (CBB).mkv"));
         assert!(extras_of(&conn, 1).unwrap().is_empty());
+        drop(conn);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn matched_on_tmdb_while_anilist_is_down() {
+        let path = std::env::temp_dir().join(format!("dalibrarby-fallback-test-{}.db", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let conn = crate::library::db::open(&path).unwrap();
+        conn.execute_batch(
+            "INSERT INTO libraries (id, path, kind) VALUES (1, 'D:/Anime', 'anime');
+             INSERT INTO titles (id, library_id, key, is_movie, name, folder, added_at) VALUES (1, 1, 'Show', 0, 'Made in Abyss', 'D:/Anime/Show', 0);
+             INSERT INTO seasons (id, title_id, key, number, label, sort) VALUES (10, 1, 's1', 1, 'Season 1', 1);
+             INSERT INTO files (id, library_id, title_id, season_id, path, size, mtime, role, episode, sort, added_at)
+                 VALUES (100, 1, 1, 10, 'e1', 0, 0, 'episode', 1, 1, 0);
+             INSERT INTO title_meta (title_id, provider, provider_id, updated_at) VALUES (1, 'tmdb', '72636', 0);
+             INSERT INTO season_meta (season_id, provider_ids, updated_at) VALUES (10, '[1]', 0);
+             INSERT INTO file_meta (file_id, provider_id, name, details_at, updated_at) VALUES (100, '72636', 'The City of the Great Pit', 0, 0);",
+        )
+        .unwrap();
+        // Fully matched: nothing to do...
+        assert!(anime_titles_needing_work(&conn).unwrap().is_empty());
+        // ...unless it was matched on TMDB because AniList was down: then it's on AniList's list again.
+        mark_fallback(&conn, 1).unwrap();
+        assert!(is_fallback(&conn, 1).unwrap());
+        assert_eq!(anime_titles_needing_work(&conn).unwrap(), [1]);
+        // AniList is back: the TMDB match goes, so it's matched like a new one.
+        forget_fallback(&conn, 1).unwrap();
+        assert!(!is_fallback(&conn, 1).unwrap());
+        let left: (i64, i64, i64) = conn
+            .query_row(
+                "SELECT (SELECT COUNT(*) FROM title_meta), (SELECT COUNT(*) FROM season_meta), (SELECT COUNT(*) FROM file_meta)",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(left, (0, 0, 0));
+        assert_eq!(anime_titles_needing_work(&conn).unwrap(), [1]);
         drop(conn);
         let _ = std::fs::remove_file(&path);
     }

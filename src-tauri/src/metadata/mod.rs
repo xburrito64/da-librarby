@@ -152,6 +152,9 @@ fn run(app: AppHandle) {
     // Each piece of work runs at most once per round unless a hand-made fix forces it again.
     let mut attempted: HashSet<(i64, Job)> = HashSet::new();
     let mut done = 0;
+    // Whether AniList answers, as far as this round found out (None: not asked yet). While it doesn't,
+    // anime are matched on TMDB instead; once it does again, those are matched on AniList.
+    let mut anilist_up: Option<bool> = None;
 
     'outer: loop {
         let forced = {
@@ -174,18 +177,48 @@ fn run(app: AppHandle) {
 
         let total = done + jobs.len();
         for (id, job) in jobs {
+            attempted.insert((id, job));
+            let fallback = library.with_db(|c| store::is_fallback(c, id)).unwrap_or(false);
+            if job == Job::AniList && fallback {
+                // Matched on TMDB while AniList was down: is it back?
+                if anilist_up.is_none() {
+                    anilist_up = Some(metadata.anilist.ping().is_ok());
+                }
+                if anilist_up == Some(false) {
+                    done += 1;
+                    continue;
+                }
+                if let Err(e) = library.with_db(|c| store::forget_fallback(c, id)) {
+                    eprintln!("forgetting a TMDB match failed: {e}");
+                    continue;
+                }
+            }
             let input = match library.with_db(|c| store::load_show_input(c, id)) {
                 Ok(Some(input)) => input,
                 _ => continue,
             };
-            attempted.insert((id, job));
-            set_status(
-                &app,
-                Status { running: true, done, total, current: Some(input.name.clone()), source: Some(job.label().into()), error: None },
-            );
+            let down = job == Job::AniList && anilist_up == Some(false);
+            let source = if down { "TMDB (AniList is down)" } else { job.label() };
+            set_status(&app, Status { running: true, done, total, current: Some(input.name.clone()), source: Some(source.into()), error: None });
 
             let result = match (job, &tmdb) {
-                (Job::AniList, _) => process(&app, id, &input),
+                (Job::AniList, _) if !down => match process(&app, id, &input) {
+                    // AniList is down: TMDB instead, for this one and the rest of the round.
+                    Err(anilist::Error::Unavailable(message)) => {
+                        eprintln!("AniList is down ({message}): anime come from TMDB for now");
+                        anilist_up = Some(false);
+                        set_status(
+                            &app,
+                            Status { running: true, done, total, current: Some(input.name.clone()), source: Some("TMDB (AniList is down)".into()), error: None },
+                        );
+                        tmdb_fallback(&app, id, &input, tmdb.as_ref())
+                    }
+                    other => {
+                        anilist_up = Some(true);
+                        other
+                    }
+                },
+                (Job::AniList, _) => tmdb_fallback(&app, id, &input, tmdb.as_ref()),
                 (Job::Tmdb, Some(tmdb)) => process_tmdb(&app, id, &input, tmdb),
                 (Job::Tmdb, None) => Ok(()),
             };
@@ -218,6 +251,16 @@ fn run(app: AppHandle) {
     set_status(&app, Status::default());
 }
 
+/// AniList is down: an anime is matched on TMDB like any show or movie, and marked so it's matched on
+/// AniList again once AniList is back. (Without a TMDB key it waits.)
+fn tmdb_fallback(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, tmdb: Option<&Tmdb>) -> Result<(), anilist::Error> {
+    let Some(tmdb) = tmdb else { return Ok(()) };
+    let metadata = app.state::<Metadata>();
+    let library = app.state::<Library>();
+    show_or_movie(&library, &metadata.images, title_id, input, tmdb)?;
+    library.with_db(|c| store::mark_fallback(c, title_id)).map_err(anilist::Error::Rejected)
+}
+
 /// TMDB work for one title: a show, a movie, or episode details for an anime.
 fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, tmdb: &Tmdb) -> Result<(), anilist::Error> {
     let metadata = app.state::<Metadata>();
@@ -229,6 +272,12 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
 
     if kind.as_deref() == Some("anime") && onepace::is_one_pace(&input.name) {
         return process_one_pace(&library, images, title_id, tmdb);
+    }
+
+    // An anime matched on TMDB while AniList was down: all of it from TMDB, until AniList is back.
+    if kind.as_deref() == Some("anime") && library.with_db(|c| store::is_fallback(c, title_id)).map_err(db_error)? {
+        show_or_movie(&library, images, title_id, input, tmdb)?;
+        return library.with_db(|c| store::mark_fallback(c, title_id)).map_err(db_error);
     }
 
     // An anime movie AniList doesn't have (Attack on Titan: THE LAST ATTACK), or picked on TMDB by
@@ -266,12 +315,19 @@ fn process_tmdb(app: &AppHandle, title_id: i64, input: &anime_match::ShowInput, 
             .map_err(db_error);
     }
 
+    show_or_movie(&library, images, title_id, input, tmdb)
+}
+
+/// A show or movie matched on TMDB, with everything for its page.
+fn show_or_movie(library: &Library, images: &Images, title_id: i64, input: &anime_match::ShowInput, tmdb: &Tmdb) -> Result<(), anilist::Error> {
+    let db_error = |e: String| anilist::Error::Rejected(e);
+    let mut art = store::TmdbArt::default();
     if input.is_movie {
-        return save_tmdb_movie(&library, images, title_id, input, tmdb);
+        return save_tmdb_movie(library, images, title_id, input, tmdb);
     }
 
     let (show, seasons) = tmdb_match::tv_show(input, tmdb)?;
-    let promoted = promote_extras(&library, title_id, &seasons)?;
+    let promoted = promote_extras(library, title_id, &seasons)?;
     let input = promoted.as_ref().unwrap_or(input);
     let matched = tmdb_match::match_tv(input, show, &seasons, tmdb)?;
     if let Some(show) = &matched.show {
@@ -513,10 +569,11 @@ pub async fn metadata_search(
     source: String,
 ) -> Result<Vec<Candidate>, String> {
     if source == "anime-movie" {
-        let mut found = search_anilist(&metadata, &query)?;
-        if let Some(key) = tmdb_key(&library) {
-            found.extend(search_tmdb(&Tmdb::new(&key), &query, true)?);
-        }
+        // (With AniList down, TMDB's alone.)
+        let anilist = search_anilist(&metadata, &query);
+        let Some(key) = tmdb_key(&library) else { return anilist };
+        let mut found = anilist.unwrap_or_default();
+        found.extend(search_tmdb(&Tmdb::new(&key), &query, true)?);
         return Ok(found);
     }
     if source == "anilist" {

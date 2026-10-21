@@ -52,7 +52,7 @@ re!(OP_ED, r"(?i)(?:^|[\s\-_.(])(?:nc\s*)?(?:op|ed|opening|ending)\s*\d{0,3}(?:v
 // "OVA 1", "OAD 2", "SP 3", "Special 4": a special's own number.
 re!(SPECIAL_NUMBER, r"(?i)(?:^|[\s\-_.])(?:OVA|OAD|ONA|SP|Special)\s*(\d{1,3}(?:\.\d+)?)(?:$|[\s\-_.])");
 // "Movie 01" in a movie's name says nothing about which movie it is.
-re!(MOVIE_NUMBER, r"(?i)(^|[\s\-–:])movie\s*0*\d{1,2}($|[\s\-–:])");
+re!(MOVIE_NUMBER, r"(?i)(^|[\s\-–:])movie\s*(?:[-–]\s*)?0*\d{1,2}($|[\s\-–:])");
 // "The Movie 02": the number goes, "The Movie" stays (it's part of the name).
 re!(THE_MOVIE_NUMBER, r"(?i)\b(the movie)\s*0*\d{1,2}\b");
 re!(DOUBLE_DASH, r"\s*[-–]\s*[-–:]\s*");
@@ -695,6 +695,7 @@ mod tests {
         assert_eq!(movie_name("Movie 2"), "Movie 2");
         assert_eq!(movie_name("Naruto Shippuden The Movie 02 - Bonds"), "Naruto Shippuden The Movie - Bonds");
         assert_eq!(movie_name("The Last - Naruto The Movie 07"), "The Last - Naruto The Movie");
+        assert_eq!(movie_name("Made in Abyss Movie - 01 - Tabidachi no Yoake"), "Made in Abyss - Tabidachi no Yoake");
     }
 
     #[test]

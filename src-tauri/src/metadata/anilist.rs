@@ -210,6 +210,11 @@ impl AniList {
         parse_list(&data["Page"]["media"])
     }
 
+    /// Whether AniList answers at all (the smallest question there is).
+    pub fn ping(&self) -> Result<(), Error> {
+        self.request("query { Media(id: 1) { id } }", json!({})).map(|_| ())
+    }
+
     /// Fetches entries by id (in any order; missing ids are left out).
     pub fn media(&self, ids: &[i64]) -> Result<Vec<Media>, Error> {
         if ids.is_empty() {
@@ -260,6 +265,11 @@ impl AniList {
                 .body_mut()
                 .read_json()
                 .map_err(|e| Error::Unavailable(format!("unreadable response: {e}")))?;
+            // AniList switched its API off for a while ("temporarily disabled due to severe stability
+            // issues"): it isn't answering, as if it were down, rather than saying no to this request.
+            if status == 403 || value["errors"].to_string().to_lowercase().contains("disabled") {
+                return Err(Error::Unavailable("AniList's API is switched off for now".into()));
+            }
             if let Some(errors) = value.get("errors").filter(|e| !e.is_null()) {
                 if value["data"].is_null() {
                     return Err(Error::Rejected(errors.to_string()));

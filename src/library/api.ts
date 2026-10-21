@@ -86,6 +86,8 @@ export interface TitleMeta extends Meta {
   banner: string | null;
   /** Movies: cast, director, tagline, collection. */
   extra: MovieExtra | null;
+  /** An anime matched on TMDB while AniList was down (matched on AniList again once it's back). */
+  fallback: boolean;
 }
 
 export interface MovieExtra {

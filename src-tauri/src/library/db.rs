@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use super::scan::{LibraryKind, ScannedTitle};
 
-const SCHEMA_VERSION: i32 = 15;
+const SCHEMA_VERSION: i32 = 16;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE libraries (
@@ -214,6 +214,10 @@ pub fn open(path: &Path) -> rusqlite::Result<Connection> {
     if version < 15 {
         // Your ratings, and the "How was it?" notes waved away.
         conn.execute_batch(super::rating::SCHEMA_V15)?;
+    }
+    if version < 16 {
+        // An anime matched on TMDB while AniList was down, to be matched on AniList again once it's back.
+        conn.execute_batch("ALTER TABLE title_meta ADD COLUMN fallback INTEGER NOT NULL DEFAULT 0;")?;
     }
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(conn)
@@ -693,6 +697,8 @@ pub struct TitleMeta {
     pub banner: Option<String>,
     /// For movies: cast, director, tagline, collection (photos as full paths).
     pub extra: Option<MovieExtra>,
+    /// An anime matched on TMDB while AniList was down (matched on AniList again once it's back).
+    pub fallback: bool,
 }
 
 /// More about a movie, kept as JSON in `title_meta.extra`.
@@ -837,7 +843,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
     let meta = conn
         .query_row(
             "SELECT provider, provider_id, locked, name, description, year, score, cover, thumb,
-                    genres, status, studio, color, banner, extra
+                    genres, status, studio, color, banner, extra, fallback
              FROM title_meta WHERE title_id = ?1",
             [id],
             |r| {
@@ -869,6 +875,7 @@ pub fn title_detail(conn: &Connection, id: i64, images: &Path) -> rusqlite::Resu
                             e
                         },
                     ),
+                    fallback: r.get(15)?,
                 })
             },
         )

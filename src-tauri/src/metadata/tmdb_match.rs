@@ -76,13 +76,22 @@ pub fn match_movie(input: &ShowInput, tmdb: &Tmdb) -> Result<Option<Movie>, Erro
         Some(None) => Ok(None),
         None => {
             let year = input.year.or_else(|| input.movies.first().and_then(|m| m.year));
-            match find_movie(&input.name, year, tmdb)? {
-                Some(movie) => Ok(Some(movie)),
-                // A movie kept in a show's folder may be named without the show.
-                None => match &input.parent {
-                    Some(show) => find_movie(&format!("{show} {}", input.name), year, tmdb),
-                    None => Ok(None),
-                },
+            if let Some(movie) = find_movie(&input.name, year, tmdb)? {
+                return Ok(Some(movie));
+            }
+            let Some(show) = &input.parent else { return Ok(None) };
+            // A movie kept in a show's folder may be named without the show.
+            let named = format!("{show} {}", input.name);
+            if let Some(movie) = find_movie(&named, year, tmdb)? {
+                return Ok(Some(movie));
+            }
+            // ... or by a name TMDB doesn't list ("Made in Abyss - Tabidachi no Yoake", romaji, is
+            // "Made in Abyss: Journey's Dawn" there): the one movie found by it, if it's the show's.
+            let query = if crate::library::parse::clean_text(&input.name).to_lowercase().contains(&show.to_lowercase()) { &input.name } else { &named };
+            let results = tmdb.search_movie(query, None)?;
+            match results.as_slice() {
+                [only] if only.all_titles().iter().any(|t| t.to_lowercase().contains(&show.to_lowercase())) => Ok(Some(tmdb.movie(only.id)?)),
+                _ => Ok(None),
             }
         }
     }
