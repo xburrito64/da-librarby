@@ -60,6 +60,10 @@ re!(LEADING_SEASON, r"(?i)^(season\s*\d{1,3}|s\d{1,3}(e\d{1,4})?)(\s*[-–:.]\s+
 // "Movies", or "Made in Abyss Movies" (the show's name in front).
 re!(MOVIES_FOLDER, r"(?i)^(.*\s)?(movies|films)$");
 re!(THE_MOVIE, r"(?i)\bthe movie\b");
+// What's left of a movie's name after its show's: "Movie Sword of the Wizard King".
+re!(MOVIE_WORD_THEN_NAME, r"(?i)^movie\s*[-–:]?\s*(\p{L}.*)$");
+// A folder that only says it holds a movie: "Movie", "The Movie", "Films".
+re!(GENERIC_MOVIE_FOLDER, r"(?i)^((the\s+)?movies?|films?)?$");
 re!(SXXEYY, r"(?i)\bS(\d{1,3})\s*E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?(?:-?E(\d{1,4}(?:\.\d+)?)(?:[a-e]{1,5}\b)?)?");
 // (Several in one file: "Episode 9-15", "E09-E15".)
 re!(EPISODE_ONLY, r"(?i)(?:^|[\s\-_.])E(?:p|pisode)?\s?(\d{1,4}(?:\.\d+)?)(?:-(?:E(?:p|pisode)?\s?)?(\d{1,4}))?(?:$|[\s\-_.])");
@@ -276,6 +280,26 @@ pub fn movie_name(name: &str) -> String {
     let without = MOVIE_NUMBER.replace(&without, "$1$2");
     let tidy = clean_text(&DOUBLE_DASH.replace_all(&without, " - "));
     if tidy.chars().any(char::is_alphabetic) { tidy } else { name.to_string() }
+}
+
+/// A movie's name in its show's folder: like `movie_name`, and "Black Clover Movie Sword of the
+/// Wizard King" -> "Black Clover - Sword of the Wizard King" (a "Movie" right after the show's name).
+pub fn movie_name_in(name: &str, show: &str) -> String {
+    let name = movie_name(name);
+    let rest = without_prefix(&name, show);
+    if rest.len() < name.len() {
+        if let Some(c) = MOVIE_WORD_THEN_NAME.captures(rest) {
+            return format!("{} - {}", &name[..show.len()], &c[1]);
+        }
+    }
+    name
+}
+
+/// A folder in a show's folder whose name only says "a movie" ("Movie", "Black Clover Movie"):
+/// the movie in it is named by its file instead.
+pub fn is_generic_movie_folder(folder: &str, show: &str) -> bool {
+    let name = clean_text(&strip_tags(folder));
+    GENERIC_MOVIE_FOLDER.is_match(without_prefix(&name, show))
 }
 
 /// A movie kept among a show's specials: "Sword Art Online The Movie Ordinal Scale"
@@ -738,5 +762,20 @@ mod tests {
         assert_eq!(classify_folder("Movies"), FolderKind::Movies);
         assert_eq!(classify_folder("Made in Abyss Movies"), FolderKind::Movies);
         assert_eq!(classify_folder("Made in Abyss S01"), FolderKind::Season(1));
+    }
+
+    #[test]
+    fn movies_in_folders_named_movie() {
+        let stem = "[Anime Time] Black Clover Movie Sword of the Wizard King [NF] [Dual Audio] [1080p][HEVC 10bit x265][AAC][Multi Sub] (Black Clover - Mahou Tei no Ken - Movie)";
+        let (name, _) = title_and_year(stem);
+        assert_eq!(movie_name_in(&name, "Black Clover"), "Black Clover - Sword of the Wizard King");
+        assert_eq!(movie_name_in("Naruto The Movie - Legend Of The Stone Of Gelel", "Naruto"), "Naruto The Movie - Legend Of The Stone Of Gelel");
+        assert_eq!(movie_name_in("The Lego Movie Videogame", "Lego"), "The Lego Movie Videogame");
+        assert_eq!(movie_name_in("Black Clover Movie", "Black Clover"), "Black Clover Movie");
+        assert!(is_generic_movie_folder("Movie", "Black Clover"));
+        assert!(is_generic_movie_folder("Black Clover Movie", "Black Clover"));
+        assert!(is_generic_movie_folder("The Movie", "Black Clover"));
+        assert!(!is_generic_movie_folder("Jujutsu Kaisen 0", "Jujutsu Kaisen"));
+        assert!(!is_generic_movie_folder("Movie 2 - Dragon Cry", "Fairy Tail"));
     }
 }

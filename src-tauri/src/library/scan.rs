@@ -340,7 +340,8 @@ fn classify_other_folder(
     } else if !videos.is_empty() {
         // A movie in its own folder ("Jujutsu Kaisen 0", "South Park: Post COVID (2021)").
         let (folder_name, folder_year) = parse::title_and_year(&entry.name);
-        let single = videos.len() == 1;
+        // ...but a folder just called "Movie" names nothing: then the file does.
+        let single = videos.len() == 1 && !parse::is_generic_movie_folder(&entry.name, &title.name);
         for video in videos {
             let (name, year) = if single {
                 (folder_name.clone(), folder_year)
@@ -377,7 +378,8 @@ fn add_movie(title: &mut ScannedTitle, entry: &Entry, name: String, year: Option
     if small || parse::is_op_ed(parse::file_stem(&entry.name)) {
         title.push_extra(entry, ExtraGroup::general());
     } else {
-        title.push_file(entry, Role::Movie, None, None, None, Some(parse::movie_name(&name)), year);
+        let name = parse::movie_name_in(&name, &title.name);
+        title.push_file(entry, Role::Movie, None, None, None, Some(name), year);
     }
 }
 
