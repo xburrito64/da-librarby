@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import LibraryView from "./library/LibraryView";
 import PlayerView from "./player/PlayerView";
 import { mpv } from "./player/mpv";
+import { cornerHole, type CornerRect } from "./player/corner";
 import { library, watch, type PlayItem } from "./library/api";
 import { shuffledEpisodes } from "./library/shuffle";
 import { playSound, setSoundsMuted } from "./theme/sound";
@@ -26,6 +27,9 @@ const OBSERVED = [
 
 export default function App() {
   const [playing, setPlaying] = useState<PlayItem | null>(null);
+  /** Playing on in the corner while the library shows, and where its box is. */
+  const [corner, setCorner] = useState(false);
+  const [cornerRect, setCornerRect] = useState<CornerRect | null>(null);
   const [error, setError] = useState<string | null>(null);
   /** The theme's play intro, running: where it starts and what plays once the screen is covered. */
   const [intro, setIntro] = useState<{ x: number; y: number; item: PlayItem } | null>(null);
@@ -75,9 +79,15 @@ export default function App() {
   const useIntroRef = useRef(useIntro);
   useIntroRef.current = useIntro;
 
+  /** Plays `item` big (from the corner too). */
+  const show = useCallback((item: PlayItem | null) => {
+    setCorner(false);
+    setPlaying(item);
+  }, []);
+
   /** Plays `item`, after the theme's intro if it has one. */
   const start = useCallback((item: PlayItem) => {
-    if (!useIntroRef.current) return setPlaying(item);
+    if (!useIntroRef.current) return show(item);
     // From the click that started it, or the element chosen with the keyboard, else the middle.
     const p = lastPointer.current;
     let at = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -86,7 +96,7 @@ export default function App() {
       at = { x: r.left + Math.min(r.width / 2, 60), y: r.top + r.height / 2 };
     } else if (performance.now() - p.at < 2000) at = { x: p.x, y: p.y };
     setIntro({ ...at, item });
-  }, []);
+  }, [show]);
 
   const play = useCallback(
     (fileId: number) => {
@@ -116,18 +126,33 @@ export default function App() {
 
   return (
     <>
-      {/* Stays mounted while playing so the library keeps its place. */}
-      <div style={{ display: playing ? "none" : undefined }}>
-        <LibraryView active={!playing} onPlay={play} onShuffle={shuffle} />
+      {/* Stays mounted while playing so the library keeps its place. With something playing in
+          the corner it shows, with a hole there to see the video through. */}
+      <div
+        style={{
+          display: playing && !corner ? "none" : undefined,
+          clipPath: corner && cornerRect ? cornerHole(cornerRect, window.innerWidth, window.innerHeight) : undefined,
+        }}
+      >
+        <LibraryView active={!playing || corner} onPlay={play} onShuffle={shuffle} />
       </div>
-      {playing && <PlayerView item={playing} onNext={setPlaying} onBack={() => setPlaying(null)} />}
+      {playing && (
+        <PlayerView
+          item={playing}
+          onNext={setPlaying}
+          onBack={() => show(null)}
+          corner={corner}
+          onCorner={setCorner}
+          onCornerRect={setCornerRect}
+        />
+      )}
       {intro && Intro && (
         <Intro
           key={intro.item.fileId}
           x={intro.x}
           y={intro.y}
           sound={playSound}
-          onCovered={() => setPlaying(intro.item)}
+          onCovered={() => show(intro.item)}
           onDone={() => setIntro(null)}
         />
       )}

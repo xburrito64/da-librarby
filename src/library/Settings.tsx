@@ -6,6 +6,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { library, metadata, guessKind, img, updates, KIND_LABELS, type Library, type LibraryKind, type TitleSummary, type Update } from "./api";
 import { getSetting, setSetting } from "../ui/settings";
+import { useCornerPlayerSetting } from "../player/corner";
 import { UPDATES_SETTING } from "../ui/UpdateNote";
 import { scaleSettings, setScale } from "../ui/scale";
 import { THEMES, type ThemeOption } from "../theme/themes";
@@ -430,6 +431,7 @@ function Ratings() {
 
 function General({ onError }: { onError: (message: string) => void }) {
   const [autostart, setAutostart] = useState<boolean | null>(null);
+  const [corner, setCorner] = useCornerPlayerSetting();
 
   useEffect(() => {
     autostartEnabled().then(setAutostart).catch(() => setAutostart(false));
@@ -445,13 +447,23 @@ function General({ onError }: { onError: (message: string) => void }) {
   return (
     <section>
       <h3 className="settings__title">General</h3>
-      <p className="settings__text">How the app starts and keeps itself up to date.</p>
+      <p className="settings__text">How the app starts, plays and keeps itself up to date.</p>
       <button className="toggle-row" onClick={toggle} disabled={autostart == null} role="switch" aria-checked={!!autostart}>
         <span className="toggle-row__text">
           <span className="toggle-row__label">Start with Windows</span>
           <span className="toggle-row__hint">Opens minimized when you sign in, so your library is ready when you are.</span>
         </span>
         <span className={`toggle ${autostart ? "is-on" : ""}`} />
+      </button>
+      <button className="toggle-row" onClick={() => setCorner(!corner)} role="switch" aria-checked={corner}>
+        <span className="toggle-row__text">
+          <span className="toggle-row__label">Keep playing in the corner</span>
+          <span className="toggle-row__hint">
+            Going back to the library while something plays keeps it playing in a small box in the bottom right. Drag its top-left
+            corner to resize it; its cross stops it.
+          </span>
+        </span>
+        <span className={`toggle ${corner ? "is-on" : ""}`} />
       </button>
       <div className="toggle-row toggle-row--info">
         <span className="toggle-row__text">
@@ -480,7 +492,7 @@ const SHORTCUTS: { group: string; keys: [string, string][] }[] = [
       ["S", "Screenshot (saved to Pictures › Da Librarby)"],
       ["F", "Fullscreen"],
       ["P", "Mini player: a small video on top of other windows"],
-      ["Esc", "Leave fullscreen or the mini player, then back to the library"],
+      ["Esc", "Leave fullscreen or the mini player, then back to the library (it plays on in the corner)"],
       ["Click / double-click", "Pause / fullscreen (in the mini player: back to big)"],
       ["Drag the mini player", "Move it; drag its edges to resize"],
       ["Mouse wheel", "Volume"],

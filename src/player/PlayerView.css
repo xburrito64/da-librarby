@@ -831,6 +831,73 @@
   font-size: 12px !important;
 }
 
+/* The corner player: a box in the bottom right over the library (see corner.ts). */
+.player--corner {
+  inset: auto;
+  z-index: 40;
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  container-type: size;
+}
+
+/* Its controls sit on a soft shade so they read over any picture. */
+.player--corner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent 35%, transparent 55%, rgba(0, 0, 0, 0.6));
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.player--corner.player--hidden::before {
+  opacity: 0;
+}
+
+.player--corner .player__volume:hover .player__slider,
+.player--corner .player__slider:focus-visible {
+  width: 70px;
+  margin: 0 6px 0 2px;
+}
+
+/* Drag the top-left corner to resize. */
+.player__resize {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+}
+
+.player__resize::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid rgba(255, 255, 255, 0.8);
+  border-left: 2px solid rgba(255, 255, 255, 0.8);
+  border-top-left-radius: 3px;
+  transition: opacity 0.3s ease;
+}
+
+.player--hidden .player__resize::before {
+  opacity: 0;
+}
+
+@container (max-height: 200px) {
+  .player--corner .player__center .player__btn:not(.player__btn--main),
+  .player--corner .player__slider,
+  .player--corner .upnext__card {
+    display: none;
+  }
+}
+
 /* A really small mini player keeps just play/pause and the seek bar. */
 @media (max-height: 210px) {
   .player--mini .player__center .player__btn:not(.player__btn--main),

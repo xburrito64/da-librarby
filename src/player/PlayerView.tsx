@@ -30,6 +30,7 @@ import {
   VolumeLowIcon,
 } from "../ui/icons";
 import { useSeekPictures } from "./thumbs";
+import { CORNER_DEFAULT_WIDTH, CORNER_SETTING, CORNER_WIDTH_SETTING, cornerRect, type CornerRect } from "./corner";
 import "./PlayerView.css";
 
 const HIDE_CONTROLS_AFTER_MS = 2800;
@@ -110,9 +111,14 @@ interface Props {
   item: PlayItem;
   onNext: (next: PlayItem) => void;
   onBack: () => void;
+  /** Playing on in the corner while the library shows (see corner.ts). */
+  corner: boolean;
+  onCorner: (on: boolean) => void;
+  /** Where the corner box is (null when not in the corner), for the library's hole. */
+  onCornerRect: (rect: CornerRect | null) => void;
 }
 
-export default function PlayerView({ item, onNext, onBack }: Props) {
+export default function PlayerView({ item, onNext, onBack, corner, onCorner, onCornerRect }: Props) {
   const [paused, setPaused] = useState(false);
   const [time, setTime] = useState(item.resume ?? 0);
   const [duration, setDuration] = useState(item.duration ?? 0);
@@ -142,6 +148,9 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const [notice, setNotice] = useState<{ text: string; path?: string } | null>(null);
   const [sleep, setSleep] = useState<Sleep>(null);
   const [sleepNow, setSleepNow] = useState(() => Date.now());
+  const [cornerWidth, setCornerWidth] = useState(CORNER_DEFAULT_WIDTH);
+  const [aspect, setAspect] = useState(16 / 9);
+  const [view, setView] = useState({ w: window.innerWidth, h: window.innerHeight });
   const copy = useCopy();
 
   const timeRef = useRef(item.resume ?? 0);
@@ -394,12 +403,23 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
     [],
   );
 
-  const back = useCallback(async () => {
+  /** Stops and goes back to the library. */
+  const stop = useCallback(async () => {
     await mpv.command("stop").catch(() => {});
     await setMiniPlayer(false);
     if (await getCurrentWindow().isFullscreen()) await setWindowFullscreen(false);
     onBack();
   }, [onBack, setMiniPlayer, setWindowFullscreen]);
+
+  /** Back to the library: it plays on in the corner (unless that's turned off, or it's over). */
+  const back = useCallback(async () => {
+    const keepPlaying = (await getSetting<boolean>(CORNER_SETTING)) !== false && !ended;
+    if (!keepPlaying) return stop();
+    setMenu(null);
+    await setMiniPlayer(false);
+    if (await getCurrentWindow().isFullscreen()) await setWindowFullscreen(false);
+    onCorner(true);
+  }, [ended, stop, onCorner, setMiniPlayer, setWindowFullscreen]);
 
   const togglePause = useCallback(() => {
     if (ended) mpv.command("seek", 0, "absolute");
@@ -435,8 +455,9 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
     showControls();
   }, [item, showControls]);
 
-  // Keyboard shortcuts.
+  // Keyboard shortcuts (not in the corner: the keys are the library's then).
   useEffect(() => {
+    if (corner) return;
     const onKey = async (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === "INPUT" && e.key !== "Escape") return;
       showControls();
@@ -479,6 +500,66 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
     document.addEventListener("mouseout", onOut);
     return () => document.removeEventListener("mouseout", onOut);
   }, []);
+
+  // ----- The corner box -----
+
+  useEffect(() => {
+    getSetting<number>(CORNER_WIDTH_SETTING).then((w) => typeof w === "number" && setCornerWidth(w));
+  }, []);
+  useEffect(() => {
+    if (!corner) return;
+    const onResize = () => setView({ w: window.innerWidth, h: window.innerHeight });
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [corner]);
+  // The box takes the picture's shape.
+  useEffect(() => {
+    if (!corner || loading) return;
+    Promise.all([mpv.getProperty<number>("dwidth"), mpv.getProperty<number>("dheight")])
+      .then(([w, h]) => w > 0 && h > 0 && setAspect(Math.min(3, Math.max(1, w / h))))
+      .catch(() => {});
+  }, [corner, loading, item]);
+  /** Laid out small: the mini player, or the corner box. */
+  const small = mini || corner;
+  const rect = corner ? cornerRect(cornerWidth, aspect, view.w, view.h) : null;
+  const rectKey = rect ? `${rect.x},${rect.y},${rect.w},${rect.h}` : "";
+  // mpv draws the picture into the box only; the library's hole shows it.
+  useEffect(() => {
+    const margins = rect
+      ? { left: rect.x / view.w, top: rect.y / view.h, right: (view.w - rect.x - rect.w) / view.w, bottom: (view.h - rect.y - rect.h) / view.h }
+      : { left: 0, top: 0, right: 0, bottom: 0 };
+    for (const [side, value] of Object.entries(margins)) mpv.setProperty(`video-margin-ratio-${side}`, Math.max(0, value)).catch(() => {});
+    onCornerRect(rect);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rectKey]);
+  useEffect(
+    () => () => {
+      for (const side of ["left", "top", "right", "bottom"]) mpv.setProperty(`video-margin-ratio-${side}`, 0).catch(() => {});
+      onCornerRect(null);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  // Resized by dragging its top-left corner (it stays in the bottom right).
+  const resizeRef = useRef<{ x: number; width: number } | null>(null);
+  const onResizeDown = (e: React.PointerEvent) => {
+    if (!rect) return;
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    resizeRef.current = { x: e.clientX, width: rect.w };
+  };
+  const onResizeMove = (e: React.PointerEvent) => {
+    const start = resizeRef.current;
+    if (!start) return;
+    setCornerWidth(cornerRect(start.width + (start.x - e.clientX), aspect, view.w, view.h).w);
+  };
+  const onResizeUp = () => {
+    if (!resizeRef.current) return;
+    resizeRef.current = null;
+    setSetting(CORNER_WIDTH_SETTING, cornerWidth);
+  };
 
   // ----- Next episode -----
 
@@ -588,7 +669,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const hoverPicture = hover ? pictures.at(hover.time) : null;
   const tipLeft = (() => {
     if (!hover || !hoverPicture || !seekRef.current) return hover?.x;
-    const half = mini ? 70 : 110;
+    const half = small ? 70 : 110;
     return Math.max(half, Math.min(seekRef.current.clientWidth - half, hover.x));
   })();
   const chapterAt = (t: number) => {
@@ -626,7 +707,8 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
   const onStageDoubleClick = (e: React.MouseEvent) => {
     if (e.target !== e.currentTarget) return;
     window.clearTimeout(clickTimer.current);
-    if (miniRef.current) setMiniPlayer(false);
+    if (corner) onCorner(false);
+    else if (miniRef.current) setMiniPlayer(false);
     else toggleFullscreen();
   };
 
@@ -646,9 +728,10 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
 
   return (
     <div
-      className={`player ${visible ? "" : "player--hidden"} ${away ? "player--away" : ""}${mini ? "player--mini" : ""} ${paused && !ended && !loading ? "player--paused" : ""}`}
+      className={`player ${visible ? "" : "player--hidden"} ${away ? "player--away" : ""}${small ? "player--mini" : ""} ${corner ? "player--corner" : ""} ${paused && !ended && !loading ? "player--paused" : ""}`}
+      style={rect ? { left: rect.x, top: rect.y, width: rect.w, height: rect.h } : undefined}
       onMouseMove={showControls}
-      onMouseLeave={() => mini && setControlsVisible(false)}
+      onMouseLeave={() => small && setControlsVisible(false)}
       onPointerDown={onStagePointerDown}
       onPointerMove={onStagePointerMove}
       onClick={onStageClick}
@@ -658,14 +741,36 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
       {loading && !error && <div className="player__spinner" />}
       {error && <div className="player__error">{error}</div>}
 
-      {mini ? (
+      {corner && (
+        <span
+          className="player__resize"
+          title="Drag to resize"
+          onPointerDown={onResizeDown}
+          onPointerMove={onResizeMove}
+          onPointerUp={onResizeUp}
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
+      {small ? (
         <>
           <div className="player__top">
-            <button className="player__btn" onClick={() => setMiniPlayer(false)} title="Back to the big player (Esc)">
-              <LeaveMiniIcon />
-            </button>
-            <span className="player__spacer" />
-            <button className="player__btn" onClick={back} title="Stop and go back to the library">
+            {/* In the corner the top-left corner is for resizing, so "big" goes beside the cross. */}
+            {corner ? (
+              <>
+                <span className="player__spacer" />
+                <button className="player__btn" onClick={() => onCorner(false)} title="Back to the big player">
+                  <LeaveMiniIcon />
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="player__btn" onClick={() => setMiniPlayer(false)} title="Back to the big player (Esc)">
+                  <LeaveMiniIcon />
+                </button>
+                <span className="player__spacer" />
+              </>
+            )}
+            <button className="player__btn" onClick={stop} title={corner ? "Stop" : "Stop and go back to the library"}>
               <CloseIcon />
             </button>
           </div>
@@ -725,7 +830,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
         </button>
       )}
 
-      {resumedAt != null && !mini && (
+      {resumedAt != null && !small && (
         <div className="player__toast">
           Picked up where you left off ({formatTime(resumedAt)})
           <button
@@ -789,20 +894,24 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
           )}
         </div>
 
-        {mini ? (
+        {small ? (
           <div className="player__bar">
             <span className="player__time">
               {formatTime(time)} <span className="player__time-sep">/</span> {formatTime(duration)}
             </span>
             <span className="player__spacer" />
             {next && (
-              <button className="player__btn" onClick={playNext} title={`Next episode: ${itemName(next)} (N)`}>
+              <button className="player__btn" onClick={playNext} title={`Next episode: ${itemName(next)}${corner ? "" : " (N)"}`}>
                 <NextIcon />
               </button>
             )}
-            <button className="player__btn" onClick={() => mpv.command("cycle", "mute")} title="Mute (M)">
-              {muted || volume === 0 ? <MuteIcon /> : volume < 50 ? <VolumeLowIcon /> : <VolumeIcon />}
-            </button>
+            {corner ? (
+              <VolumeControl volume={volume} muted={muted} />
+            ) : (
+              <button className="player__btn" onClick={() => mpv.command("cycle", "mute")} title="Mute (M)">
+                {muted || volume === 0 ? <MuteIcon /> : volume < 50 ? <VolumeLowIcon /> : <VolumeIcon />}
+              </button>
+            )}
           </div>
         ) : (
           <div className="player__bar">
@@ -820,24 +929,7 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
                 <NextIcon />
               </button>
             )}
-            <div className="player__volume">
-              <button className="player__btn" onClick={() => mpv.command("cycle", "mute")} title="Mute (M)">
-                {muted || volume === 0 ? <MuteIcon /> : volume < 50 ? <VolumeLowIcon /> : <VolumeIcon />}
-              </button>
-              <input
-                className="player__slider"
-                type="range"
-                min={0}
-                max={100}
-                value={muted ? 0 : volume}
-                style={{ "--v": `${muted ? 0 : volume}%` } as React.CSSProperties}
-                onChange={(e) => {
-                  mpv.setProperty("volume", Number(e.target.value));
-                  if (muted) mpv.setProperty("mute", false);
-                }}
-                aria-label="Volume"
-              />
-            </div>
+            <VolumeControl volume={volume} muted={muted} keys />
             <button className="player__time" onClick={() => setShowRemaining((v) => !v)} title="Show time left / total length">
               {formatTime(time)} <span className="player__time-sep">/</span>{" "}
               {showRemaining && duration > 0 ? `-${formatTime(duration - time)}` : formatTime(duration)}
@@ -948,6 +1040,30 @@ export default function PlayerView({ item, onNext, onBack }: Props) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Mute button and volume slider. `keys`: its tooltip names the key. */
+function VolumeControl({ volume, muted, keys }: { volume: number; muted: boolean; keys?: boolean }) {
+  return (
+    <div className="player__volume">
+      <button className="player__btn" onClick={() => mpv.command("cycle", "mute")} title={keys ? "Mute (M)" : "Mute"}>
+        {muted || volume === 0 ? <MuteIcon /> : volume < 50 ? <VolumeLowIcon /> : <VolumeIcon />}
+      </button>
+      <input
+        className="player__slider"
+        type="range"
+        min={0}
+        max={100}
+        value={muted ? 0 : volume}
+        style={{ "--v": `${muted ? 0 : volume}%` } as React.CSSProperties}
+        onChange={(e) => {
+          mpv.setProperty("volume", Number(e.target.value));
+          if (muted) mpv.setProperty("mute", false);
+        }}
+        aria-label="Volume"
+      />
     </div>
   );
 }
