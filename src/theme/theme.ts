@@ -49,8 +49,25 @@ function shown() {
   return seasonNow() && findTheme(SEASONAL_THEME) ? SEASONAL_THEME : chosen;
 }
 
+/** Scrollbars keep the look they were made with: rebuilt, they take the theme's. */
+function redrawScrollbars() {
+  for (const el of document.querySelectorAll<HTMLElement>("*")) {
+    const style = getComputedStyle(el);
+    const scrolls = (o: string) => o === "auto" || o === "scroll";
+    if (!(scrolls(style.overflowY) && el.scrollHeight > el.clientHeight) && !(scrolls(style.overflowX) && el.scrollWidth > el.clientWidth)) continue;
+    const { scrollTop, scrollLeft } = el;
+    const before = el.style.overflow;
+    el.style.overflow = "hidden";
+    void el.offsetWidth;
+    el.style.overflow = before;
+    el.scrollTop = scrollTop;
+    el.scrollLeft = scrollLeft;
+  }
+}
+
 function apply(id: string) {
   document.documentElement.dataset.theme = id;
+  requestAnimationFrame(redrawScrollbars);
   loadThemeOptions(id);
   const theme = findTheme(id);
   getCurrentWindow()

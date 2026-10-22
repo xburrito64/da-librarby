@@ -573,7 +573,7 @@ const CLICKABLE =
   'a[href], button:not(:disabled), select, summary, label:has(input:is([type="checkbox"], [type="radio"])), [role="button"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="slider"], input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .card, .tp__desc:not(.is-open), .tp__parent, .toast, .sort-select, .ctx-menu__item, .swatch, .player__seek, .player__slider';
 const ROOT = ':root[data-theme="hollow"]';
 /** Where you type. */
-const TYPING = 'textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"])';
+const TYPING = 'textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .nav__search';
 /** The scene's things that are under the pointer themselves (not behind the page), and what the
  *  pointer turns into over them, every part of them. */
 const OWN: [string, string][] = [

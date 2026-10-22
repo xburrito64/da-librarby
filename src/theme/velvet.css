@@ -1,5 +1,16 @@
 /* Velvet: cinematic and dark. Deep blacks, soft glass, and colour that glows out of the artwork. */
 
+/* Scrollbars: a slip of champagne gold. */
+[data-theme="velvet"] ::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  background-image: linear-gradient(rgba(240, 196, 119, 0.6), rgba(240, 196, 119, 0.28));
+}
+
+[data-theme="velvet"] ::-webkit-scrollbar-thumb:hover,
+[data-theme="velvet"] ::-webkit-scrollbar-thumb:active {
+  background-image: linear-gradient(#f0c477, rgba(240, 196, 119, 0.65));
+}
+
 [data-theme="velvet"] {
   --bg: #09090c;
   --bg-elev: #141418;

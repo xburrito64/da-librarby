@@ -59,8 +59,47 @@
   font-size: 15.5px;
 }
 
-:root[data-theme="hollow"] .view::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 117, 24, 0.35);
+/* Scrollbars: a spider hanging on its silk from a knot of web at the top, lower the further down
+   you are. Pointed at, its eyes light up; dragged, it climbs. Sideways ones are plain silk. */
+[data-theme="hollow"] ::-webkit-scrollbar {
+  width: 22px;
+}
+
+[data-theme="hollow"] ::-webkit-scrollbar-button:vertical:start:decrement {
+  display: block;
+  height: 18px;
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2718%27%20height%3D%2716%27%20viewBox%3D%270%200%2018%2016%27%3E%3Cg%20stroke%3D%27rgba(243%2C234%2C216%2C.55)%27%20stroke-width%3D%27.8%27%20fill%3D%27none%27%3E%3Cpath%20d%3D%27M9%2014L1%201M9%2014L9%201M9%2014L17%201%27%2F%3E%3Cpath%20d%3D%27M3.2%204.6Q9%207%2014.8%204.6%27%2F%3E%3Cpath%20d%3D%27M5.6%208.4Q9%2010%2012.4%208.4%27%2F%3E%3Cpath%20d%3D%27M1.6%202.2Q9%204.4%2016.4%202.2%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") center / 22px 18px no-repeat;
+}
+
+[data-theme="hollow"] ::-webkit-scrollbar-button:horizontal,
+[data-theme="hollow"] ::-webkit-scrollbar-button:vertical:start:increment,
+[data-theme="hollow"] ::-webkit-scrollbar-button:vertical:end {
+  display: none;
+}
+
+[data-theme="hollow"] ::-webkit-scrollbar-track-piece:vertical:start {
+  background: linear-gradient(rgba(243, 234, 216, 0.3), rgba(243, 234, 216, 0.45)) center / 1px 100% no-repeat;
+}
+
+[data-theme="hollow"] ::-webkit-scrollbar-thumb:vertical {
+  min-height: 40px;
+  border: 0;
+  border-radius: 0;
+  background:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2730%27%20height%3D%2727%27%20viewBox%3D%270%200%2030%2027%27%3E%3Cg%20stroke%3D%27%236a4c94%27%20stroke-width%3D%271.8%27%20fill%3D%27none%27%20stroke-linecap%3D%27round%27%3E%3Cpath%20d%3D%27M11%2011L4%206%201%2010%27%2F%3E%3Cpath%20d%3D%27M11%2013L3%2012%200%2017%27%2F%3E%3Cpath%20d%3D%27M11%2015L4%2018%202%2023%27%2F%3E%3Cpath%20d%3D%27M12%2016L7%2021%206%2026%27%2F%3E%3Cpath%20d%3D%27M19%2011L26%206%2029%2010%27%2F%3E%3Cpath%20d%3D%27M19%2013L27%2012%2030%2017%27%2F%3E%3Cpath%20d%3D%27M19%2015L26%2018%2028%2023%27%2F%3E%3Cpath%20d%3D%27M18%2016L23%2021%2024%2026%27%2F%3E%3C%2Fg%3E%3Cellipse%20cx%3D%2715%27%20cy%3D%2715.5%27%20rx%3D%276%27%20ry%3D%277%27%20fill%3D%27%231d1427%27%20stroke%3D%27%235b4180%27%20stroke-width%3D%271.2%27%2F%3E%3Ccircle%20cx%3D%2715%27%20cy%3D%278%27%20r%3D%273.6%27%20fill%3D%27%231d1427%27%20stroke%3D%27%235b4180%27%20stroke-width%3D%271.2%27%2F%3E%3Ccircle%20cx%3D%2713.6%27%20cy%3D%277.9%27%20r%3D%271.1%27%20fill%3D%27%23ff5a3c%27%2F%3E%3Ccircle%20cx%3D%2716.4%27%20cy%3D%277.9%27%20r%3D%271.1%27%20fill%3D%27%23ff5a3c%27%2F%3E%3C%2Fsvg%3E") center bottom / 22px 20px no-repeat,
+    linear-gradient(rgba(243, 234, 216, 0.45), rgba(243, 234, 216, 0.7)) center top / 1px calc(100% - 14px) no-repeat;
+}
+
+[data-theme="hollow"] ::-webkit-scrollbar-thumb:vertical:hover,
+[data-theme="hollow"] ::-webkit-scrollbar-thumb:vertical:active {
+  background:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2730%27%20height%3D%2727%27%20viewBox%3D%270%200%2030%2027%27%3E%3Cg%20stroke%3D%27%236a4c94%27%20stroke-width%3D%271.8%27%20fill%3D%27none%27%20stroke-linecap%3D%27round%27%3E%3Cpath%20d%3D%27M11%2011L4%206%201%2010%27%2F%3E%3Cpath%20d%3D%27M11%2013L3%2012%200%2017%27%2F%3E%3Cpath%20d%3D%27M11%2015L4%2018%202%2023%27%2F%3E%3Cpath%20d%3D%27M12%2016L7%2021%206%2026%27%2F%3E%3Cpath%20d%3D%27M19%2011L26%206%2029%2010%27%2F%3E%3Cpath%20d%3D%27M19%2013L27%2012%2030%2017%27%2F%3E%3Cpath%20d%3D%27M19%2015L26%2018%2028%2023%27%2F%3E%3Cpath%20d%3D%27M18%2016L23%2021%2024%2026%27%2F%3E%3C%2Fg%3E%3Cellipse%20cx%3D%2715%27%20cy%3D%2715.5%27%20rx%3D%276%27%20ry%3D%277%27%20fill%3D%27%231d1427%27%20stroke%3D%27%238a63b8%27%20stroke-width%3D%271.2%27%2F%3E%3Ccircle%20cx%3D%2715%27%20cy%3D%278%27%20r%3D%273.6%27%20fill%3D%27%231d1427%27%20stroke%3D%27%238a63b8%27%20stroke-width%3D%271.2%27%2F%3E%3Ccircle%20cx%3D%2713.6%27%20cy%3D%277.9%27%20r%3D%272.4%27%20fill%3D%27%23ff7518%27%20opacity%3D%27.45%27%2F%3E%3Ccircle%20cx%3D%2716.4%27%20cy%3D%277.9%27%20r%3D%272.4%27%20fill%3D%27%23ff7518%27%20opacity%3D%27.45%27%2F%3E%3Ccircle%20cx%3D%2713.6%27%20cy%3D%277.9%27%20r%3D%271.1%27%20fill%3D%27%23ffd27a%27%2F%3E%3Ccircle%20cx%3D%2716.4%27%20cy%3D%277.9%27%20r%3D%271.1%27%20fill%3D%27%23ffd27a%27%2F%3E%3C%2Fsvg%3E") center bottom / 22px 20px no-repeat,
+    linear-gradient(rgba(243, 234, 216, 0.6), rgba(243, 234, 216, 0.9)) center top / 1px calc(100% - 14px) no-repeat;
+}
+
+[data-theme="hollow"] ::-webkit-scrollbar-thumb:horizontal {
+  background-color: rgba(243, 234, 216, 0.35);
+  border-width: 5px 4px;
 }
 
 /* The display font is all one weight; titles get a soft orange glow. */
@@ -3010,11 +3049,6 @@
   color: var(--he-ember);
 }
 
-:root[data-theme="hollow"] .player:not(.player--mini) .player__menu-col {
-  scrollbar-width: thin;
-  scrollbar-color: #6b3fa0 transparent;
-}
-
 :root[data-theme="hollow"] .player:not(.player--mini) .player__item {
   padding-block: 7px;
 }
@@ -3619,7 +3653,7 @@
 /* ---------- The mouse pointer (a setting; pointer.ts draws them and adds the rules showing them) ---------- */
 
 /* Where you type, the typing cursor (the pointer's own, see pointer.ts, when it has one). */
-:root[data-theme="hollow"]:is(.he-pointer, .he-pointer-hand) :is(textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"])) {
+:root[data-theme="hollow"]:is(.he-pointer, .he-pointer-hand) :is(textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .nav__search) {
   cursor: text !important;
 }
 

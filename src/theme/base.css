@@ -180,18 +180,29 @@
   }
 }
 
-.view::-webkit-scrollbar {
-  width: 12px;
+/* Scrollbars, everywhere (pages, Settings, dialogs, menus); each theme dresses them its own way.
+   (A theme's scrollbar rules start with [data-theme="..."], not :root[data-theme="..."]: with :root
+   in front, Chromium ignores the ones for one part of the bar, like ::-webkit-scrollbar-thumb:vertical.) */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
 }
 
-.view::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text) 22%, transparent);
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  min-height: 32px;
+  background-color: color-mix(in srgb, var(--text) 22%, transparent);
   border: 4px solid transparent;
   background-clip: padding-box;
   border-radius: 99px;
 }
 
-.view::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
   background-color: color-mix(in srgb, var(--text) 38%, transparent);
 }
 

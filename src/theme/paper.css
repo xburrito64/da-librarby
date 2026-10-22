@@ -41,9 +41,20 @@
   --card-gap: 28px;
 }
 
-:root[data-theme="paper"] .view::-webkit-scrollbar-thumb {
-  background-color: rgba(28, 22, 14, 0.35);
+/* Scrollbars: a printer's rule down the margin, and an ink block on it (red when held). */
+[data-theme="paper"] ::-webkit-scrollbar-track {
+  background: linear-gradient(rgba(28, 22, 14, 0.28), rgba(28, 22, 14, 0.28)) center / 1px 100% no-repeat;
+}
+
+[data-theme="paper"] ::-webkit-scrollbar-thumb {
+  background-color: #1c160e;
+  border-width: 2px 3px;
   border-radius: 0;
+}
+
+[data-theme="paper"] ::-webkit-scrollbar-thumb:hover,
+[data-theme="paper"] ::-webkit-scrollbar-thumb:active {
+  background-color: #cf3f28;
 }
 
 /* ----- Masthead ----- */

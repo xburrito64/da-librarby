@@ -75,14 +75,35 @@
   outline-offset: 3px;
 }
 
-:root[data-theme="snowdin"] .view::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.55);
-  border: 3px solid transparent;
-  border-radius: 0;
+/* Scrollbars: a dashed white line, and an orange battle button riding on it that turns yellow
+   with the heart in it when you point at it, as when it's picked in the game. */
+[data-theme="snowdin"] ::-webkit-scrollbar {
+  width: 24px;
+  height: 24px;
 }
 
-:root[data-theme="snowdin"] .view::-webkit-scrollbar-thumb:hover {
-  background-color: var(--accent);
+[data-theme="snowdin"] ::-webkit-scrollbar-track:vertical {
+  background: repeating-linear-gradient(rgba(255, 255, 255, 0.55) 0 6px, transparent 6px 12px) center / 2px 100% no-repeat;
+}
+
+[data-theme="snowdin"] ::-webkit-scrollbar-track:horizontal {
+  background: repeating-linear-gradient(to right, rgba(255, 255, 255, 0.55) 0 6px, transparent 6px 12px) center / 100% 2px no-repeat;
+}
+
+[data-theme="snowdin"] ::-webkit-scrollbar-thumb {
+  min-height: 40px;
+  min-width: 40px;
+  background-color: #000;
+  border: 3px solid transparent;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px var(--sd-orange);
+}
+
+[data-theme="snowdin"] ::-webkit-scrollbar-thumb:hover,
+[data-theme="snowdin"] ::-webkit-scrollbar-thumb:active {
+  background: var(--sd-heart) center / 14px 12px no-repeat #000;
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 :root[data-theme="snowdin"] .icon--pixel {
@@ -154,7 +175,7 @@
   cursor: var(--sd-pointer), auto !important;
 }
 
-:root[data-theme="snowdin"].sd-heart-pointer :is(textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"])) {
+:root[data-theme="snowdin"].sd-heart-pointer :is(textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="button"], [type="submit"]), .nav__search) {
   cursor: var(--sd-text-pointer), text !important;
 }
 
