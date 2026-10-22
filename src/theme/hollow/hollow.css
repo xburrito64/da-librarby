@@ -2096,7 +2096,11 @@
   display: inline-flex;
 }
 
-/* "Mark season as watched": a button like the others. */
+/* "Mark season as watched": a button like the others, without an icon. */
+:root[data-theme="hollow"] .tp__markall .icon {
+  display: none;
+}
+
 :root[data-theme="hollow"] .tp__markall {
   display: inline-flex;
   align-items: center;
@@ -4163,11 +4167,6 @@
 :root[data-theme="hollow"] .rt-fact__value {
   color: #ffb04a;
   text-shadow: 0 0 8px rgba(255, 140, 40, 0.55);
-}
-
-/* (Its seasons have their summary: the rating is among its facts there, not on the bar.) */
-:root[data-theme="hollow"] .tp__seasonrate {
-  display: none;
 }
 
 :root[data-theme="hollow"] .rt-cover__label {

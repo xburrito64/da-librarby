@@ -57,6 +57,48 @@
   background-color: #cf3f28;
 }
 
+/* A season's card: a section head in the magazine, between a heavy rule and a hairline, its
+   name in italics and its facts in small capitals. */
+:root[data-theme="paper"] .tp__seasonbar {
+  padding: 16px 0 14px;
+  border: 0;
+  border-top: 3px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: none;
+}
+
+:root[data-theme="paper"] .tp__seasonbar::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--line);
+  pointer-events: none;
+}
+
+:root[data-theme="paper"] .tp__seasonname {
+  font-size: 34px;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="paper"] .tp__seasonfacts {
+  font-family: var(--font-label);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+:root[data-theme="paper"] .tp__seasonprogress {
+  height: 3px;
+  border-radius: 0;
+  background: rgba(28, 22, 14, 0.15);
+}
+
 /* ----- Masthead ----- */
 
 :root[data-theme="paper"] .nav {

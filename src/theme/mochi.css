@@ -66,6 +66,26 @@
   background-color: #ff6fae;
 }
 
+/* A season's card: a soft white cushion with a blush of pink and lavender. */
+:root[data-theme="mochi"] .tp__seasonbar {
+  padding: 18px 24px;
+  border: 0;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #ffffff 30%, #fff1f8 75%, #f3ecff);
+  box-shadow: 0 14px 34px rgba(160, 120, 210, 0.18), 0 2px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+:root[data-theme="mochi"] .tp__seasonprogress {
+  height: 7px;
+  border-radius: 99px;
+  background: #f2e6fb;
+}
+
+:root[data-theme="mochi"] .tp__seasonprogress > span {
+  border-radius: 99px;
+  background: linear-gradient(to right, #ffb3d4, #ff6fae);
+}
+
 /* ----- Floating pill navigation ----- */
 
 :root[data-theme="mochi"] .nav {

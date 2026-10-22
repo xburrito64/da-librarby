@@ -1674,34 +1674,81 @@
   color: var(--bg);
 }
 
+/* A season's card: its name, facts and how much is watched; the note on its match; play and mark
+   as watched. Each theme dresses it its own way. */
 .tp__seasonbar {
+  position: relative;
   display: flex;
-  align-items: baseline;
-  gap: 16px;
-  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+  margin-bottom: 18px;
+  padding: 16px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.tp__seasonsum {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tp__seasonname {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-style: var(--display-style);
+  text-transform: var(--display-transform);
+  letter-spacing: var(--display-tracking);
+  font-size: 26px;
+  line-height: 1.05;
+  color: var(--text);
+}
+
+.tp__seasonfacts {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.tp__seasonhp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tp__seasonprogress {
+  position: relative;
+  inset: auto;
+  width: min(300px, 60vw);
+  margin-top: 4px;
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+  box-shadow: none;
+}
+
+/* The level, the "EP" label and the count: for themes that show them (Snowdin). */
+.tp__seasonlv,
+.tp__seasonhp-label,
+.tp__seasoncount {
+  display: none;
 }
 
 .tp__seasonnote {
+  flex-basis: 100%;
+  order: 3;
   margin: 0;
   font-size: 12.5px;
   color: var(--muted);
 }
 
-.tp__markall {
-  font-size: 12.5px;
-}
-
 .tp__seasonactions {
   margin-left: auto;
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
 }
 
-/* A season's summary and play button, an episode's big number, its facts line and "Up next": for
-   themes that show them (Hollow's Eve). */
-.tp__seasonsum,
-.tp__seasonplay,
+/* An episode's big number, its facts line and "Up next": for themes that show them (Hollow's Eve). */
 .ep__num,
 .ep__meta,
 .ep__upnext {
@@ -4025,13 +4072,6 @@ select.input {
 
 .tp__facts .rt-fact__value {
   font-size: 16px;
-}
-
-/* On the season's bar, beside "Mark season as watched" (themes that don't show the season's
-   summary); the others have it among the summary's facts. */
-.tp__seasonrate {
-  display: inline-flex;
-  font-size: 12.5px;
 }
 
 /* A season tab's rating: a sticker on its corner, or under its name. With ratings under the

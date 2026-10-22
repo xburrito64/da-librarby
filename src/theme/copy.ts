@@ -42,6 +42,9 @@ export interface Copy {
   /** A movie page's "Check" button shows this in place of the description. None by default.
    *  Lines after the first that start with "* " get the same mark as a text box's first line. */
   check?: (movie: CheckInfo) => string;
+  /** A season card's facts as a line of its own (`left`: the time still to watch, if any). None by
+   *  default (the facts are listed). */
+  seasonLine?: (season: { episodes: number; watched: number; left: string | null }) => string;
 }
 
 export interface CheckInfo {

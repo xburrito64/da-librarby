@@ -73,6 +73,46 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8), inset 0 0 6px rgba(255, 255, 255, 0.6);
 }
 
+/* A season's card: a dark glass panel lit pink round its edge, with cyan brackets on two corners. */
+:root[data-theme="neon"] .tp__seasonbar {
+  border: 1px solid rgba(255, 63, 212, 0.45);
+  border-radius: 0;
+  background: linear-gradient(120deg, rgba(255, 63, 212, 0.08), rgba(18, 12, 34, 0.75) 40%, rgba(47, 228, 255, 0.06));
+  box-shadow: 0 0 22px rgba(255, 63, 212, 0.18), inset 0 0 18px rgba(176, 132, 255, 0.08);
+}
+
+:root[data-theme="neon"] .tp__seasonbar::before,
+:root[data-theme="neon"] .tp__seasonbar::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #2fe4ff;
+  filter: drop-shadow(0 0 4px rgba(47, 228, 255, 0.8));
+  pointer-events: none;
+}
+
+:root[data-theme="neon"] .tp__seasonbar::before {
+  top: -4px;
+  left: -4px;
+  border-width: 2px 0 0 2px;
+}
+
+:root[data-theme="neon"] .tp__seasonbar::after {
+  right: -4px;
+  bottom: -4px;
+  border-width: 0 2px 2px 0;
+}
+
+:root[data-theme="neon"] .tp__seasonname {
+  text-shadow: 0 0 12px rgba(255, 63, 212, 0.7);
+}
+
+:root[data-theme="neon"] .tp__seasonprogress {
+  height: 3px;
+  border-radius: 0;
+}
+
 /* ----- Sidebar ----- */
 
 :root[data-theme="neon"] .nav {

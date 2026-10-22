@@ -559,6 +559,7 @@ function SeasonEpisodes({
   onInfo: (file: FileRow) => void;
 }) {
   const length = useLengths(episodes);
+  const copy = useCopy();
   const allWatched = episodes.length > 0 && episodes.every((f) => f.progress?.watched);
   const watched = episodes.filter((f) => f.progress?.watched).length;
   // What's left: the episodes not watched yet (less what's been seen of one stopped part-way),
@@ -576,18 +577,29 @@ function SeasonEpisodes({
     !allWatched && left > 60 ? `about ${formatDuration(left)} left` : null,
   ].filter(Boolean);
   const rateSeason = { kind: "season" as const, id: season.id, name: `${titleName} · ${season.label}`, thumb: season.meta?.thumb ?? thumb, score: season.rating };
+  // A theme can say it its own way (Snowdin's text box).
+  const line = copy.seasonLine?.({ episodes: episodes.length, watched, left: !allWatched && left > 60 ? formatDuration(left) : null });
   return (
     <>
-      <div className="tp__seasonbar">
+      {/* The season's card. The level, the "EP" label and the count are for themes that show them
+          (Snowdin's battle stats). */}
+      <div className={`tp__seasonbar ${allWatched ? "is-done" : ""}`}>
         <div className="tp__seasonsum">
           <span className="tp__seasonname">{season.label}</span>
+          {season.number != null && <span className="tp__seasonlv">LV {season.number}</span>}
           <span className="tp__seasonfacts">
-            {facts.join(" · ")}
-            {" · "}
+            {line ? <Typed text={line} className="tp__seasonline" /> : facts.join(" · ")}
+            {line ? " " : " · "}
             <RateFact target={rateSeason} />
           </span>
-          <span className="progress tp__seasonprogress">
-            <span style={{ width: `${(watched / Math.max(1, episodes.length)) * 100}%` }} />
+          <span className="tp__seasonhp">
+            <span className="tp__seasonhp-label">EP</span>
+            <span className="progress tp__seasonprogress">
+              <span style={{ width: `${(watched / Math.max(1, episodes.length)) * 100}%` }} />
+            </span>
+            <span className="tp__seasoncount">
+              {watched} / {episodes.length}
+            </span>
           </span>
         </div>
         {note}
@@ -598,11 +610,8 @@ function SeasonEpisodes({
               {canResume(here.progress) ? "Resume" : "Play"} {episodeCode(here, season.number)}
             </button>
           )}
-          {/* (Themes that don't show the season's summary: your rating on the bar.) */}
-          <span className="tp__seasonrate">
-            <RateFact target={rateSeason} label="your rating" />
-          </span>
-          <button className="link tp__markall" onClick={() => watch.set(episodes.map((f) => f.id), !allWatched)} data-sfx={allWatched ? undefined : "save"}>
+          <button className="btn tp__markall" onClick={() => watch.set(episodes.map((f) => f.id), !allWatched)} data-sfx={allWatched ? undefined : "save"}>
+            {allWatched ? <UndoIcon /> : <CheckIcon />}
             {allWatched ? "Mark season as unwatched" : "Mark season as watched"}
           </button>
         </span>

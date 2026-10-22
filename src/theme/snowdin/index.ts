@@ -155,6 +155,13 @@ export const SNOWDIN: Theme = {
       statsLine: statLine,
       check: checkLines,
       seasonDone: (show, season) => `* (${season} of ${show} complete. Your progress was saved.)`,
+      seasonLine: ({ episodes, watched, left }) => {
+        const eps = `${episodes} episode${episodes === 1 ? "" : "s"}`;
+        if (watched >= episodes) return `* All ${eps} watched.\n* It fills you with DETERMINATION.`;
+        const time = left ? ` About ${left} to go.` : "";
+        if (watched === 0) return `* ${episodes === 1 ? "An episode blocks" : `${eps} block`} the way.${time}`;
+        return `* You watched ${watched} of ${eps}.${time}`;
+      },
       showDone: (show) => `* (You watched every episode of ${show}. It fills you with DETERMINATION.)`,
       brandLines: [
         "* It's the Librarby. Somebody misspelled the sign.",

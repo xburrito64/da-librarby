@@ -1851,13 +1851,114 @@
   color: var(--accent);
 }
 
+/* A season's card is the battle screen: the text box with what's what (typed out, with the blips),
+   under it the stats line (the season's name, its LV, an HP bar of the episodes watched and the
+   count), then the battle buttons. A finished season gets the save star, twinkling. */
+:root[data-theme="snowdin"] .tp__seasonbar {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-areas:
+    "text text text"
+    "name lv hp"
+    "actions actions actions"
+    "note note note";
+  align-items: center;
+  gap: 14px 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+:root[data-theme="snowdin"] .tp__seasonsum {
+  display: contents;
+}
+
+:root[data-theme="snowdin"] .tp__seasonfacts {
+  grid-area: text;
+  min-height: 86px;
+  box-sizing: border-box;
+  padding: 16px 22px 18px;
+  border: 4px solid var(--line);
+  background: var(--sd-box);
+  color: var(--text);
+  font-size: 19px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+:root[data-theme="snowdin"] .tp__seasonfacts .rt-fact {
+  margin-left: 10px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+:root[data-theme="snowdin"] .tp__seasonname {
+  grid-area: name;
+  font-size: 22px;
+  line-height: 1;
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="snowdin"] .tp__seasonlv {
+  grid-area: lv;
+  display: block;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text);
+}
+
+:root[data-theme="snowdin"] .tp__seasonhp {
+  grid-area: hp;
+  gap: 12px;
+}
+
+:root[data-theme="snowdin"] .tp__seasonhp-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+:root[data-theme="snowdin"] .tp__seasonprogress {
+  width: min(220px, 40vw);
+  height: 22px;
+  margin: 0;
+}
+
+:root[data-theme="snowdin"] .tp__seasoncount {
+  display: block;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+:root[data-theme="snowdin"] .tp__seasonactions {
+  grid-area: actions;
+  margin: 0;
+  flex-wrap: wrap;
+  gap: 16px 22px;
+}
+
+/* (Room on the left for the heart that shows beside a hovered button.) */
 :root[data-theme="snowdin"] .tp__seasonnote {
+  grid-area: note;
   color: var(--sd-dim);
   font-size: 14px;
 }
 
-:root[data-theme="snowdin"] .tp__markall {
-  font-size: 15px;
+:root[data-theme="snowdin"] .tp__seasonbar.is-done::after {
+  content: "";
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 36px;
+  height: 36px;
+  background: var(--sd-star) center / contain no-repeat;
+  image-rendering: pixelated;
+  animation: sd-sparkle 1.2s steps(1) infinite;
+  pointer-events: none;
 }
 
 /* Episodes */
