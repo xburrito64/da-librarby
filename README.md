@@ -15,6 +15,8 @@ Windows only for now.
 - **Covers and info.** Anime from [AniList](https://anilist.co), shows and movies from
   [TMDB](https://www.themoviedb.org): covers, banners, descriptions, episode names and pictures.
   Everything is saved on your computer, so the library works offline. Wrong match? Fix it by hand.
+  If AniList is down, anime come from TMDB for the time being and are matched on AniList again once
+  it's back. Banners come in full size, and for anime you can pick AniList's or TMDB's.
 - **Movie pages** with the artwork across the whole window, the cast, everything about the film,
   your copy of it (picture down to its colour space, audio and subtitle tracks) and your watching,
   and more like it from your library. Every episode has a card like that too, behind the "i" in
@@ -23,8 +25,9 @@ Windows only for now.
   converting. Pictures on the seek bar show where you'll land. Chapters, audio and subtitle tracks
   (remembered per show), subtitle size and position, playback speed, skip intro/credits, frame by
   frame, screenshots, a sleep timer, and the next episode plays on its own (or a random one, when
-  shuffling a show). A mini player keeps the video small and on top in a corner while you do
-  other things, and moving the mouse to another screen leaves just the picture.
+  shuffling a show). Going back to the library keeps it playing in a small, resizable box in the
+  corner while you browse; a mini player keeps the video small and on top of other windows while you
+  do other things, and moving the mouse to another screen leaves just the picture.
 - **Remembers what you watched.** Resume where you stopped, watched marks, "Continue watching" on
   the home screen, every time you watched something, "New" badges for recently added episodes, My List for things you want to
   watch later, where you are in each show, a little celebration when you finish a season, and a
@@ -34,7 +37,8 @@ Windows only for now.
 - **Search, filters, sorting, right-click menus,** "Surprise me", arrow-key browsing and keyboard
   shortcuts for everything. Everything grows with the window on big screens, and an interface size
   slider makes it bigger or smaller.
-- **Six themes**, switchable any time in Settings → Appearance: **Velvet** (dark and cinematic),
+- **Six themes**, each with its own season cards and scrollbars, switchable any time in Settings →
+  Appearance: **Velvet** (dark and cinematic),
   **Paper** (a film magazine), **Neon** (synthwave arcade), **Mochi** (soft pastel), **Snowdin**
   (a cozy snowy pixel town, after the game this app's name comes from, with falling snow, a heart
   pointer in the colour of your choice, little sounds, a battle start when you press Play and a
