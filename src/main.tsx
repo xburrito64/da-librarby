@@ -8,12 +8,15 @@ import { initTheme } from "./theme/theme";
 import { installInterfaceSounds, installSoundFocus } from "./theme/sound";
 import { installMusic } from "./theme/music";
 import { initScale } from "./ui/scale";
+import { installMeter } from "./perf/meter";
+import type { StressArgs } from "./perf/stress";
 
 initTheme();
 initScale();
 installInterfaceSounds();
 installSoundFocus();
 installMusic();
+installMeter();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -23,3 +26,8 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 
 // The window starts hidden; show it once the first frame (in the right theme) is drawn.
 requestAnimationFrame(() => requestAnimationFrame(() => invoke("app_ready").catch(() => {})));
+
+// Started for the stress test (src/perf/stress.ts).
+invoke<StressArgs | null>("perf_stress_args")
+  .then((args) => args && import("./perf/stress").then((m) => m.runStress(args)))
+  .catch((e) => console.error("Stress test failed", e));

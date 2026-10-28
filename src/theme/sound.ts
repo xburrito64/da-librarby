@@ -112,6 +112,13 @@ export function setSoundsMuted(on: boolean) {
   muted = on;
 }
 
+/** Silences everything while the stress test runs (src/perf). */
+let silenced = false;
+
+export function silenceSounds(on: boolean) {
+  silenced = on;
+}
+
 /** Whether the app is the window in front (sounds are only heard then). */
 export function appInFront() {
   return document.visibilityState === "visible" && document.hasFocus();
@@ -145,7 +152,7 @@ export function installSoundFocus() {
 /** Plays one of the theme's sounds. Resolves with how long it lasts (seconds) when that's known (a
  *  recording), else null (made-up sounds, or none played). */
 export function playSound(name: SoundName): Promise<number | null> {
-  if (muted || !appInFront()) return Promise.resolve(null);
+  if (muted || silenced || !appInFront()) return Promise.resolve(null);
   const theme = findTheme(currentTheme());
   const sound = theme?.extras?.sounds?.[name];
   const file = own.get(name);

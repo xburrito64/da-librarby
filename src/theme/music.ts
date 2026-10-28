@@ -14,7 +14,7 @@ const TRACK_SECONDS = 150;
 const SWITCH_FADE_SECONDS = 4;
 const SWITCH_GAP_MS = 1200;
 
-type Hold = "video" | "away";
+type Hold = "video" | "away" | "test";
 
 let tracks: string[] = [];
 /** Tracks still to come before the order is shuffled again. */

@@ -37,6 +37,8 @@ function store(key: string, value: string) {
 let chosen = findTheme(stored(KEY)) ? stored(KEY)! : DEFAULT_THEME;
 let seasonalOn = stored(SEASONAL_KEY) !== "off";
 let skipYear = stored(SKIP_KEY);
+/** Shown instead, for now, by the stress test (src/perf): nothing saved, the October switch untouched. */
+let forced: string | null = null;
 let current = shown();
 
 /** October and the switch is on (and you haven't picked a theme yourself this October). */
@@ -46,6 +48,7 @@ function seasonNow() {
 }
 
 function shown() {
+  if (forced) return forced;
   return seasonNow() && findTheme(SEASONAL_THEME) ? SEASONAL_THEME : chosen;
 }
 
@@ -112,6 +115,12 @@ export function setTheme(id: string, save = true) {
   store(KEY, id);
   if (save) invoke("set_ui_setting", { key: KEY, value: id }).catch(() => {});
   current = "";
+  refresh();
+}
+
+/** Shows `id` for now without saving it (null: back to the usual one). */
+export function forceTheme(id: string | null) {
+  forced = id && findTheme(id) ? id : null;
   refresh();
 }
 

@@ -2,6 +2,7 @@ mod library;
 mod metadata;
 mod mini_player;
 mod mpv;
+mod perf;
 mod player;
 mod fileinfo;
 mod theme_files;
@@ -17,6 +18,7 @@ const AUTOSTART_FLAG: &str = "--autostart";
 /// The page has drawn its first frame: show the window (minimized when Windows started the app).
 #[tauri::command]
 fn app_ready(app: tauri::AppHandle) {
+    perf::mark_ready();
     reveal_window(&app);
 }
 
@@ -36,6 +38,7 @@ fn reveal_window(app: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    perf::mark_start();
     tauri::Builder::default()
         // Must be registered first. Opening the app again just brings the open window forward;
         // two copies would fight over the same database, player and web view data.
@@ -151,6 +154,11 @@ pub fn run() {
             metadata::settings_set_tmdb_key,
             metadata::ui_setting,
             app_ready,
+            perf::perf_stress_args,
+            perf::perf_save,
+            perf::perf_exit,
+            perf::perf_startup,
+            perf::perf_usage,
             metadata::set_ui_setting,
         ])
         .on_window_event(|window, event| {
