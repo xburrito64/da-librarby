@@ -58,7 +58,14 @@ function redrawScrollbars() {
   // scrolling box (on a big library that took over a second).
   const scrolls = (o: string) => o === "auto" || o === "scroll";
   const boxes: { el: HTMLElement; top: number; left: number; before: string }[] = [];
-  for (const el of document.querySelectorAll<HTMLElement>("*")) {
+  // Not inside covers and episodes: there's nothing to scroll in them, and the ones off screen
+  // aren't laid out (base.css), so measuring what's in them had each laid out (1.7 s on a big library).
+  const walker = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (n) => ((n as Element).matches(".card, .ccard, .ep") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
+  for (let n: Node | null = walker.currentNode; n; n = walker.nextNode()) {
+    if (!(n instanceof HTMLElement)) continue;
+    const el = n;
     // (Sizes first: looking up every element's style would take long on a page of many covers.)
     const tall = el.scrollHeight > el.clientHeight;
     const wide = el.scrollWidth > el.clientWidth;
