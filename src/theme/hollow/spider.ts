@@ -31,6 +31,8 @@ export const spiderNow = { x: 0, y: 0, len: 0, angle: 0, ready: false, nudge: (_
 
 /** The thread's own height (hollow.css); it's stretched to its length. */
 const THREAD_PX = 40;
+/** It's drawn again once it has moved this far (px). */
+const MIN_MOVE = 0.25;
 
 export function startSpider(layer: HTMLElement, still: boolean) {
   const el = document.createElement("div");
@@ -71,7 +73,13 @@ export function startSpider(layer: HTMLElement, still: boolean) {
     later(() => el.classList.remove(cls), ms);
   };
 
+  /** What it was last drawn at: the swing's angle, and the thread's length. */
+  let drawn = { angle: NaN, len: NaN };
   const draw = () => {
+    // Not for a change too small to see: each one has the page gone over again (all of it, for a
+    // swing), and hanging there it hardly moves at all. (Swinging, it's drawn every frame.)
+    if (Math.abs(angle - drawn.angle) * (len + BODY) < MIN_MOVE && Math.abs(len - drawn.len) < MIN_MOVE) return;
+    drawn = { angle, len };
     // (Stretched and moved rather than resized: then nothing needs laying out or redrawing.)
     thread.style.transform = `scaleY(${(len / THREAD_PX).toFixed(4)})`;
     body.style.transform = `translateY(${(len - THREAD_PX).toFixed(1)}px)`;

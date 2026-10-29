@@ -63,13 +63,27 @@ const nameOf = (el: HTMLElement) => el.title || el.querySelector(".ccard__show")
 export function startFrames() {
   const known = new Map<HTMLElement, string>();
   const carved = new Map<string, Frame>();
-  const sizes = new ResizeObserver(() => schedule());
+  /** Each cover picture's size (px), as told whenever it's laid out: never measured here. (Covers
+   *  off screen aren't laid out until they come near; measuring them had each one laid out, one
+   *  after another: 35 ms on a tab of covers.) */
+  const size = new WeakMap<Element, { w: number; h: number }>();
+  const sizes = new ResizeObserver((entries) => {
+    for (const e of entries) {
+      const [box] = e.borderBoxSize;
+      if (box) size.set(e.target, { w: Math.round(box.inlineSize), h: Math.round(box.blockSize) });
+    }
+    schedule();
+  });
+  const watched = new WeakSet<Element>();
   let pending = 0;
 
   const clear = (el: HTMLElement) => {
     for (const p of ["--he-frame", "--he-frame-bits", "--he-frame-w", "--he-frame-h"]) el.style.removeProperty(p);
     const art = el.querySelector(ART);
-    if (art) sizes.unobserve(art);
+    if (art) {
+      sizes.unobserve(art);
+      watched.delete(art);
+    }
     known.delete(el);
   };
   const forget = () => {
@@ -90,10 +104,12 @@ export function startFrames() {
     for (const el of now) {
       const art = el.querySelector<HTMLElement>(ART);
       if (!art) continue;
-      if (!known.has(el)) sizes.observe(art);
-      const w = Math.round(art.offsetWidth);
-      const h = Math.round(art.offsetHeight);
-      // (Covers far off screen aren't laid out yet: they're done once they are.)
+      if (!watched.has(art)) {
+        watched.add(art);
+        sizes.observe(art);
+      }
+      // (Not laid out yet: it's framed once it is.)
+      const { w, h } = size.get(art) ?? { w: 0, h: 0 };
       if (w < 40 || h < 30) continue;
       const kind = hash(nameOf(el)) % KINDS;
       const key = `${w}x${h}|${kind}`;

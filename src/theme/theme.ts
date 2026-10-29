@@ -54,21 +54,27 @@ function shown() {
 
 /** Scrollbars keep the look they were made with: rebuilt, they take the theme's. */
 function redrawScrollbars() {
+  // All looked at first, then all changed at once: the page is laid out twice, not once per
+  // scrolling box (on a big library that took over a second).
+  const scrolls = (o: string) => o === "auto" || o === "scroll";
+  const boxes: { el: HTMLElement; top: number; left: number; before: string }[] = [];
   for (const el of document.querySelectorAll<HTMLElement>("*")) {
     // (Sizes first: looking up every element's style would take long on a page of many covers.)
     const tall = el.scrollHeight > el.clientHeight;
     const wide = el.scrollWidth > el.clientWidth;
     if (!tall && !wide) continue;
     const style = getComputedStyle(el);
-    const scrolls = (o: string) => o === "auto" || o === "scroll";
     if (!(tall && scrolls(style.overflowY)) && !(wide && scrolls(style.overflowX))) continue;
-    const { scrollTop, scrollLeft } = el;
-    const before = el.style.overflow;
-    el.style.overflow = "hidden";
-    void el.offsetWidth;
-    el.style.overflow = before;
-    el.scrollTop = scrollTop;
-    el.scrollLeft = scrollLeft;
+    boxes.push({ el, top: el.scrollTop, left: el.scrollLeft, before: el.style.overflow });
+  }
+  if (!boxes.length) return;
+  for (const b of boxes) b.el.style.overflow = "hidden";
+  void document.body.offsetWidth;
+  for (const b of boxes) b.el.style.overflow = b.before;
+  void document.body.offsetWidth;
+  for (const b of boxes) {
+    b.el.scrollTop = b.top;
+    b.el.scrollLeft = b.left;
   }
 }
 

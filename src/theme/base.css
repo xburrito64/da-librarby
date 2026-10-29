@@ -3041,6 +3041,13 @@ select.input {
   display: none;
 }
 
+/* The spotlight's colour (--c, changing with each show) isn't for its decorations: without this,
+   each change had the browser go over every shape of a theme's scenery there again (Hollow's Eve:
+   thousands, 25 ms, a stutter each time the spotlight moved on). */
+.hero__decor {
+  --c: initial;
+}
+
 /* Text that types itself out: the part still to come takes its space already. */
 .typed__rest {
   visibility: hidden;

@@ -69,7 +69,7 @@ const SHAPES = new Set(["path", "ellipse", "circle", "rect", "line", "polygon", 
  *  single shape): the browser treats each shape with an opacity of its own as a piece apart, and
  *  sorting out the pictures' thousands of pieces again every frame was a good part of the page's
  *  work. (Not shapes with a class: the styles may change their opacity, on hover say.) */
-function flattenOpacity(root: Element) {
+function flattenOpacity(root: ParentNode) {
   for (const el of root.querySelectorAll("[opacity]")) {
     if (!SHAPES.has(el.localName) || el.hasAttribute("class") || el.closest("defs, clipPath, mask, pattern, marker")) continue;
     const o = Number(el.getAttribute("opacity"));
@@ -78,8 +78,24 @@ function flattenOpacity(root: Element) {
   }
 }
 
+/** A scene made ready once (for its place and width) and copied each time it's shown again (coming
+ *  back Home, say): copying is quicker than making it again from its description, thousands of
+ *  shapes. With what's under it (the patch's slice of earth), if anything. */
+interface Made {
+  scene: HTMLTemplateElement;
+  under: HTMLTemplateElement | null;
+}
+
+function template(html: string) {
+  const t = document.createElement("template");
+  t.innerHTML = html;
+  flattenOpacity(t.content);
+  return t;
+}
+
 export function startScenes({ surprises }: { surprises: boolean }) {
   const drawn = new Map<HTMLElement, number>();
+  const made = new Map<string, Made>();
   const timers = new Set<number>();
   const later = (fn: () => void, ms: number) => {
     const t = window.setTimeout(() => {
@@ -96,15 +112,23 @@ export function startScenes({ surprises }: { surprises: boolean }) {
         if (drawn.get(host) === width) return;
         drawn.set(host, width);
         host.classList.add("he-scene");
-        const spots: Spot[] = [];
-        host.innerHTML = `${scene(width, spots)}<span class="he-fog"></span><span class="he-fog he-fog--near"></span>`;
-        flattenOpacity(host);
+        const key = `${selector}|${width}`;
+        let m = made.get(key);
+        if (!m) {
+          const spots: Spot[] = [];
+          const html = `${scene(width, spots)}<span class="he-fog"></span><span class="he-fog he-fog--near"></span>`;
+          const under = spots.length ? `<div class="he-under" aria-hidden="true">${underScene(Math.max(1100, Math.ceil(width)), spots)}</div>` : null;
+          m = { scene: template(html), under: under ? template(under) : null };
+          // (Not one for every width a window is dragged through.)
+          if (made.size > 8) made.clear();
+          made.set(key, m);
+        }
+        host.replaceChildren(m.scene.content.cloneNode(true));
         // Under the patch, the slice of earth, lined up with it (at the top of the rows below).
-        const rows = spots.length ? document.querySelector(".home__rows") : null;
-        if (rows) {
+        const rows = m.under ? document.querySelector(".home__rows") : null;
+        if (rows && m.under) {
           rows.querySelector(":scope > .he-under")?.remove();
-          rows.insertAdjacentHTML("beforeend", `<div class="he-under" aria-hidden="true">${underScene(Math.max(1100, Math.ceil(width)), spots)}</div>`);
-          flattenOpacity(rows.lastElementChild!);
+          rows.append(m.under.content.cloneNode(true));
         }
       });
     for (const host of drawn.keys()) if (!host.isConnected) drawn.delete(host);
