@@ -642,6 +642,7 @@
   width: 1px;
   height: 40px;
   margin: 0 auto;
+  transform-origin: 50% 0;
   background: linear-gradient(rgba(243, 234, 216, 0.25), rgba(243, 234, 216, 0.65));
 }
 

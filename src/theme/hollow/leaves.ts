@@ -12,6 +12,7 @@
 import { playSound } from "../sound";
 import { perches } from "./branch";
 import { startMoments, type Field } from "./moments";
+import { cancelFrame, frame as nextFrame } from "./freeze";
 
 /** One leaf per this many square pixels of window (not counting the near ones and the branch's). */
 const AREA_PER_LEAF = 54000;
@@ -451,6 +452,18 @@ function draw(g: CanvasRenderingContext2D, l: Leaf) {
   g.restore();
 }
 
+/** An element's size on the page (CSS px), kept up to date as it changes, so drawing every frame
+ *  needn't measure it (measuring makes the browser work out the page's layout again, every frame). */
+export function watchSize(el: Element) {
+  const size = { w: el.clientWidth, h: el.clientHeight };
+  const observer = new ResizeObserver(([entry]) => {
+    size.w = Math.round(entry.contentRect.width);
+    size.h = Math.round(entry.contentRect.height);
+  });
+  observer.observe(el);
+  return { size, stop: () => observer.disconnect() };
+}
+
 /** How far the library's pages have scrolled since the last call (px; down is positive), so things
  *  drawn over them can move along. `stop` ends the watching. */
 export function followScroll() {
@@ -490,6 +503,8 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
   let nextBranch = 3 + Math.random() * 5;
   let nextNear = between(NEAR_EVERY) / 2;
   const scroll = followScroll();
+  const elSize = watchSize(el);
+  const topSize = watchSize(top);
   const moments = startMoments();
   const field: Field = {
     w: 0,
@@ -523,20 +538,19 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
     playSound("rustle");
   };
   document.addEventListener("click", onClick, true);
-  const size = (c: HTMLCanvasElement) => {
+  const size = (c: HTMLCanvasElement, { size: box }: ReturnType<typeof watchSize>) => {
     const dpr = window.devicePixelRatio || 1;
-    const w = Math.round(c.clientWidth * dpr);
-    const h = Math.round(c.clientHeight * dpr);
+    const w = Math.round(box.w * dpr);
+    const h = Math.round(box.h * dpr);
     if (c.width === w && c.height === h) return false;
     c.width = w;
     c.height = h;
     return true;
   };
   const fit = () => {
-    size(top);
-    if (!size(el) && list.length > 0) return;
-    const w = el.clientWidth;
-    const h = el.clientHeight;
+    size(top, topSize);
+    if (!size(el, elSize) && list.length > 0) return;
+    const { w, h } = elSize.size;
     const count = Math.max(4, Math.round((w * h) / AREA_PER_LEAF));
     const far = Math.round(count * FAR_SHARE);
     list = Array.from({ length: count }, (_, i) => spawn(i < far ? "far" : "mid", w, h, true));
@@ -547,9 +561,8 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
     clock += dt;
     fit();
     const dpr = window.devicePixelRatio || 1;
-    const w = el.clientWidth;
-    const h = el.clientHeight;
-    const line = top.clientHeight;
+    const { w, h } = elSize.size;
+    const line = topSize.size.h;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
     gt.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -607,12 +620,14 @@ export function startLeaves(el: HTMLCanvasElement, top: HTMLCanvasElement) {
       if (l.y - reach > line) l.high = false;
     }
     moments.draw(g, field);
-    frame = requestAnimationFrame(step);
+    frame = nextFrame(step);
   };
-  frame = requestAnimationFrame(step);
+  frame = nextFrame(step);
   return () => {
-    cancelAnimationFrame(frame);
+    cancelFrame(frame);
     scroll.stop();
+    elSize.stop();
+    topSize.stop();
     document.removeEventListener("click", onClick, true);
     moments.stop();
     g.clearRect(0, 0, el.width, el.height);

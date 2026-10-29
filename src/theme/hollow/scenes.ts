@@ -63,6 +63,21 @@ const over = (el: Element, x: number, y: number, near = 6) => {
   return x > r.left - near && x < r.right + near && y > r.top - near && y < r.bottom + near;
 };
 
+const SHAPES = new Set(["path", "ellipse", "circle", "rect", "line", "polygon", "polyline"]);
+
+/** Shapes see-through by their own opacity get it through their paint instead (the same look for a
+ *  single shape): the browser treats each shape with an opacity of its own as a piece apart, and
+ *  sorting out the pictures' thousands of pieces again every frame was a good part of the page's
+ *  work. (Not shapes with a class: the styles may change their opacity, on hover say.) */
+function flattenOpacity(root: Element) {
+  for (const el of root.querySelectorAll("[opacity]")) {
+    if (!SHAPES.has(el.localName) || el.hasAttribute("class") || el.closest("defs, clipPath, mask, pattern, marker")) continue;
+    const o = Number(el.getAttribute("opacity"));
+    for (const p of ["fill-opacity", "stroke-opacity"]) el.setAttribute(p, String(+(Number(el.getAttribute(p) ?? 1) * o).toFixed(3)));
+    el.removeAttribute("opacity");
+  }
+}
+
 export function startScenes({ surprises }: { surprises: boolean }) {
   const drawn = new Map<HTMLElement, number>();
   const timers = new Set<number>();
@@ -83,11 +98,13 @@ export function startScenes({ surprises }: { surprises: boolean }) {
         host.classList.add("he-scene");
         const spots: Spot[] = [];
         host.innerHTML = `${scene(width, spots)}<span class="he-fog"></span><span class="he-fog he-fog--near"></span>`;
+        flattenOpacity(host);
         // Under the patch, the slice of earth, lined up with it (at the top of the rows below).
         const rows = spots.length ? document.querySelector(".home__rows") : null;
         if (rows) {
           rows.querySelector(":scope > .he-under")?.remove();
           rows.insertAdjacentHTML("beforeend", `<div class="he-under" aria-hidden="true">${underScene(Math.max(1100, Math.ceil(width)), spots)}</div>`);
+          flattenOpacity(rows.lastElementChild!);
         }
       });
     for (const host of drawn.keys()) if (!host.isConnected) drawn.delete(host);

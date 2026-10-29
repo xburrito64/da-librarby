@@ -5,6 +5,7 @@
 // sound), then lowers itself again bit by bit, each time to a different height. See hollow.css ("The top bar").
 import { playSound } from "../sound";
 import { SPIDER } from "./art";
+import { cancelFrame, frame as nextFrame } from "./freeze";
 
 /** How long its thread is when it's just hanging there (px): at first, and the range it picks a new
  *  length from after each scare. */
@@ -27,6 +28,9 @@ const IDLE_MS = [5000, 11000];
 /** Where the spider's thread is right now (px in the window: where it starts, how long, its angle),
  *  whether a leaf can get caught on it, and how to set it swinging (leaves.ts). */
 export const spiderNow = { x: 0, y: 0, len: 0, angle: 0, ready: false, nudge: (_spin: number) => {} };
+
+/** The thread's own height (hollow.css); it's stretched to its length. */
+const THREAD_PX = 40;
 
 export function startSpider(layer: HTMLElement, still: boolean) {
   const el = document.createElement("div");
@@ -68,7 +72,9 @@ export function startSpider(layer: HTMLElement, still: boolean) {
   };
 
   const draw = () => {
-    thread.style.height = `${len.toFixed(1)}px`;
+    // (Stretched and moved rather than resized: then nothing needs laying out or redrawing.)
+    thread.style.transform = `scaleY(${(len / THREAD_PX).toFixed(4)})`;
+    body.style.transform = `translateY(${(len - THREAD_PX).toFixed(1)}px)`;
     swing.style.transform = `rotate(${angle.toFixed(4)}rad)`;
   };
 
@@ -91,7 +97,7 @@ export function startSpider(layer: HTMLElement, still: boolean) {
     angle = Math.max(-0.7, Math.min(0.7, angle + spin * dt));
     draw();
     Object.assign(spiderNow, { x, y: hang, len, angle, ready: shown && !scared });
-    frame = requestAnimationFrame(step);
+    frame = nextFrame(step);
   };
 
   // Clicked: it scurries up (taking as long as its scurrying sound lasts), waits, then lets itself
@@ -166,7 +172,7 @@ export function startSpider(layer: HTMLElement, still: boolean) {
   };
   if (still) draw();
   else {
-    frame = requestAnimationFrame(step);
+    frame = nextFrame(step);
     idle();
   }
 
@@ -182,7 +188,7 @@ export function startSpider(layer: HTMLElement, still: boolean) {
     },
     stop() {
       spiderNow.ready = false;
-      cancelAnimationFrame(frame);
+      cancelFrame(frame);
       timers.forEach((t) => window.clearTimeout(t));
       window.removeEventListener("pointermove", stir);
       el.remove();

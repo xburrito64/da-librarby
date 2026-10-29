@@ -55,9 +55,13 @@ function shown() {
 /** Scrollbars keep the look they were made with: rebuilt, they take the theme's. */
 function redrawScrollbars() {
   for (const el of document.querySelectorAll<HTMLElement>("*")) {
+    // (Sizes first: looking up every element's style would take long on a page of many covers.)
+    const tall = el.scrollHeight > el.clientHeight;
+    const wide = el.scrollWidth > el.clientWidth;
+    if (!tall && !wide) continue;
     const style = getComputedStyle(el);
     const scrolls = (o: string) => o === "auto" || o === "scroll";
-    if (!(scrolls(style.overflowY) && el.scrollHeight > el.clientHeight) && !(scrolls(style.overflowX) && el.scrollWidth > el.clientWidth)) continue;
+    if (!(tall && scrolls(style.overflowY)) && !(wide && scrolls(style.overflowX))) continue;
     const { scrollTop, scrollLeft } = el;
     const before = el.style.overflow;
     el.style.overflow = "hidden";

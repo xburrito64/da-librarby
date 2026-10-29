@@ -529,8 +529,17 @@ export function startTablets() {
     if (!frame) frame = requestAnimationFrame(pass);
   };
 
-  // Tablets come and go with the page (and the banner shows one show after another).
-  const changes = new MutationObserver(schedule);
+  // Tablets come and go with the page (and the banner shows one show after another). Only changes
+  // to them count: going over them all whenever anything changes would slow a big page down.
+  const tablets = (nodes: NodeList) => [...nodes].some((n) => n instanceof Element && (n.matches(TABLETS) || n.querySelector(TABLETS) != null || known.has(n as HTMLElement)));
+  const matters = (r: MutationRecord) => {
+    const el = r.target instanceof Element ? r.target : r.target.parentElement;
+    if (el?.closest(TABLETS) || known.has(el as HTMLElement)) return true;
+    return r.type === "childList" && (tablets(r.addedNodes) || tablets(r.removedNodes));
+  };
+  const changes = new MutationObserver((records) => {
+    if (records.some(matters)) schedule();
+  });
   changes.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["class"] });
   window.addEventListener("he:fonts", schedule);
   schedule();

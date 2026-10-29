@@ -491,7 +491,7 @@ function biggestTab(titles: TitleSummary[]) {
 
 /** Copies of every title (with ids of their own) until the library has `size` titles. Their pages
  *  are the originals'. */
-function biggerLibrary(size: number) {
+export function biggerLibrary(size: number) {
   const titles = library.titles;
   const title = library.title;
   const SHIFT = 10_000_000;

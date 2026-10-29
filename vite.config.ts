@@ -12,6 +12,8 @@ export default defineConfig(() => ({
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
+  // DA_PROFILE=1 keeps the code readable, for profiling (see src/perf).
+  build: process.env.DA_PROFILE ? { minify: false } : undefined,
   // 2. tauri expects a fixed port, fail if that port is not available
   server: {
     port: 1420,

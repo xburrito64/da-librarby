@@ -11,7 +11,9 @@ import { startFriends } from "./friends";
 import { startCat } from "./cat";
 import { startTablets } from "./tablets";
 import { startFrames } from "./frames";
-import { followScroll, startLeaves } from "./leaves";
+import { followScroll, startLeaves, watchSize } from "./leaves";
+import { startClock } from "./clock";
+import { cancelFrame, freezeUnderDialogs, frame as nextFrame } from "./freeze";
 
 /** One ember per this many square pixels of window. */
 const AREA_PER_EMBER = 26000;
@@ -57,6 +59,8 @@ export default function Decor({ active, options }: { active: boolean; options: R
   useEffect(() => (active ? startCat({ surprises }) : undefined), [active, surprises]);
   useEffect(() => (active ? startTablets() : undefined), [active]);
   useEffect(() => (active ? startFrames() : undefined), [active]);
+  useEffect(() => (active ? startClock() : undefined), [active]);
+  useEffect(() => freezeUnderDialogs(), []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -77,6 +81,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
     let last = performance.now();
     // Embers belong to the page too: scrolling moves them along.
     const scroll = followScroll();
+    const { size, stop: stopWatching } = watchSize(el);
 
     const spawn = (w: number, h: number, anywhere: boolean): Ember => ({
       x: Math.random() * w,
@@ -90,8 +95,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
 
     const fit = () => {
       const dpr = window.devicePixelRatio || 1;
-      const w = el.clientWidth;
-      const h = el.clientHeight;
+      const { w, h } = size;
       if (list.length > 0 && el.width === Math.round(w * dpr) && el.height === Math.round(h * dpr)) return;
       el.width = Math.round(w * dpr);
       el.height = Math.round(h * dpr);
@@ -103,8 +107,7 @@ export default function Decor({ active, options }: { active: boolean; options: R
       last = now;
       fit();
       const dpr = window.devicePixelRatio || 1;
-      const w = el.clientWidth;
-      const h = el.clientHeight;
+      const { w, h } = size;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, w, h);
       const shift = scroll.take();
@@ -124,12 +127,13 @@ export default function Decor({ active, options }: { active: boolean; options: R
         g.fillRect(e.x - e.r * 4, e.y - e.r * 4, e.r * 8, e.r * 8);
         return e;
       });
-      frame = requestAnimationFrame(step);
+      frame = nextFrame(step);
     };
-    frame = requestAnimationFrame(step);
+    frame = nextFrame(step);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelFrame(frame);
       scroll.stop();
+      stopWatching();
       g.clearRect(0, 0, el.width, el.height);
     };
   }, [embers]);

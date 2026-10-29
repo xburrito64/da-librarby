@@ -114,8 +114,12 @@ export function startFrames() {
     if (!pending) pending = requestAnimationFrame(pass);
   };
 
-  // Covers come and go with the page.
-  const changes = new MutationObserver(schedule);
+  // Covers come and go with the page. (Only then: with hundreds of covers, going over them all
+  // whenever anything on the page changes would slow everything down.)
+  const covers = (nodes: NodeList) => [...nodes].some((n) => n instanceof Element && (n.matches(COVERS) || n.querySelector(COVERS) != null));
+  const changes = new MutationObserver((records) => {
+    if (records.some((r) => covers(r.addedNodes) || covers(r.removedNodes))) schedule();
+  });
   changes.observe(document.body, { childList: true, subtree: true });
   schedule();
 
