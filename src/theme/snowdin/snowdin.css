@@ -1170,8 +1170,8 @@
   right: -2px;
   top: -10px;
   height: 16px;
-  /* Each cover's own snow, drawn to fit it (covercaps.ts); the plain pattern until then. */
-  background: var(--sd-cover-cap, var(--sd-cap) 0 0 / 80px 16px repeat-x);
+  /* The plain pattern, until the cover's own snow is drawn to fit it (covercaps.ts's rules). */
+  background: var(--sd-cap) 0 0 / 80px 16px repeat-x;
   image-rendering: pixelated;
   pointer-events: none;
   transition: transform 0.22s var(--ease);
@@ -1733,7 +1733,7 @@
   right: -6px;
   top: -14px;
   height: 16px;
-  background: var(--sd-cover-cap, var(--sd-cap) 0 0 / 80px 16px repeat-x);
+  background: var(--sd-cap) 0 0 / 80px 16px repeat-x;
   image-rendering: pixelated;
 }
 
