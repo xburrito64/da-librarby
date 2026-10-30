@@ -158,8 +158,10 @@ export function startScenes({ surprises }: { surprises: boolean }) {
   // (Not on the home screen kept behind a show's page: it's still where it was, only covered.)
   const shown = <T extends Element>(selector: string) =>
     [...document.querySelectorAll<T>(selector)].filter((el) => {
+      // (That first: measuring something hidden would have its page laid out.)
+      if (el.closest(".is-covered")) return false;
       const r = el.getBoundingClientRect();
-      return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth && !el.closest(".is-covered");
+      return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
     });
 
   // Clicks: on a pumpkin, the house, the ghost, or (where nothing else was clicked) something

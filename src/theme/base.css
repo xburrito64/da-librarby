@@ -136,8 +136,10 @@
   padding-top: var(--hero-top);
 }
 
+/* Behind a show's page: not drawn, but kept as it is. (Hidden by visibility instead, every part of
+   it took the change, and a big page took 40 ms to be styled again, opening and closing.) */
 .view.is-covered {
-  visibility: hidden;
+  content-visibility: hidden;
 }
 
 /* Pages ease in when opened. */
