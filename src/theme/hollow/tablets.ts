@@ -483,7 +483,17 @@ function seedOf(el: HTMLElement) {
 export function startTablets() {
   const known = new Map<HTMLElement, string>();
   const carved = new Map<string, Carved>();
-  const sizes = new ResizeObserver(() => schedule());
+  /** Each tablet's size (px), as told whenever it's laid out: never measured here (that had the
+   *  page laid out mid-frame, 35 ms when Home came back, and a hidden library laid out while a
+   *  video played). */
+  const size = new WeakMap<Element, { w: number; h: number }>();
+  const sizes = new ResizeObserver((entries) => {
+    for (const e of entries) {
+      const [box] = e.borderBoxSize;
+      if (box) size.set(e.target, { w: Math.round(box.inlineSize), h: Math.round(box.blockSize) });
+    }
+    schedule();
+  });
   let frame = 0;
 
   const clear = (el: HTMLElement) => {
@@ -500,8 +510,7 @@ export function startTablets() {
     let before: { el: HTMLElement; used: Used } | null = null;
     for (const el of now) {
       if (!known.has(el)) sizes.observe(el);
-      const w = Math.round(el.offsetWidth);
-      const h = Math.round(el.offsetHeight);
+      const { w, h } = size.get(el) ?? { w: 0, h: 0 };
       // The tablet before it, if it sits right beside it (a show's About).
       const beside = before && before.el.parentElement === el.parentElement ? before.used : null;
       if (w < 40 || h < 30) {

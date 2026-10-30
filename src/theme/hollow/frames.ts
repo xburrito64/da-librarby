@@ -94,6 +94,16 @@ async function picture(drawing: string, w: number, h: number, room: typeof ROOM,
   }
 }
 
+/** Pictures being made, one after another, each started while nothing else is going on: each takes
+ *  a few milliseconds, and made all at once (a page of new frames) they held the page up a third of
+ *  a second. */
+let turns: Promise<unknown> = Promise.resolve();
+function inTurn<T>(make: () => Promise<T>): Promise<T> {
+  const mine = turns.then(() => new Promise<void>((go) => requestIdleCallback(() => go(), { timeout: 1000 }))).then(make);
+  turns = mine.catch(() => {});
+  return mine;
+}
+
 /** Whose cover it is (the show, or the show of the episode). */
 const nameOf = (el: HTMLElement) => el.title || el.querySelector(".ccard__show")?.textContent || "";
 
@@ -142,10 +152,8 @@ export function startFrames() {
     const W = w + FRAME * 2;
     const H = h + FRAME * 2;
     const drawing = frame(w, h, kind);
-    const [stone, bits] = await Promise.all([
-      picture(drawing.stone, W, H, ROOM, true),
-      picture(drawing.bits, W + PAD * 2, H + PAD * 2, NO_ROOM, false),
-    ]);
+    const stone = await inTurn(() => picture(drawing.stone, W, H, ROOM, true));
+    const bits = await inTurn(() => picture(drawing.bits, W + PAD * 2, H + PAD * 2, NO_ROOM, false));
     // (Let go of meanwhile: the window resized through many sizes, or the theme changed.)
     if (![...carved.values()].includes(f)) {
       URL.revokeObjectURL(stone);

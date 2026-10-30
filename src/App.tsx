@@ -127,10 +127,11 @@ export default function App() {
   return (
     <>
       {/* Stays mounted while playing so the library keeps its place. With something playing in
-          the corner it shows, with a hole there to see the video through. */}
+          the corner it shows, with a hole there to see the video through. (Hidden, not taken out
+          of the page: taken out, all of it had to be styled and laid out again for the corner.) */}
       <div
         style={{
-          display: playing && !corner ? "none" : undefined,
+          contentVisibility: playing && !corner ? "hidden" : undefined,
           clipPath: corner && cornerRect ? cornerHole(cornerRect, window.innerWidth, window.innerHeight) : undefined,
         }}
       >

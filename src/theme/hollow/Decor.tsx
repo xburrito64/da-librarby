@@ -50,15 +50,21 @@ export default function Decor({ active, options }: { active: boolean; options: R
   const leaves = active && options.leaves !== false;
   const surprises = options.surprises !== false;
 
+  const shown = useRef(active);
+  shown.current = active;
+
+  // What moves stops while the player covers the library; what stays put (the covers' frames and
+  // friends, the tablets, the patch) stays: the library is only hidden meanwhile, and making it all
+  // again when the player went to the corner held that up.
   useEffect(() => (active ? startTopBar() : undefined), [active]);
   useEffect(() => (active ? startLogo() : undefined), [active]);
-  useEffect(() => (active ? startTitleFit() : undefined), [active]);
+  useEffect(() => startTitleFit(), []);
   useEffect(() => (leaves && leavesCanvas.current && leavesTop.current ? startLeaves(leavesCanvas.current, leavesTop.current) : undefined), [leaves]);
-  useEffect(() => (active ? startScenes({ surprises }) : undefined), [active, surprises]);
-  useEffect(() => (active ? startFriends({ surprises }) : undefined), [active, surprises]);
+  useEffect(() => startScenes({ surprises }), [surprises]);
+  useEffect(() => startFriends({ surprises, shown: () => shown.current }), [surprises]);
   useEffect(() => (active ? startCat({ surprises }) : undefined), [active, surprises]);
-  useEffect(() => (active ? startTablets() : undefined), [active]);
-  useEffect(() => (active ? startFrames() : undefined), [active]);
+  useEffect(() => startTablets(), []);
+  useEffect(() => startFrames(), []);
   useEffect(() => (active ? startClock() : undefined), [active]);
   useEffect(() => freezeUnderDialogs(), []);
 

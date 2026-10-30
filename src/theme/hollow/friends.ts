@@ -430,7 +430,7 @@ const family = (friend: string | null) => (friend === "golden" ? "pumpkin" : fri
 /** The walking spider (the one moving house), drawn small enough to walk along a cover's edge. */
 const WALKER = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-24 -26 48 46" width="48" height="46"><defs>${DEFS}</defs>${spider(0, 0, false, 0.9, true)}</svg>`;
 
-export function startFriends({ surprises }: { surprises: boolean }) {
+export function startFriends({ surprises, shown }: { surprises: boolean; shown: () => boolean }) {
   const style = document.createElement("style");
   style.id = "he-friends";
   const made = rules();
@@ -526,7 +526,7 @@ export function startFriends({ surprises }: { surprises: boolean }) {
   };
   const move = () => {
     later(move, MOVE_EVERY_MS[0] + Math.random() * (MOVE_EVERY_MS[1] - MOVE_EVERY_MS[0]));
-    if (document.hidden || walking) return;
+    if (document.hidden || walking || !shown()) return;
     const from = [...document.querySelectorAll<HTMLElement>('.card[data-he-friend="spider"]')].find((card) => {
       const next = card.nextElementSibling as HTMLElement | null;
       return seen(card) && next?.matches(".card[data-id]") && !next.dataset.heFriend && seen(next);
