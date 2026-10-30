@@ -11,7 +11,7 @@
 // drawn in: drawn as it was (shapes, grain, a blurred shadow) for every cover scrolling into view, it
 // took the graphics card more than a frame's time on a page of many covers.
 
-import { warm } from "./art";
+import { flatten, inTurn, warm } from "./art";
 import { carve, hash } from "./tablets";
 
 /** How far the stone reaches past the cover (px); hollow.css matches it. */
@@ -23,7 +23,6 @@ const KINDS = 16;
 /** The stone's shadow (px: how far down, how blurred), and the room left for it round the stone. */
 const SHADOW = { y: 12, blur: 16, color: "rgba(0, 0, 0, 0.6)" };
 const ROOM = { side: 24, top: 16, bottom: 40 };
-const NO_ROOM = { side: 0, top: 0, bottom: 0 };
 
 const COVERS = ".card, .ccard";
 const ART = ".card__art, .ccard__art";
@@ -68,40 +67,6 @@ function frame(w: number, h: number, kind: number) {
     stone: svg(W, H, `0 0 ${W} ${H}`, stone),
     bits: svg(W + PAD * 2, H + PAD * 2, `${-PAD} ${-PAD} ${W + PAD * 2} ${H + PAD * 2}`, carved.bits),
   };
-}
-
-/** Draws an SVG `w`×`h` as a plain picture at the screen's sharpness, with `room` round it and, if
- *  asked, the stone's shadow; its blob: link. */
-async function picture(drawing: string, w: number, h: number, room: typeof ROOM, shadow: boolean) {
-  const source = URL.createObjectURL(new Blob([drawing], { type: "image/svg+xml" }));
-  try {
-    const img = new Image();
-    img.src = source;
-    await img.decode();
-    const dpr = window.devicePixelRatio || 1;
-    const canvas = new OffscreenCanvas(Math.ceil((w + room.side * 2) * dpr), Math.ceil((h + room.top + room.bottom) * dpr));
-    const g = canvas.getContext("2d")!;
-    if (shadow) {
-      // (A canvas's shadow isn't scaled with what's drawn.)
-      g.shadowColor = SHADOW.color;
-      g.shadowOffsetY = SHADOW.y * dpr;
-      g.shadowBlur = SHADOW.blur * dpr;
-    }
-    g.drawImage(img, room.side * dpr, room.top * dpr, w * dpr, h * dpr);
-    return URL.createObjectURL(await canvas.convertToBlob());
-  } finally {
-    URL.revokeObjectURL(source);
-  }
-}
-
-/** Pictures being made, one after another, each started while nothing else is going on: each takes
- *  a few milliseconds, and made all at once (a page of new frames) they held the page up a third of
- *  a second. */
-let turns: Promise<unknown> = Promise.resolve();
-function inTurn<T>(make: () => Promise<T>): Promise<T> {
-  const mine = turns.then(() => new Promise<void>((go) => requestIdleCallback(() => go(), { timeout: 1000 }))).then(make);
-  turns = mine.catch(() => {});
-  return mine;
 }
 
 /** Whose cover it is (the show, or the show of the episode). */
@@ -152,8 +117,8 @@ export function startFrames() {
     const W = w + FRAME * 2;
     const H = h + FRAME * 2;
     const drawing = frame(w, h, kind);
-    const stone = await inTurn(() => picture(drawing.stone, W, H, ROOM, true));
-    const bits = await inTurn(() => picture(drawing.bits, W + PAD * 2, H + PAD * 2, NO_ROOM, false));
+    const stone = await inTurn(() => flatten(drawing.stone, W, H, { room: ROOM, shadow: SHADOW }));
+    const bits = await inTurn(() => flatten(drawing.bits, W + PAD * 2, H + PAD * 2));
     // (Let go of meanwhile: the window resized through many sizes, or the theme changed.)
     if (![...carved.values()].includes(f)) {
       URL.revokeObjectURL(stone);

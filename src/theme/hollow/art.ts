@@ -9,6 +9,46 @@ export function svgUrl(svg: string) {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
+/** Draws an SVG `w`×`h` as a plain picture at the screen's sharpness, with `room` round it and a
+ *  `shadow` if asked; its blob: link. (Shown as drawings, the covers' frames and friends had the
+ *  graphics card work through every shape, blur and shadow for each cover scrolling into view.) */
+export async function flatten(
+  drawing: string,
+  w: number,
+  h: number,
+  { room = { side: 0, top: 0, bottom: 0 }, shadow }: { room?: { side: number; top: number; bottom: number }; shadow?: { y: number; blur: number; color: string } } = {},
+) {
+  const source = URL.createObjectURL(new Blob([drawing], { type: "image/svg+xml" }));
+  try {
+    const img = new Image();
+    img.src = source;
+    await img.decode();
+    const dpr = window.devicePixelRatio || 1;
+    const canvas = new OffscreenCanvas(Math.ceil((w + room.side * 2) * dpr), Math.ceil((h + room.top + room.bottom) * dpr));
+    const g = canvas.getContext("2d")!;
+    if (shadow) {
+      // (A canvas's shadow isn't scaled with what's drawn.)
+      g.shadowColor = shadow.color;
+      g.shadowOffsetY = shadow.y * dpr;
+      g.shadowBlur = shadow.blur * dpr;
+    }
+    g.drawImage(img, room.side * dpr, room.top * dpr, w * dpr, h * dpr);
+    return URL.createObjectURL(await canvas.convertToBlob());
+  } finally {
+    URL.revokeObjectURL(source);
+  }
+}
+
+/** Pictures being made, one after another, each started while nothing else is going on: each takes
+ *  a few milliseconds, and made all at once (a page of new frames) they held the page up a third of
+ *  a second. */
+let turns: Promise<unknown> = Promise.resolve();
+export function inTurn<T>(make: () => Promise<T>): Promise<T> {
+  const mine = turns.then(() => new Promise<void>((go) => requestIdleCallback(() => go(), { timeout: 1000 }))).then(make);
+  turns = mine.catch(() => {});
+  return mine;
+}
+
 /** Pictures got ready, kept so they stay ready. */
 const ready = new Map<string, HTMLImageElement>();
 

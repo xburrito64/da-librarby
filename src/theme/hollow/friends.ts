@@ -8,7 +8,7 @@
 // finished a little grave. Point at a cover and its friend does something (the pumpkin hops, the
 // bat wakes up and opens its wings, the hat lifts...). Once in a long while a pumpkin is golden,
 // and now and then the spider packs up its bundle and walks over to the next cover.
-import { svgUrl, warm } from "./art";
+import { flatten, inTurn, svgUrl } from "./art";
 import { drawPumpkin, pumpkinDefs } from "./pumpkins";
 
 /** The covers' width the friends are drawn for (they keep to their side of wider ones). */
@@ -388,17 +388,23 @@ function picture(f: Friend, up: boolean) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${x1 - x0} ${y1 - y0}" width="${x1 - x0}" height="${y1 - y0}"><defs>${defs}</defs>${f.draw(up)}</svg>`;
 }
 
-/** The stylesheet placing each friend (its pictures, where, how big), and the pictures, to have them
- *  ready (warm, art.ts). */
+/** The stylesheet placing each friend (its pictures, where, how big); and its pictures as drawings,
+ *  each with the rule for it once made a plain picture (flatten, art.ts). */
 function rules() {
-  const pictures: string[] = [];
+  const pictures: { drawing: string; w: number; h: number; rule: (url: string) => string }[] = [];
   const css = Object.entries(FRIENDS)
     .map(([name, f]) => {
       const [x0, y0, x1, y1] = f.box;
       const rest = svgUrl(picture(f, false));
       const up = svgUrl(picture(f, true));
-      pictures.push(rest, up);
       const at = `:root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend="${name}"]`;
+      const flat = (up: boolean, pseudo: string) =>
+        pictures.push({ drawing: picture(f, up), w: x1 - x0, h: y1 - y0, rule: (url) => `${at}::${pseudo} { background-image: url("${url}"); }` });
+      if (name === "spider") flat(false, "after");
+      else {
+        flat(false, "before");
+        flat(true, "after");
+      }
       const box = `${f.side === "left" ? `left: ${x0}px` : `right: ${W - x1}px`}; top: ${y0}px; width: ${x1 - x0}px; height: ${y1 - y0}px;`;
       const rise = f.rise ?? 0;
       // (The spider's ::before is its thread, hollow.css; it hangs in its resting picture.)
@@ -435,8 +441,16 @@ export function startFriends({ surprises, shown }: { surprises: boolean; shown: 
   style.id = "he-friends";
   const made = rules();
   style.textContent = made.css;
-  const unwarm = warm(made.pictures);
   document.head.append(style);
+  // Each picture made a plain one, while nothing else is going on; its rule then added (coming later,
+  // it wins over the drawing's).
+  const flat: string[] = [];
+  for (const p of made.pictures)
+    void inTurn(() => flatten(p.drawing, p.w, p.h)).then((url) => {
+      if (!style.isConnected) return URL.revokeObjectURL(url);
+      flat.push(url);
+      style.sheet?.insertRule(p.rule(url), style.sheet.cssRules.length);
+    });
 
   // Changes to who sits where, this session: the golden pumpkin, the spider's moves.
   const moved = new Map<number, string | null>();
@@ -577,7 +591,7 @@ export function startFriends({ surprises, shown }: { surprises: boolean; shown: 
     walker?.remove();
     timers.forEach((t) => window.clearTimeout(t));
     style.remove();
-    unwarm();
+    flat.forEach((url) => URL.revokeObjectURL(url));
     document.querySelectorAll<HTMLElement>("[data-he-friend]").forEach((el) => delete el.dataset.heFriend);
   };
 }
