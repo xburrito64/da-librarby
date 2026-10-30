@@ -41,7 +41,13 @@ export function startTitleFit() {
       check();
     });
   };
-  const changes = new MutationObserver(later);
+  // Only for changes to a title, or a title coming: measuring has the browser lay out what changed
+  // first, and for anything else (Settings opening, say) that came at the worst time, mid-frame.
+  const inTitle = (n: Node) => (n instanceof Element ? n : n.parentElement)?.closest(".hero__title") != null;
+  const hasTitle = (n: Node) => n instanceof Element && (n.matches(".hero__title") || n.querySelector(".hero__title") != null);
+  const changes = new MutationObserver((records) => {
+    if (records.some((r) => inTitle(r.target) || [...r.addedNodes].some(hasTitle))) later();
+  });
   changes.observe(document.body, { childList: true, subtree: true, characterData: true });
   window.addEventListener("resize", later);
   // Once the spooky font has arrived, measure again (it's wider than the one shown before it); and

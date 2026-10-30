@@ -37,7 +37,7 @@ function setFrozen(on: boolean) {
 
 /** Freezes while a dialog is open; returns the way to stop watching. */
 export function freezeUnderDialogs() {
-  const check = () => setFrozen(document.querySelector(".modal") != null);
+  const check = () => setFrozen(document.querySelector(".modal:not(.settings-warmup *)") != null);
   const changes = new MutationObserver(check);
   changes.observe(document.body, { childList: true, subtree: true });
   check();

@@ -2055,6 +2055,15 @@
   animation: fade 0.2s ease both;
 }
 
+/* Settings built once, unseen, to have it ready (LibraryView). */
+.settings-warmup {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  pointer-events: none;
+}
+
 @keyframes fade {
   from {
     opacity: 0;

@@ -1,6 +1,6 @@
 // The library: navigation, home screen, cover grids, show pages and settings.
 // How it looks is entirely up to the theme (src/theme); this file only lays out the pieces.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   library,
   metadata,
@@ -65,6 +65,30 @@ export default function LibraryView({
   useEffect(() => {
     if (!settings) metadata.tmdbKey().then((k) => setHasKey(!!k)).catch(() => {});
   }, [settings]);
+  /** Settings built once, unseen, a little after startup (and after the theme changes) while nothing
+   *  else is going on: the first time it opened, all it shows was made then (its pictures, the
+   *  letters of its fonts), and it stuttered; once made, it opens smoothly. */
+  const [warmup, setWarmup] = useState(false);
+  const themeId = useThemeInfo()?.id;
+  const warmedOnce = useRef(false);
+  useEffect(() => {
+    let idle = 0;
+    const timer = window.setTimeout(
+      () => (idle = requestIdleCallback(() => setWarmup(true), { timeout: 10000 })),
+      warmedOnce.current ? 3000 : 8000,
+    );
+    warmedOnce.current = true;
+    return () => {
+      window.clearTimeout(timer);
+      cancelIdleCallback(idle);
+    };
+  }, [themeId]);
+  useEffect(() => {
+    if (!warmup) return;
+    // Up (unseen) for a few frames, so it's laid out and drawn once.
+    let f = requestAnimationFrame(() => (f = requestAnimationFrame(() => (f = requestAnimationFrame(() => setWarmup(false))))));
+    return () => cancelAnimationFrame(f);
+  }, [warmup]);
   const [error, setError] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [query, setQuery] = useState("");
@@ -235,11 +259,13 @@ export default function LibraryView({
         ? `Getting info from ${fetching.source ?? "online"} · ${fetching.done + 1} of ${fetching.total}`
         : null;
 
-  const goTo = (next: Tab) => {
-    setOpenTitle(null);
-    setQuery("");
-    setTab(next);
-  };
+  // (The new page is made a bit at a time, between frames, rather than all at once on the click.)
+  const goTo = (next: Tab) =>
+    startTransition(() => {
+      setOpenTitle(null);
+      setQuery("");
+      setTab(next);
+    });
 
   return (
     <ContextMenuProvider>
@@ -311,7 +337,8 @@ export default function LibraryView({
           <button className="icon-btn" title="Look for new files" onClick={() => library.rescan()}>
             <RefreshIcon />
           </button>
-          <button className="icon-btn" title="Settings" onClick={() => setSettings("appearance")}>
+          {/* (Settings is made a bit at a time, between frames, rather than all at once on the click.) */}
+          <button className="icon-btn" title="Settings" onClick={() => startTransition(() => setSettings("appearance"))}>
             <SettingsIcon />
           </button>
         </div>
@@ -360,6 +387,19 @@ export default function LibraryView({
           onError={setError}
           onClose={() => setSettings(null)}
         />
+      )}
+      {warmup && !settings && (
+        <div className="settings-warmup" aria-hidden inert>
+          <Settings
+            section="appearance"
+            onSection={() => {}}
+            libraries={libraries ?? []}
+            titles={sorted}
+            onLibraries={() => {}}
+            onError={() => {}}
+            onClose={() => {}}
+          />
+        </div>
       )}
       {said && (
         <button key={said.n} className={`say ${said.save ? "say--save" : ""}`} onClick={() => setSaid(null)} data-sfx="none">

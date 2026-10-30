@@ -4,17 +4,19 @@ import { invoke } from "@tauri-apps/api/core";
 import App from "./App";
 import "./index.css";
 import "./theme/themes";
-import { initTheme } from "./theme/theme";
-import { installInterfaceSounds, installSoundFocus } from "./theme/sound";
+import { initTheme, preloadFonts } from "./theme/theme";
+import { installInterfaceSounds, installSoundFocus, warmSounds } from "./theme/sound";
 import { installMusic } from "./theme/music";
 import { initScale } from "./ui/scale";
 import { installMeter } from "./perf/meter";
 import type { StressArgs } from "./perf/stress";
 
 initTheme();
+preloadFonts();
 initScale();
 installInterfaceSounds();
 installSoundFocus();
+warmSounds();
 installMusic();
 installMeter();
 

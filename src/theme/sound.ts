@@ -3,7 +3,7 @@
 // Sounds never play over a video, nor while the app is in the background (another window in
 // front, or minimized): what's still playing then fades out quickly. Sound files the owner added for the theme (see ownFiles.ts) play
 // instead of the theme's own.
-import { findTheme } from "./themes";
+import { findTheme, type Theme } from "./themes";
 import { currentTheme } from "./theme";
 import { themeOption } from "./options";
 
@@ -149,6 +149,43 @@ export function installSoundFocus() {
   document.addEventListener("visibilitychange", update);
 }
 
+/** The sound engine, made the first time it's needed. */
+function engine() {
+  if (!ctx) {
+    ctx = new AudioContext();
+    master = ctx.createGain();
+    master.connect(ctx.destination);
+  }
+  return ctx;
+}
+
+/** Gets the theme's recordings ready (once), so they play without a delay when it's their turn. */
+function loadRecordings(audio: AudioContext, theme: Theme) {
+  if (recordings.size < 2)
+    for (const urls of Object.values(theme.extras?.sounds ?? {})) if (Array.isArray(urls)) urls.forEach((u) => recording(audio, u));
+}
+
+/** Call once at startup: a little later, while nothing else is going on, makes the sound engine and
+ *  loads the theme's recordings. (Done by the first sound, that held up the click it was for.) */
+export function warmSounds() {
+  window.setTimeout(
+    () =>
+      requestIdleCallback(() => {
+        const theme = findTheme(currentTheme());
+        if (silenced || !theme?.extras?.sounds || themeOption(theme.id, "sounds") === false) return;
+        try {
+          const audio = engine();
+          // (Asleep until a sound plays.)
+          audio.suspend().catch(() => {});
+          loadRecordings(audio, theme);
+        } catch {
+          // No audio device.
+        }
+      }),
+    6000,
+  );
+}
+
 /** Plays one of the theme's sounds. Resolves with how long it lasts (seconds) when that's known (a
  *  recording), else null (made-up sounds, or none played). */
 export function playSound(name: SoundName): Promise<number | null> {
@@ -163,13 +200,8 @@ export function playSound(name: SoundName): Promise<number | null> {
     lastMove = now;
   }
   try {
-    if (!ctx) {
-      ctx = new AudioContext();
-      master = ctx.createGain();
-      master.connect(ctx.destination);
-    }
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
-    const audio = ctx;
+    const audio = engine();
+    if (audio.state === "suspended") audio.resume().catch(() => {});
     const out = audio.createGain();
     const recorded = !file && Array.isArray(sound);
     const levels = file ? FILE_VOLUMES : recorded ? RECORDING_VOLUMES : VOLUMES;
@@ -180,9 +212,7 @@ export function playSound(name: SoundName): Promise<number | null> {
       return playBuffer(audio, out, file.buffer, () => own.delete(name));
     }
     if (Array.isArray(sound)) {
-      // Get the theme's other recordings ready, so they play without a delay when it's their turn.
-      if (recordings.size < 2)
-        for (const urls of Object.values(theme.extras?.sounds ?? {})) if (Array.isArray(urls)) urls.forEach((u) => recording(audio, u));
+      loadRecordings(audio, theme);
       return playBuffer(audio, out, recording(audio, take(name, sound)), () => {});
     }
     sound!(audio, out);

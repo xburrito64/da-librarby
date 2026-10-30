@@ -103,6 +103,15 @@ function refresh() {
   listeners.forEach((l) => l());
 }
 
+/** Loads the fonts only shown now and then (Settings' theme previews and font choices) a little
+ *  after startup, while nothing else is going on: loaded when first shown, they had the whole page
+ *  laid out again right after (Settings stuttered opening). Only their Latin letters. */
+export function preloadFonts() {
+  const load = () =>
+    [...document.fonts].filter((f) => f.status === "unloaded" && /^U\+0-FF\b/i.test(f.unicodeRange)).forEach((f) => f.load().catch(() => {}));
+  window.setTimeout(() => requestIdleCallback(load, { timeout: 5000 }), 4000);
+}
+
 /** Call once at startup, before the first render. */
 export function initTheme() {
   apply(current);

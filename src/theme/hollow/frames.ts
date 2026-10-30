@@ -105,12 +105,15 @@ export function startFrames() {
     for (const u of unwarm.splice(0)) u();
   };
 
-  /** Frames a cover whose picture is `w`×`h`. */
+  /** How many frames may still be carved this frame (each takes half a millisecond or so). */
+  let carving = Infinity;
+  /** Frames a cover whose picture is `w`×`h`; false if its frame is still to be carved, next frame. */
   const put = (el: HTMLElement, text: Element, w: number, h: number) => {
     const kind = hash(nameOf(el)) % KINDS;
     const key = `${w}x${h}|${kind}`;
     let f = carved.get(key);
     if (!f) {
+      if (carving-- <= 0) return false;
       f = frame(w, h, kind, `he-fr-${made++}`);
       carved.set(key, f);
       const W = w + FRAME * 2;
@@ -123,10 +126,11 @@ export function startFrames() {
       unwarm.push(warm([f.stone, f.bits]));
     }
     const was = known.get(el);
-    if (was?.key === key && was.text === text) return;
+    if (was?.key === key && was.text === text) return true;
     if (was) was.text.classList.remove(was.cls);
     text.classList.add(f.cls);
     known.set(el, { key, text, cls: f.cls });
+    return true;
   };
 
   /** Covers not laid out yet (off screen), framed ahead at the size of the others beside them (a row's
@@ -155,6 +159,10 @@ export function startFrames() {
 
   const pass = () => {
     pending = 0;
+    // (A page of covers of a new size, a tab say, needs 16 new frames: carved over a few frames, not
+    // all in the one the page comes in.)
+    carving = 4;
+    let more = false;
     const now = [...document.querySelectorAll<HTMLElement>(COVERS)];
     const live = new Set(now);
     for (const el of [...known.keys()]) if (!live.has(el)) clear(el);
@@ -180,8 +188,10 @@ export function startFrames() {
         continue;
       }
       laidOut.set(besides(el), { w, h });
-      put(el, text, w, h);
+      if (!put(el, text, w, h)) more = true;
     }
+    carving = Infinity;
+    if (more) schedule();
     const unsized = new Map<string, HTMLElement>();
     ahead = notYet.flatMap(({ el, text, art }) => {
       const like = laidOut.get(besides(el));
