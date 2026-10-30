@@ -145,6 +145,13 @@
   animation: page-in 0.4s var(--ease) backwards;
 }
 
+/* Home, kept while another page shows (Browse): hidden, with all of it still made, and easing in
+   again when it comes back. */
+.page-in.page-away {
+  content-visibility: hidden;
+  animation: none;
+}
+
 .tp {
   animation: fade 0.3s ease backwards;
 }

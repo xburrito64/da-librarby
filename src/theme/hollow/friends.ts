@@ -521,6 +521,8 @@ export function startFriends({ surprises, shown }: { surprises: boolean; shown: 
     timers.add(t);
   };
   const seen = (el: Element) => {
+    // (Not on a page kept hidden.)
+    if (el.closest(".is-covered")) return false;
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.left >= 0 && r.right <= window.innerWidth && r.top > 60 && r.bottom < window.innerHeight;
   };

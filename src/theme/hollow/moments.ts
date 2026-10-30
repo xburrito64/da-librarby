@@ -434,9 +434,17 @@ export function startMoments() {
     },
   };
 
+  /** Whether it's on a page kept hidden (Home behind another page or a show's page): not to be
+   *  looked for there (it isn't seen, and measuring it there would have the hidden page laid out). */
+  function covered(el: Element) {
+    return el.closest(".is-covered") != null;
+  }
+
   /** The ground of a pumpkin patch (or graveyard) in view, at a spot along it: where it is now. */
   function patch(f: Field): (() => [number, number] | null) | null {
     for (const svg of document.querySelectorAll<SVGSVGElement>(".he-scene__svg:not(.he-grass)")) {
+      // (Not on a page kept hidden: see covered.)
+      if (covered(svg)) continue;
       const m = svg.getScreenCTM();
       if (!m) continue;
       const sx = new DOMPoint(f.w * (0.3 + Math.random() * 0.5), 0).matrixTransform(m.inverse()).x;
@@ -454,7 +462,7 @@ export function startMoments() {
 
   function pumpkinStems(f: Field) {
     return [...document.querySelectorAll<SVGGElement>(".he-pumpkin__stem")].filter((s) => {
-      if (s.closest(".nav__logo")) return false;
+      if (s.closest(".nav__logo") || covered(s)) return false;
       const r = s.getBoundingClientRect();
       return r.width > 2 && inView(r, f, 40);
     });
@@ -464,7 +472,7 @@ export function startMoments() {
     const el = document.querySelector(".he-cat");
     const eyes = el?.querySelector(".he-cat__eyes");
     const look = el?.querySelector<SVGGElement>(".he-cat__look");
-    if (!el || !eyes || !look || !inView(el.getBoundingClientRect(), f, 60)) return null;
+    if (!el || !eyes || !look || covered(el) || !inView(el.getBoundingClientRect(), f, 60)) return null;
     return { el, eyes, look };
   }
 

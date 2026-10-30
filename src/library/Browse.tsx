@@ -170,50 +170,55 @@ export default function Browse({ tab, titles, offline, query, continueList, load
     if (pool.length > 0) play(pool[Math.floor(Math.random() * pool.length)].id);
   };
 
+  // Home stays made (hidden) while another page shows: made again each time it came back, all of
+  // it (thousands of pieces in some themes) had to be styled and laid out anew, a stutter.
+  const homeShown = tab === "home" && !query;
+  const hasHome = loaded && hasLibraries && titles.length > 0;
+  const home = hasHome && (
+    <>
+      <Spotlight titles={titles} onOpen={onOpen} onPlay={play} shown={homeShown && active} />
+      <div className="home__rows">
+        <OfflineNote offline={offline} titles={titles} />
+        <KeyNote titles={titles} onSetup={onSetupKey} />
+        {continueList.length > 0 && (
+          <Row label="Continue watching" count={continueList.length} wide>
+            {continueList.map((c) => (
+              <ContinueCard key={c.fileId} item={c} onPlay={onPlay} onOpen={onOpen} />
+            ))}
+          </Row>
+        )}
+        {myList.length > 0 && (
+          <Row label="My List" count={myList.length}>
+            {myList.map((t) => (
+              <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
+            ))}
+          </Row>
+        )}
+        {showFavourites && favourites.length > 0 && (
+          <Row label="Your favourites" count={favourites.length}>
+            {favourites.map((t) => (
+              <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
+            ))}
+          </Row>
+        )}
+        {KINDS.filter((k) => byKind.has(k)).map((k) => (
+          <Row key={k} label={KIND_LABELS[k]} count={byKind.get(k)!.length} onMore={() => onTab(k)}>
+            {byKind.get(k)!.map((t) => (
+              <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
+            ))}
+          </Row>
+        ))}
+        <HomeEnd />
+      </div>
+    </>
+  );
+
   let content;
   if (!loaded) content = null;
   else if (!hasLibraries || titles.length === 0) content = <Empty hasLibraries={hasLibraries} onAddFolder={onAddFolder} />;
   else if (query) content = <Search query={query} titles={titles} onOpen={onOpen} onPlay={onPlay} onPlayTitle={play} />;
   else if (tab === "stats") content = <WatchStats titles={titles} onOpen={onOpen} />;
-  else if (tab === "home")
-    content = (
-      <>
-        <Spotlight titles={titles} onOpen={onOpen} onPlay={play} />
-        <div className="home__rows">
-          <OfflineNote offline={offline} titles={titles} />
-          <KeyNote titles={titles} onSetup={onSetupKey} />
-          {continueList.length > 0 && (
-            <Row label="Continue watching" count={continueList.length} wide>
-              {continueList.map((c) => (
-                <ContinueCard key={c.fileId} item={c} onPlay={onPlay} onOpen={onOpen} />
-              ))}
-            </Row>
-          )}
-          {myList.length > 0 && (
-            <Row label="My List" count={myList.length}>
-              {myList.map((t) => (
-                <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
-              ))}
-            </Row>
-          )}
-          {showFavourites && favourites.length > 0 && (
-            <Row label="Your favourites" count={favourites.length}>
-              {favourites.map((t) => (
-                <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
-              ))}
-            </Row>
-          )}
-          {KINDS.filter((k) => byKind.has(k)).map((k) => (
-            <Row key={k} label={KIND_LABELS[k]} count={byKind.get(k)!.length} onMore={() => onTab(k)}>
-              {byKind.get(k)!.map((t) => (
-                <Card key={t.id} title={t} onOpen={onOpen} onPlay={play} />
-              ))}
-            </Row>
-          ))}
-          <HomeEnd />
-        </div>
-      </>
-    );
+  else if (tab === "home") content = null;
   else {
     const all = byKind.get(tab) ?? [];
     const f = filters[tab] ?? NO_FILTERS;
@@ -311,9 +316,16 @@ export default function Browse({ tab, titles, offline, query, continueList, load
       className={`view browse ${tab === "home" && !query ? "view--hero" : ""} ${active ? "" : "is-covered"}`}
       onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}
     >
-      <div className="page-in" key={query ? "search" : tab}>
-        {content}
-      </div>
+      {home && (
+        <div className={`page-in ${homeShown ? "" : "page-away is-covered"}`} key="home">
+          {home}
+        </div>
+      )}
+      {content && (
+        <div className="page-in" key={query ? "search" : tab}>
+          {content}
+        </div>
+      )}
     </div>
   );
 }
@@ -463,7 +475,7 @@ function Search({
 }
 
 /** The big rotating banner at the top of the home screen. */
-function Spotlight({ titles, onOpen, onPlay }: { titles: TitleSummary[]; onOpen: (id: number) => void; onPlay: (id: number) => void }) {
+function Spotlight({ titles, onOpen, onPlay, shown }: { titles: TitleSummary[]; onOpen: (id: number) => void; onPlay: (id: number) => void; shown: boolean }) {
   // Picked once per visit, so it doesn't reshuffle whenever new info arrives.
   const pick = () =>
     titles
@@ -488,7 +500,8 @@ function Spotlight({ titles, onOpen, onPlay }: { titles: TitleSummary[]; onOpen:
   };
 
   useEffect(() => {
-    if (paused || featured.length < 2) return;
+    // (Not while hidden: another page or a show's showing.)
+    if (paused || !shown || featured.length < 2) return;
     const timer = window.setTimeout(() => show((index + 1) % featured.length), SPOTLIGHT_SECONDS * 1000);
     return () => window.clearTimeout(timer);
   });
