@@ -697,7 +697,7 @@
   background: var(--sd-box);
   font: 500 22px/1.45 var(--font-body);
   box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.55);
-  animation: sd-appear 0.12s steps(2) both;
+  animation: sd-appear 0.12s steps(2) backwards;
 }
 
 /* ---------- Filters: menu words with the heart beside the chosen one ---------- */
@@ -978,7 +978,7 @@
 :root[data-theme="snowdin"] .hero__content {
   bottom: calc(var(--sd-ground) + 60px);
   max-width: 620px;
-  animation: sd-appear 0.45s ease both;
+  animation: sd-appear 0.45s ease backwards;
 }
 
 @keyframes sd-appear {
@@ -1492,7 +1492,7 @@
   border: 4px solid var(--line);
   background: var(--sd-box);
   box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
-  animation: sd-appear 0.12s steps(2) both;
+  animation: sd-appear 0.12s steps(2) backwards;
 }
 
 :root[data-theme="snowdin"] .ctx-menu__item {
@@ -1549,7 +1549,7 @@
   border: 4px solid var(--line);
   background: var(--sd-box);
   box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.55);
-  animation: sd-appear 0.15s steps(3) both;
+  animation: sd-appear 0.15s steps(3) backwards;
 }
 
 :root[data-theme="snowdin"] .settings__side {
@@ -1723,7 +1723,7 @@
   overflow: visible;
   border: 4px solid var(--line);
   box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.5);
-  animation: sd-appear 0.35s ease both;
+  animation: sd-appear 0.35s ease backwards;
 }
 
 :root[data-theme="snowdin"] .tp__cover::after {
@@ -1738,7 +1738,7 @@
 }
 
 :root[data-theme="snowdin"] .tp__info {
-  animation: sd-appear 0.35s 0.05s ease both;
+  animation: sd-appear 0.35s 0.05s ease backwards;
 }
 
 :root[data-theme="snowdin"] .tp__title {
@@ -2565,7 +2565,7 @@
   background: var(--sd-box);
   box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
   backdrop-filter: none;
-  animation: sd-appear 0.12s steps(2) both;
+  animation: sd-appear 0.12s steps(2) backwards;
 }
 
 :root[data-theme="snowdin"] .player__menu-title {

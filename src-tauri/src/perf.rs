@@ -9,7 +9,7 @@
 //!   --stress-only=a,b          only these routines (see src/perf/scenarios.ts)
 //!   --stress-big=<n>           a second round with the library made <n> titles big (copies)
 //!   --stress-label=<text>      a name for the results (e.g. what changed)
-//!   --stress-stay              stay open afterwards
+//!   --stress-stay              stay open afterwards (in the last theme, with the bigger library)
 
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};

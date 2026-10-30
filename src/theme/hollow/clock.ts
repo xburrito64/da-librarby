@@ -11,14 +11,12 @@
 // (Moving the parts through their style instead, with no animation left, spares the browser its
 // layers for them, but then the graphics card has to draw the pictures again at every step: worse.)
 
-import { cancelFrame, frame as nextFrame } from "./freeze";
+import { cancelFrame, frame as nextFrame, scrolling } from "./freeze";
 
 /** The pictures move on this often (ms): every 4th frame at 144 Hz, every 3rd at 120, every 2nd at 60. */
 const STEP_MS = 24;
 /** How often new animations are looked for (a picture drawn again, a page opened). */
 const ADOPT_EVERY_MS = 500;
-/** The pictures hold still until the page has stopped scrolling for this long (ms). */
-const SCROLL_HOLD_MS = 250;
 
 /** Starts stepping the pictures' animations; returns the way to stop (they run on their own again). */
 export function startClock() {
@@ -36,10 +34,7 @@ export function startClock() {
   // Their own time, which stands still while the page is scrolled.
   let held = 0;
   let heldSince = 0;
-  let scrolledAt = -Infinity;
   const time = (now: number) => (heldSince || now) - held;
-  const onScroll = () => (scrolledAt = performance.now());
-  document.addEventListener("scroll", onScroll, { capture: true, passive: true });
 
   const adopt = () => {
     const now = time(performance.now());
@@ -78,7 +73,7 @@ export function startClock() {
     frame = nextFrame(step);
     if (now - last < STEP_MS) return;
     last = now;
-    if (now - scrolledAt < SCROLL_HOLD_MS) {
+    if (scrolling()) {
       heldSince ||= now;
       return;
     }
@@ -101,7 +96,6 @@ export function startClock() {
     window.clearInterval(adopting);
     cancelFrame(frame);
     observer.disconnect();
-    document.removeEventListener("scroll", onScroll, { capture: true });
     const now = time(performance.now());
     for (const anims of pictures.values())
       for (const [a, at] of anims) {

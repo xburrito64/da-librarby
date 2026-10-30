@@ -1684,7 +1684,7 @@
 }
 
 :root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend]::before {
-  animation: he-friend-in 0.5s ease both;
+  animation: he-friend-in 0.5s ease backwards;
 }
 
 :root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend]::after {
@@ -1748,7 +1748,7 @@
   left: 0;
   top: 0;
   pointer-events: none;
-  animation: he-friend-in 0.4s ease both;
+  animation: he-friend-in 0.4s ease backwards;
 }
 
 .he-walker .he-step-a {
@@ -1796,7 +1796,8 @@
 /* Every cover (and Continue watching episode) set in a chipped stone frame, carved by frames.ts like
    the tablets. The name block draws it, behind the cover, and what sits on it (a web, moss,
    mushrooms, ...) over it: the stone reaches 11px past the cover, what sits on it 28px past the
-   stone. Their pictures and sizes come from frames.ts's own rules, one per frame (.he-fr-N). */
+   stone. Their pictures (the stone's shadow drawn in) and sizes come from frames.ts's own rules, one
+   per frame (.he-fr-N). */
 :root[data-theme="hollow"] :is(.card, .ccard) {
   isolation: isolate;
 }
@@ -1816,7 +1817,6 @@
   z-index: -1;
   left: -11px;
   top: -11px;
-  filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.6));
 }
 
 :root[data-theme="hollow"] :is(.card__text, .ccard__text)::after {
@@ -1842,7 +1842,8 @@
 
 :root[data-theme="hollow"] .card:is(:hover, :focus-visible) .card__text::before,
 :root[data-theme="hollow"] .ccard:hover .ccard__text::before {
-  filter: drop-shadow(0 0 1.5px var(--he-pumpkin)) drop-shadow(0 0 14px rgba(255, 140, 50, 0.5)) drop-shadow(0 14px 16px rgba(0, 0, 0, 0.6));
+  /* (Its shadow is in its picture.) */
+  filter: drop-shadow(0 0 1.5px var(--he-pumpkin)) drop-shadow(0 0 14px rgba(255, 140, 50, 0.5));
 }
 
 /* The names: carved lettering, below the frame. */
@@ -2263,7 +2264,7 @@
     inset 0 0 0 1px var(--line),
     0 12px 36px rgba(0, 0, 0, 0.55);
   font-size: 16px;
-  animation: he-say-in 0.4s var(--spring) both;
+  animation: he-say-in 0.4s var(--spring) backwards;
 }
 
 :root[data-theme="hollow"] .say::before {

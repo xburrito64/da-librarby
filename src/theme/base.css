@@ -142,11 +142,11 @@
 
 /* Pages ease in when opened. */
 .page-in {
-  animation: page-in 0.4s var(--ease) both;
+  animation: page-in 0.4s var(--ease) backwards;
 }
 
 .tp {
-  animation: fade 0.3s ease both;
+  animation: fade 0.3s ease backwards;
 }
 
 /* Opening and closing a show page: the page cross-fades while the cover glides between the
@@ -504,7 +504,7 @@
   left: var(--gutter);
   bottom: 18%;
   max-width: 580px;
-  animation: rise 0.8s var(--ease) both;
+  animation: rise 0.8s var(--ease) backwards;
 }
 
 @keyframes rise {
@@ -1101,7 +1101,7 @@
   overflow: hidden;
   background: var(--c, var(--surface));
   box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.6);
-  animation: rise 0.6s var(--ease) both;
+  animation: rise 0.6s var(--ease) backwards;
 }
 
 .tp__cover img {
@@ -1114,7 +1114,7 @@
 .tp__info {
   min-width: 0;
   max-width: 800px;
-  animation: rise 0.6s 0.08s var(--ease) both;
+  animation: rise 0.6s 0.08s var(--ease) backwards;
 }
 
 .tp__eyebrow {
@@ -2052,7 +2052,7 @@
   display: grid;
   place-items: center;
   background: var(--scrim);
-  animation: fade 0.2s ease both;
+  animation: fade 0.2s ease backwards;
 }
 
 /* Settings built once, unseen, to have it ready (LibraryView). */
@@ -2083,7 +2083,7 @@
   color: var(--text);
   box-shadow: 0 40px 120px rgba(0, 0, 0, 0.45);
   overflow: hidden;
-  animation: pop 0.28s var(--ease) both;
+  animation: pop 0.28s var(--ease) backwards;
 }
 
 @keyframes pop {
@@ -2885,7 +2885,7 @@ select.input {
   color: var(--text);
   font-family: var(--font-body);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
-  animation: pop 0.14s var(--ease) both;
+  animation: pop 0.14s var(--ease) backwards;
 }
 
 .ctx-menu__item {
@@ -3666,7 +3666,7 @@ select.input {
   text-align: left;
   transform: translateX(-50%);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-  animation: fade 0.2s ease both;
+  animation: fade 0.2s ease backwards;
 }
 
 /* A search for one of a theme's secret words. */
@@ -3754,7 +3754,7 @@ select.input {
   border-radius: var(--radius);
   background: var(--bg);
   box-shadow: 0 24px 50px -20px rgba(0, 0, 0, 0.55);
-  animation: rise 0.4s var(--ease) both;
+  animation: rise 0.4s var(--ease) backwards;
 }
 
 .update-note__close {

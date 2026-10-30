@@ -7,6 +7,9 @@
 // ::before and ::after (hollow.css), each frame by a rule of its own made here (.he-fr-N), the name
 // block given its frame's class. (Not by settings on each cover, read in hollow.css: then every part
 // of every cover had to be styled on its own, three times slower, enough to stutter while scrolling.)
+// Each frame, carved as a drawing, is then made a plain picture at the screen's sharpness, its shadow
+// drawn in: drawn as it was (shapes, grain, a blurred shadow) for every cover scrolling into view, it
+// took the graphics card more than a frame's time on a page of many covers.
 
 import { warm } from "./art";
 import { carve, hash } from "./tablets";
@@ -17,25 +20,31 @@ const FRAME = 11;
 const PAD = 28;
 /** How many different frames each size of cover gets. */
 const KINDS = 16;
+/** The stone's shadow (px: how far down, how blurred), and the room left for it round the stone. */
+const SHADOW = { y: 12, blur: 16, color: "rgba(0, 0, 0, 0.6)" };
+const ROOM = { side: 24, top: 16, bottom: 40 };
+const NO_ROOM = { side: 0, top: 0, bottom: 0 };
 
 const COVERS = ".card, .ccard";
 const ART = ".card__art, .ccard__art";
 const TEXT = ".card__text, .ccard__text";
 
 interface Frame {
-  stone: string;
-  bits: string;
   /** Its class, given to the name blocks of the covers it frames. */
   cls: string;
+  /** Its pictures (blob: links), once made. */
+  stone?: string;
+  bits?: string;
 }
 
 const n1 = (n: number) => +n.toFixed(1);
 
-const blob = (w: number, h: number, box: string, body: string) =>
-  `url("${URL.createObjectURL(new Blob([`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${box}">${body}</svg>`], { type: "image/svg+xml" }))}")`;
+const svg = (w: number, h: number, box: string, body: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${box}">${body}</svg>`;
 
-/** Carves a frame for a cover `w`×`h` (the stone `FRAME` wider all round). */
-function frame(w: number, h: number, kind: number, cls: string): Frame {
+/** Carves a frame for a cover `w`×`h` (the stone `FRAME` wider all round), as drawings (SVG): the
+ *  stone, and what sits on it. */
+function frame(w: number, h: number, kind: number) {
   const W = w + FRAME * 2;
   const H = h + FRAME * 2;
   const carved = carve(W, H, `cover frame|${kind}`, null);
@@ -56,10 +65,33 @@ function frame(w: number, h: number, kind: number, cls: string): Frame {
     `<rect x="${x}" y="${y}" width="${n1(w + 5)}" height="${n1(h + 5)}" rx="3.5" fill="#0c0811"/>` +
     `<path d="M${n1(x + 1)} ${n1(y + h + 5)}H${n1(x + w + 5)}V${n1(y + 1)}" stroke="rgba(255,255,255,.08)" stroke-width="1.2" fill="none"/>`;
   return {
-    stone: blob(W, H, `0 0 ${W} ${H}`, stone),
-    bits: blob(W + PAD * 2, H + PAD * 2, `${-PAD} ${-PAD} ${W + PAD * 2} ${H + PAD * 2}`, carved.bits),
-    cls,
+    stone: svg(W, H, `0 0 ${W} ${H}`, stone),
+    bits: svg(W + PAD * 2, H + PAD * 2, `${-PAD} ${-PAD} ${W + PAD * 2} ${H + PAD * 2}`, carved.bits),
   };
+}
+
+/** Draws an SVG `w`×`h` as a plain picture at the screen's sharpness, with `room` round it and, if
+ *  asked, the stone's shadow; its blob: link. */
+async function picture(drawing: string, w: number, h: number, room: typeof ROOM, shadow: boolean) {
+  const source = URL.createObjectURL(new Blob([drawing], { type: "image/svg+xml" }));
+  try {
+    const img = new Image();
+    img.src = source;
+    await img.decode();
+    const dpr = window.devicePixelRatio || 1;
+    const canvas = new OffscreenCanvas(Math.ceil((w + room.side * 2) * dpr), Math.ceil((h + room.top + room.bottom) * dpr));
+    const g = canvas.getContext("2d")!;
+    if (shadow) {
+      // (A canvas's shadow isn't scaled with what's drawn.)
+      g.shadowColor = SHADOW.color;
+      g.shadowOffsetY = SHADOW.y * dpr;
+      g.shadowBlur = SHADOW.blur * dpr;
+    }
+    g.drawImage(img, room.side * dpr, room.top * dpr, w * dpr, h * dpr);
+    return URL.createObjectURL(await canvas.convertToBlob());
+  } finally {
+    URL.revokeObjectURL(source);
+  }
 }
 
 /** Whose cover it is (the show, or the show of the episode). */
@@ -99,38 +131,64 @@ export function startFrames() {
   /** Frames' pictures being got ready (art.ts), to let go of with the frames. */
   const unwarm: (() => void)[] = [];
   const forget = () => {
-    for (const f of carved.values()) for (const u of [f.stone, f.bits]) URL.revokeObjectURL(u.slice(5, -2));
+    for (const f of carved.values()) for (const u of [f.stone, f.bits]) if (u) URL.revokeObjectURL(u);
     carved.clear();
     rules.textContent = "";
     for (const u of unwarm.splice(0)) u();
   };
 
-  /** How many frames may still be carved this frame (each takes half a millisecond or so). */
+  /** Carves a frame and makes its pictures, then its rules; the covers waiting for it are framed after. */
+  const make = async (f: Frame, w: number, h: number, kind: number) => {
+    const W = w + FRAME * 2;
+    const H = h + FRAME * 2;
+    const drawing = frame(w, h, kind);
+    const [stone, bits] = await Promise.all([
+      picture(drawing.stone, W, H, ROOM, true),
+      picture(drawing.bits, W + PAD * 2, H + PAD * 2, NO_ROOM, false),
+    ]);
+    // (Let go of meanwhile: the window resized through many sizes, or the theme changed.)
+    if (![...carved.values()].includes(f)) {
+      URL.revokeObjectURL(stone);
+      URL.revokeObjectURL(bits);
+      return;
+    }
+    Object.assign(f, { stone, bits });
+    // (Twice the class: these win over hollow.css's frames, which have none.)
+    const sheet = rules.sheet!;
+    const at = `:root[data-theme="hollow"] .${f.cls}.${f.cls}`;
+    sheet.insertRule(
+      `${at}::before { left: ${-FRAME - ROOM.side}px; top: ${-FRAME - ROOM.top}px; width: ${W + ROOM.side * 2}px; height: ${H + ROOM.top + ROOM.bottom}px; background-image: url("${stone}"); }`,
+      sheet.cssRules.length,
+    );
+    sheet.insertRule(`${at}::after { width: ${W + PAD * 2}px; height: ${H + PAD * 2}px; background-image: url("${bits}"); }`, sheet.cssRules.length);
+    unwarm.push(warm([`url("${stone}")`, `url("${bits}")`]));
+    schedule();
+  };
+
+  /** How many frames may still be carved this frame (each takes half a millisecond or so), and
+   *  whether some had to wait for the next. */
   let carving = Infinity;
-  /** Frames a cover whose picture is `w`×`h`; false if its frame is still to be carved, next frame. */
+  let waited = false;
+  /** Frames a cover whose picture is `w`×`h` (once its frame is made). */
   const put = (el: HTMLElement, text: Element, w: number, h: number) => {
     const kind = hash(nameOf(el)) % KINDS;
-    const key = `${w}x${h}|${kind}`;
+    const key = `${w}x${h}|${kind}|${window.devicePixelRatio}`;
     let f = carved.get(key);
     if (!f) {
-      if (carving-- <= 0) return false;
-      f = frame(w, h, kind, `he-fr-${made++}`);
+      if (carving-- <= 0) {
+        waited = true;
+        return;
+      }
+      f = { cls: `he-fr-${made++}` };
       carved.set(key, f);
-      const W = w + FRAME * 2;
-      const H = h + FRAME * 2;
-      // (Twice the class: these win over hollow.css's frames, which have none.)
-      const sheet = rules.sheet!;
-      const at = `:root[data-theme="hollow"] .${f.cls}.${f.cls}`;
-      sheet.insertRule(`${at}::before { width: ${W}px; height: ${H}px; background-image: ${f.stone}; }`, sheet.cssRules.length);
-      sheet.insertRule(`${at}::after { width: ${W + 56}px; height: ${H + 56}px; background-image: ${f.bits}; }`, sheet.cssRules.length);
-      unwarm.push(warm([f.stone, f.bits]));
+      void make(f, w, h, kind);
     }
+    if (!f.stone) return;
     const was = known.get(el);
-    if (was?.key === key && was.text === text) return true;
+    if (was?.key === key && was.text === text) return;
     if (was) was.text.classList.remove(was.cls);
     text.classList.add(f.cls);
     known.set(el, { key, text, cls: f.cls });
-    return true;
   };
 
   /** Covers not laid out yet (off screen), framed ahead at the size of the others beside them (a row's
@@ -162,7 +220,7 @@ export function startFrames() {
     // (A page of covers of a new size, a tab say, needs 16 new frames: carved over a few frames, not
     // all in the one the page comes in.)
     carving = 4;
-    let more = false;
+    waited = false;
     const now = [...document.querySelectorAll<HTMLElement>(COVERS)];
     const live = new Set(now);
     for (const el of [...known.keys()]) if (!live.has(el)) clear(el);
@@ -188,10 +246,10 @@ export function startFrames() {
         continue;
       }
       laidOut.set(besides(el), { w, h });
-      if (!put(el, text, w, h)) more = true;
+      put(el, text, w, h);
     }
     carving = Infinity;
-    if (more) schedule();
+    if (waited) schedule();
     const unsized = new Map<string, HTMLElement>();
     ahead = notYet.flatMap(({ el, text, art }) => {
       const like = laidOut.get(besides(el));

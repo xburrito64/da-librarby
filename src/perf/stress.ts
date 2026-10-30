@@ -567,7 +567,8 @@ export async function runStress(args: StressArgs) {
         }
       }
     }
-    if (restore) {
+    // (Staying open afterwards: left as it is, the bigger library and the last theme, to look at.)
+    if (restore && !(args.stay && round === rounds[rounds.length - 1])) {
       restore();
       await emit("library:changed");
       await sleep(1500);
@@ -575,7 +576,7 @@ export async function runStress(args: StressArgs) {
   }
 
   await home().catch(() => {});
-  forceTheme(null);
+  if (!args.stay) forceTheme(null);
   watch.save = save;
   silenceSounds(false);
   holdMusic("test", false);

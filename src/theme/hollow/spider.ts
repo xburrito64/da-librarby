@@ -5,7 +5,7 @@
 // sound), then lowers itself again bit by bit, each time to a different height. See hollow.css ("The top bar").
 import { playSound } from "../sound";
 import { SPIDER } from "./art";
-import { cancelFrame, frame as nextFrame } from "./freeze";
+import { cancelFrame, frame as nextFrame, scrolling } from "./freeze";
 
 /** How long its thread is when it's just hanging there (px): at first, and the range it picks a new
  *  length from after each scare. */
@@ -87,6 +87,12 @@ export function startSpider(layer: HTMLElement, still: boolean) {
   };
 
   const step = (now: number) => {
+    // (Holding still, its time standing still too, while the page is scrolled: see freeze.ts.)
+    if (scrolling() && !scared) {
+      last = now;
+      frame = nextFrame(step);
+      return;
+    }
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     const t = now / 1000;

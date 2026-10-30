@@ -46,3 +46,17 @@ export function freezeUnderDialogs() {
     setFrozen(false);
   };
 }
+
+// While the page is being scrolled, the little movements that would have the whole page gone over
+// again (the pictures' parts, the spider's swing) hold still too: with many covers on the page that
+// took every frame's time, and the scrolling stuttered. They carry on once it stops.
+
+/** The movements hold still until the page has stopped scrolling for this long (ms). */
+const SCROLL_HOLD_MS = 250;
+let scrolledAt = -Infinity;
+document.addEventListener("scroll", () => (scrolledAt = performance.now()), { capture: true, passive: true });
+
+/** Whether the page is being scrolled. */
+export function scrolling(now = performance.now()) {
+  return now - scrolledAt < SCROLL_HOLD_MS;
+}

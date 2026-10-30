@@ -338,7 +338,7 @@
   backdrop-filter: blur(20px);
   color: var(--text);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  animation: pop 0.2s var(--ease) both;
+  animation: pop 0.2s var(--ease) backwards;
 }
 
 .player__menu-col {
@@ -461,7 +461,7 @@
   background: rgba(10, 10, 12, 0.82);
   backdrop-filter: blur(12px);
   font-size: 14px;
-  animation: rise 0.4s var(--ease) both;
+  animation: rise 0.4s var(--ease) backwards;
 }
 
 .player__toast-btn {
@@ -487,7 +487,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  animation: rise 0.45s var(--ease) both;
+  animation: rise 0.45s var(--ease) backwards;
 }
 
 .upnext__label {
@@ -651,7 +651,7 @@
   backdrop-filter: blur(12px);
   font-size: 15px !important;
   font-weight: 750 !important;
-  animation: rise 0.35s var(--ease) both;
+  animation: rise 0.35s var(--ease) backwards;
   transition: background-color 0.2s;
 }
 
@@ -679,7 +679,7 @@
   backdrop-filter: blur(12px);
   font-size: 14px;
   transform: translateX(-50%);
-  animation: fade 0.25s ease both;
+  animation: fade 0.25s ease backwards;
 }
 
 .player__menu-col--style {
