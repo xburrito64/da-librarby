@@ -1,7 +1,8 @@
 // Turns the stress test's results (src/perf/stress.ts) into a page: for each routine and theme how
 // smooth it was (missed frames, against the goal), how much of the processor and graphics card the
 // app used, the video's dropped frames, and what changed since the run before.
-// Usage:  node scripts/perf-report.mjs [results folder]   (default .debug/perf; writes report.html there)
+// Usage:  node scripts/perf-report.mjs [results folder] [earlier run]   (default .debug/perf; writes report.html there)
+//         The latest run is compared with the one before, or with the earlier run named (part of its file name).
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -12,7 +13,7 @@ const runs = readdirSync(dir)
   .map((f) => ({ file: f, ...JSON.parse(readFileSync(join(dir, f), "utf8")) }));
 if (runs.length === 0) throw new Error(`No results in ${dir}`);
 const run = runs[runs.length - 1];
-const before = runs.length > 1 ? runs[runs.length - 2] : null;
+const before = process.argv[3] ? (runs.find((r) => r.file.includes(process.argv[3])) ?? null) : runs.length > 1 ? runs[runs.length - 2] : null;
 
 /** Steady: should be smooth all the way. Moments: something new appearing, a looser goal. */
 const GOAL = { steady: 0.1, moment: 1 };
