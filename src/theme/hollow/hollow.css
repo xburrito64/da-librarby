@@ -1668,19 +1668,16 @@
 }
 
 /* Each cover's little friend (friends.ts: who sits where, their pictures, where they go): resting,
-   and what it does when the cover is pointed at, the two pictures crossing over as it moves. */
+   and what it does when the cover is pointed at, the two pictures crossing over as it moves. Where
+   each sits, how big, and its pictures are friends.ts's own rules (written out for each friend, not
+   handed down as settings: those had every part of every cover styled on its own, slowly). */
 :root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend]::before,
 :root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend]::after {
   content: "";
   position: absolute;
   z-index: 2;
-  left: var(--hf-left, auto);
-  right: var(--hf-right, auto);
-  top: var(--hf-top);
-  width: var(--hf-w);
-  height: var(--hf-h);
   pointer-events: none;
-  background: var(--hf-rest) center / 100% 100% no-repeat;
+  background: center / 100% 100% no-repeat;
   transition:
     opacity 0.28s ease,
     transform 0.4s var(--spring);
@@ -1691,15 +1688,12 @@
 }
 
 :root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend]::after {
-  background-image: var(--hf-up);
   opacity: 0;
-  transform: translateY(var(--hf-rise));
 }
 
 /* (They move along with the cover, which rises a little when pointed at.) */
 :root[data-theme="hollow"] .card[data-he-friend]:is(:hover, :focus-visible)::before {
   opacity: 0;
-  transform: translateY(calc(-5px - var(--hf-rise)));
 }
 
 :root[data-theme="hollow"] .card[data-he-friend]:is(:hover, :focus-visible)::after {
@@ -1721,7 +1715,6 @@
 }
 
 :root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend="spider"]::after {
-  background-image: var(--hf-rest);
   opacity: 1;
   transform: none;
   transition: transform 0.5s var(--spring);
@@ -1801,9 +1794,9 @@
 /* ---------- The covers' stone frames ---------- */
 
 /* Every cover (and Continue watching episode) set in a chipped stone frame, carved by frames.ts like
-   the tablets, which hands over the stone and what sits on it (a web, moss, mushrooms, ...) as
-   --he-frame, --he-frame-bits, --he-frame-w and --he-frame-h. The name block draws them, behind the
-   cover and over it: the stone reaches 11px past the cover, what sits on it 28px past the stone. */
+   the tablets. The name block draws it, behind the cover, and what sits on it (a web, moss,
+   mushrooms, ...) over it: the stone reaches 11px past the cover, what sits on it 28px past the
+   stone. Their pictures and sizes come from frames.ts's own rules, one per frame (.he-fr-N). */
 :root[data-theme="hollow"] :is(.card, .ccard) {
   isolation: isolate;
 }
@@ -1823,9 +1816,6 @@
   z-index: -1;
   left: -11px;
   top: -11px;
-  width: var(--he-frame-w, 0);
-  height: var(--he-frame-h, 0);
-  background-image: var(--he-frame, none);
   filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.6));
 }
 
@@ -1833,9 +1823,6 @@
   z-index: 2;
   left: -39px;
   top: -39px;
-  width: calc(var(--he-frame-w, 0px) + 56px);
-  height: calc(var(--he-frame-h, 0px) + 56px);
-  background-image: var(--he-frame-bits, none);
 }
 
 :root[data-theme="hollow"] :is(.card__art, .ccard__art) {

@@ -9,6 +9,33 @@ export function svgUrl(svg: string) {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
+/** Pictures got ready, kept so they stay ready. */
+const ready = new Map<string, HTMLImageElement>();
+
+/** Gets pictures (CSS url(...)s) ready while nothing else is going on, one at a time: a picture is
+ *  made the first time it's shown, which, for a row of covers scrolled into view, held up the
+ *  scrolling. Returns a function letting them go. */
+export function warm(urls: string[]) {
+  const todo = urls.map((u) => u.slice(5, -2)).filter((u) => !ready.has(u));
+  let idle = 0;
+  const next = () => {
+    idle = 0;
+    const src = todo.shift();
+    if (src == null) return;
+    if (ready.has(src)) return next();
+    const img = new Image();
+    img.src = src;
+    ready.set(src, img);
+    img.decode().catch(() => {}).finally(() => (idle = requestIdleCallback(next, { timeout: 2000 })));
+  };
+  idle = requestIdleCallback(next, { timeout: 2000 });
+  return () => {
+    cancelIdleCallback(idle);
+    todo.length = 0;
+    for (const u of urls) ready.delete(u.slice(5, -2));
+  };
+}
+
 function svg(w: number, h: number, body: string, defs = "") {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><defs>${defs}</defs>${body}</svg>`;
 }

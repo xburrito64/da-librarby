@@ -8,7 +8,7 @@
 // finished a little grave. Point at a cover and its friend does something (the pumpkin hops, the
 // bat wakes up and opens its wings, the hat lifts...). Once in a long while a pumpkin is golden,
 // and now and then the spider packs up its bundle and walks over to the next cover.
-import { svgUrl } from "./art";
+import { svgUrl, warm } from "./art";
 import { drawPumpkin, pumpkinDefs } from "./pumpkins";
 
 /** The covers' width the friends are drawn for (they keep to their side of wider ones). */
@@ -388,15 +388,30 @@ function picture(f: Friend, up: boolean) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${x1 - x0} ${y1 - y0}" width="${x1 - x0}" height="${y1 - y0}"><defs>${defs}</defs>${f.draw(up)}</svg>`;
 }
 
-/** The stylesheet placing each friend (its pictures, where, how big). */
+/** The stylesheet placing each friend (its pictures, where, how big), and the pictures, to have them
+ *  ready (warm, art.ts). */
 function rules() {
-  return Object.entries(FRIENDS)
+  const pictures: string[] = [];
+  const css = Object.entries(FRIENDS)
     .map(([name, f]) => {
       const [x0, y0, x1, y1] = f.box;
-      const at = f.side === "left" ? `--hf-left: ${x0}px;` : `--hf-right: ${W - x1}px;`;
-      return `:root[data-theme="hollow"] [data-he-friend="${name}"] { ${at} --hf-top: ${y0}px; --hf-w: ${x1 - x0}px; --hf-h: ${y1 - y0}px; --hf-rise: ${f.rise ?? 0}px; --hf-rest: ${svgUrl(picture(f, false))}; --hf-up: ${svgUrl(picture(f, true))}; }`;
+      const rest = svgUrl(picture(f, false));
+      const up = svgUrl(picture(f, true));
+      pictures.push(rest, up);
+      const at = `:root[data-theme="hollow"] :is(.card, .tp__cover)[data-he-friend="${name}"]`;
+      const box = `${f.side === "left" ? `left: ${x0}px` : `right: ${W - x1}px`}; top: ${y0}px; width: ${x1 - x0}px; height: ${y1 - y0}px;`;
+      const rise = f.rise ?? 0;
+      // (The spider's ::before is its thread, hollow.css; it hangs in its resting picture.)
+      if (name === "spider") return `${at}::after { ${box} background-image: ${rest}; }`;
+      return [
+        `${at}::before, ${at}::after { ${box} }`,
+        `${at}::before { background-image: ${rest}; }`,
+        `${at}::after { background-image: ${up}; transform: translateY(${rise}px); }`,
+        `:root[data-theme="hollow"] .card[data-he-friend="${name}"]:is(:hover, :focus-visible)::before { transform: translateY(${-5 - rise}px); }`,
+      ].join("\n");
     })
     .join("\n");
+  return { css, pictures };
 }
 
 /** The same number for a show every time, well spread even for shows next to each other. */
@@ -418,7 +433,9 @@ const WALKER = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-24 -26 48 46" 
 export function startFriends({ surprises }: { surprises: boolean }) {
   const style = document.createElement("style");
   style.id = "he-friends";
-  style.textContent = rules();
+  const made = rules();
+  style.textContent = made.css;
+  const unwarm = warm(made.pictures);
   document.head.append(style);
 
   // Changes to who sits where, this session: the golden pumpkin, the spider's moves.
@@ -558,6 +575,7 @@ export function startFriends({ surprises }: { surprises: boolean }) {
     walker?.remove();
     timers.forEach((t) => window.clearTimeout(t));
     style.remove();
+    unwarm();
     document.querySelectorAll<HTMLElement>("[data-he-friend]").forEach((el) => delete el.dataset.heFriend);
   };
 }

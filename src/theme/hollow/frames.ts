@@ -4,9 +4,11 @@
 // show's name, so a show always gets the same one and pages with hundreds of covers stay quick.
 //
 // The frame is drawn behind the cover and what sits on it over it, by the cover's name block's
-// ::before and ::after (hollow.css), from --he-frame, --he-frame-bits, --he-frame-w and --he-frame-h
-// (short blob: links, so the page's styles stay quick to work out).
+// ::before and ::after (hollow.css), each frame by a rule of its own made here (.he-fr-N), the name
+// block given its frame's class. (Not by settings on each cover, read in hollow.css: then every part
+// of every cover had to be styled on its own, three times slower, enough to stutter while scrolling.)
 
+import { warm } from "./art";
 import { carve, hash } from "./tablets";
 
 /** How far the stone reaches past the cover (px); hollow.css matches it. */
@@ -18,10 +20,13 @@ const KINDS = 16;
 
 const COVERS = ".card, .ccard";
 const ART = ".card__art, .ccard__art";
+const TEXT = ".card__text, .ccard__text";
 
 interface Frame {
   stone: string;
   bits: string;
+  /** Its class, given to the name blocks of the covers it frames. */
+  cls: string;
 }
 
 const n1 = (n: number) => +n.toFixed(1);
@@ -30,7 +35,7 @@ const blob = (w: number, h: number, box: string, body: string) =>
   `url("${URL.createObjectURL(new Blob([`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${box}">${body}</svg>`], { type: "image/svg+xml" }))}")`;
 
 /** Carves a frame for a cover `w`×`h` (the stone `FRAME` wider all round). */
-function frame(w: number, h: number, kind: number): Frame {
+function frame(w: number, h: number, kind: number, cls: string): Frame {
   const W = w + FRAME * 2;
   const H = h + FRAME * 2;
   const carved = carve(W, H, `cover frame|${kind}`, null);
@@ -53,6 +58,7 @@ function frame(w: number, h: number, kind: number): Frame {
   return {
     stone: blob(W, H, `0 0 ${W} ${H}`, stone),
     bits: blob(W + PAD * 2, H + PAD * 2, `${-PAD} ${-PAD} ${W + PAD * 2} ${H + PAD * 2}`, carved.bits),
+    cls,
   };
 }
 
@@ -61,8 +67,11 @@ const nameOf = (el: HTMLElement) => el.title || el.querySelector(".ccard__show")
 
 /** Frames the covers on the page (and again when one changes size or shows something else). */
 export function startFrames() {
-  const known = new Map<HTMLElement, string>();
+  /** Each framed cover's frame (its key) and the name block given its class. */
+  const known = new Map<HTMLElement, { key: string; text: Element; cls: string }>();
   const carved = new Map<string, Frame>();
+  const rules = document.head.appendChild(document.createElement("style"));
+  let made = 0;
   /** Each cover picture's size (px), as told whenever it's laid out: never measured here. (Covers
    *  off screen aren't laid out until they come near; measuring them had each one laid out, one
    *  after another: 35 ms on a tab of covers.) */
@@ -78,7 +87,8 @@ export function startFrames() {
   let pending = 0;
 
   const clear = (el: HTMLElement) => {
-    for (const p of ["--he-frame", "--he-frame-bits", "--he-frame-w", "--he-frame-h"]) el.style.removeProperty(p);
+    const was = known.get(el);
+    if (was) was.text.classList.remove(was.cls);
     const art = el.querySelector(ART);
     if (art) {
       sizes.unobserve(art);
@@ -86,10 +96,62 @@ export function startFrames() {
     }
     known.delete(el);
   };
+  /** Frames' pictures being got ready (art.ts), to let go of with the frames. */
+  const unwarm: (() => void)[] = [];
   const forget = () => {
     for (const f of carved.values()) for (const u of [f.stone, f.bits]) URL.revokeObjectURL(u.slice(5, -2));
     carved.clear();
+    rules.textContent = "";
+    for (const u of unwarm.splice(0)) u();
   };
+
+  /** Frames a cover whose picture is `w`×`h`. */
+  const put = (el: HTMLElement, text: Element, w: number, h: number) => {
+    const kind = hash(nameOf(el)) % KINDS;
+    const key = `${w}x${h}|${kind}`;
+    let f = carved.get(key);
+    if (!f) {
+      f = frame(w, h, kind, `he-fr-${made++}`);
+      carved.set(key, f);
+      const W = w + FRAME * 2;
+      const H = h + FRAME * 2;
+      // (Twice the class: these win over hollow.css's frames, which have none.)
+      const sheet = rules.sheet!;
+      const at = `:root[data-theme="hollow"] .${f.cls}.${f.cls}`;
+      sheet.insertRule(`${at}::before { width: ${W}px; height: ${H}px; background-image: ${f.stone}; }`, sheet.cssRules.length);
+      sheet.insertRule(`${at}::after { width: ${W + 56}px; height: ${H + 56}px; background-image: ${f.bits}; }`, sheet.cssRules.length);
+      unwarm.push(warm([f.stone, f.bits]));
+    }
+    const was = known.get(el);
+    if (was?.key === key && was.text === text) return;
+    if (was) was.text.classList.remove(was.cls);
+    text.classList.add(f.cls);
+    known.set(el, { key, text, cls: f.cls });
+  };
+
+  /** Covers not laid out yet (off screen), framed ahead at the size of the others beside them (a row's
+   *  or a page's covers are all one size), while nothing else is going on: framed only once they're
+   *  shown, every frame was carved and its pictures made as they scrolled into view. */
+  let ahead: { el: HTMLElement; text: Element; w: number; h: number }[] = [];
+  /** A cover picture of each kind none of which is laid out yet (all off screen): measured (which
+   *  lays out that one cover) for the size of the others. */
+  let probes: HTMLElement[] = [];
+  let idle = 0;
+  const prepare = (deadline: IdleDeadline) => {
+    idle = 0;
+    const art = probes.shift();
+    if (art?.isConnected && !size.has(art)) {
+      size.set(art, { w: art.offsetWidth, h: art.offsetHeight });
+      schedule();
+    }
+    while (ahead.length && deadline.timeRemaining() > 3) {
+      const a = ahead.shift()!;
+      if (a.el.isConnected && !known.has(a.el)) put(a.el, a.text, a.w, a.h);
+    }
+    if (ahead.length || probes.length) idle = requestIdleCallback(prepare);
+  };
+
+  const besides = (el: HTMLElement) => `${el.classList[0]}|${el.parentElement?.className ?? ""}`;
 
   const pass = () => {
     pending = 0;
@@ -98,33 +160,36 @@ export function startFrames() {
     for (const el of [...known.keys()]) if (!live.has(el)) clear(el);
     // (While a window is being resized, covers keep changing size: don't pile up frames for each.)
     if (carved.size > 160) {
+      for (const el of [...known.keys()]) clear(el);
       forget();
-      known.clear();
     }
+    // (Beside: the same kind of cover in the same kind of row or page, e.g. any row of covers on Home.)
+    const laidOut = new Map<string, { w: number; h: number }>();
+    const notYet: { el: HTMLElement; text: Element; art: HTMLElement }[] = [];
     for (const el of now) {
       const art = el.querySelector<HTMLElement>(ART);
-      if (!art) continue;
+      const text = el.querySelector(TEXT);
+      if (!art || !text) continue;
       if (!watched.has(art)) {
         watched.add(art);
         sizes.observe(art);
       }
-      // (Not laid out yet: it's framed once it is.)
       const { w, h } = size.get(art) ?? { w: 0, h: 0 };
-      if (w < 40 || h < 30) continue;
-      const kind = hash(nameOf(el)) % KINDS;
-      const key = `${w}x${h}|${kind}`;
-      let f = carved.get(key);
-      if (!f) {
-        f = frame(w, h, kind);
-        carved.set(key, f);
+      if (w < 40 || h < 30) {
+        if (!known.has(el)) notYet.push({ el, text, art });
+        continue;
       }
-      if (known.get(el) === key) continue;
-      known.set(el, key);
-      el.style.setProperty("--he-frame", f.stone);
-      el.style.setProperty("--he-frame-bits", f.bits);
-      el.style.setProperty("--he-frame-w", `${w + FRAME * 2}px`);
-      el.style.setProperty("--he-frame-h", `${h + FRAME * 2}px`);
+      laidOut.set(besides(el), { w, h });
+      put(el, text, w, h);
     }
+    const unsized = new Map<string, HTMLElement>();
+    ahead = notYet.flatMap(({ el, text, art }) => {
+      const like = laidOut.get(besides(el));
+      if (!like && !unsized.has(besides(el))) unsized.set(besides(el), art);
+      return like ? [{ el, text, ...like }] : [];
+    });
+    probes = [...unsized.values()];
+    if ((ahead.length || probes.length) && !idle) idle = requestIdleCallback(prepare);
   };
   const schedule = () => {
     if (!pending) pending = requestAnimationFrame(pass);
@@ -141,9 +206,11 @@ export function startFrames() {
 
   return () => {
     cancelAnimationFrame(pending);
+    cancelIdleCallback(idle);
     changes.disconnect();
     sizes.disconnect();
     for (const el of [...known.keys()]) clear(el);
     forget();
+    rules.remove();
   };
 }

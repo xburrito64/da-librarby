@@ -4,7 +4,9 @@
 // and with the pictures stepping every frame the page couldn't keep up with a fast screen (at
 // 144 Hz there are 7 ms for a frame). So they're stepped here instead, all together, 36-odd times
 // a second: the page is gone over once for all of them, and the frames in between are left free
-// (for scrolling, a page opening). Pictures that are off screen or covered don't move at all.
+// (for scrolling, a page opening). Pictures that are off screen or covered don't move at all, and
+// none move while the page is being scrolled (then every frame is needed for that); they carry on
+// from where they were.
 //
 // (Moving the parts through their style instead, with no animation left, spares the browser its
 // layers for them, but then the graphics card has to draw the pictures again at every step: worse.)
@@ -15,6 +17,8 @@ import { cancelFrame, frame as nextFrame } from "./freeze";
 const STEP_MS = 24;
 /** How often new animations are looked for (a picture drawn again, a page opened). */
 const ADOPT_EVERY_MS = 500;
+/** The pictures hold still until the page has stopped scrolling for this long (ms). */
+const SCROLL_HOLD_MS = 250;
 
 /** Starts stepping the pictures' animations; returns the way to stop (they run on their own again). */
 export function startClock() {
@@ -29,8 +33,16 @@ export function startClock() {
     }
   });
 
+  // Their own time, which stands still while the page is scrolled.
+  let held = 0;
+  let heldSince = 0;
+  let scrolledAt = -Infinity;
+  const time = (now: number) => (heldSince || now) - held;
+  const onScroll = () => (scrolledAt = performance.now());
+  document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+
   const adopt = () => {
-    const now = performance.now();
+    const now = time(performance.now());
     // Gone: the picture's been taken away, or all its animations have ended.
     for (const [root, anims] of pictures) {
       if (!root.isConnected || anims.size === 0) {
@@ -56,8 +68,8 @@ export function startClock() {
       a.pause();
       // Ended (its class removed, or the page started it over: a new one then): let go before it's
       // stepped again, which would start it again, never to be let go.
-      const held = anims;
-      a.addEventListener("cancel", () => held.delete(a), { once: true });
+      const theirs = anims;
+      a.addEventListener("cancel", () => theirs.delete(a), { once: true });
     }
   };
 
@@ -66,10 +78,19 @@ export function startClock() {
     frame = nextFrame(step);
     if (now - last < STEP_MS) return;
     last = now;
+    if (now - scrolledAt < SCROLL_HOLD_MS) {
+      heldSince ||= now;
+      return;
+    }
+    if (heldSince) {
+      held += now - heldSince;
+      heldSince = 0;
+    }
+    const t = time(now);
     for (const [root, anims] of pictures) {
       if (!onScreen.has(root) || root.closest(".is-covered")) continue;
       // (Not asking each one how it is: that has the browser work out the page's styles, each time.)
-      for (const [a, at] of anims) a.currentTime = at.base + (now - at.t0);
+      for (const [a, at] of anims) a.currentTime = at.base + (t - at.t0);
     }
   };
 
@@ -80,7 +101,8 @@ export function startClock() {
     window.clearInterval(adopting);
     cancelFrame(frame);
     observer.disconnect();
-    const now = performance.now();
+    document.removeEventListener("scroll", onScroll, { capture: true });
+    const now = time(performance.now());
     for (const anims of pictures.values())
       for (const [a, at] of anims) {
         if (a.playState === "idle") continue;

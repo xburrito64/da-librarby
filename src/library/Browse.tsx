@@ -679,7 +679,6 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
       data-id={title.id}
       data-state={state}
       data-progress={state === "partway" && done != null ? Math.min(9, Math.max(1, Math.round(done * 10))) : undefined}
-      style={{ "--c": title.color ?? undefined } as React.CSSProperties}
       onClick={(e) => onOpen(title.id, e.currentTarget.querySelector<HTMLElement>(".card__art"))}
       onContextMenu={(e) =>
         openMenu(e, [
@@ -705,7 +704,9 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
       }
       title={title.name}
     >
-      <span className="card__art">
+      {/* (Its colour only on the picture, which is all that uses it: on the whole cover, every part
+          of it would be styled on its own, which is slow on pages of many covers.) */}
+      <span className="card__art" style={{ "--c": title.color ?? undefined } as React.CSSProperties}>
         {title.thumb ? (
           <img
             src={img(title.thumb)}
