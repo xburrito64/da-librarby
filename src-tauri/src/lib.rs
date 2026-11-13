@@ -5,6 +5,7 @@ mod mpv;
 mod perf;
 mod player;
 mod fileinfo;
+mod grimoire;
 mod theme_files;
 mod thumbnails;
 mod update;
@@ -118,6 +119,8 @@ pub fn run() {
             thumbnails::thumbs_want,
             thumbnails::thumbs_close,
             fileinfo::file_info,
+            grimoire::drive_labels,
+            grimoire::copy_text,
             update::update_check,
             theme_files::theme_files,
             theme_files::theme_files_open,

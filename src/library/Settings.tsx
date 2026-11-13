@@ -4,6 +4,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
+import { copiedText, copyForGrimoire, grimoireCopy, type Progress } from "./grimoire";
 import { library, metadata, guessKind, img, updates, KIND_LABELS, type Library, type LibraryKind, type TitleSummary, type Update } from "./api";
 import { getSetting, setSetting } from "../ui/settings";
 import { useCornerPlayerSetting } from "../player/corner";
@@ -66,6 +67,7 @@ export default function Settings({ section, onSection, libraries, titles, onLibr
           {section === "ratings" && <Ratings />}
           {section === "general" && <General onError={onError} />}
           {section === "library" && <Folders libraries={libraries} onChange={onLibraries} onError={onError} />}
+          {section === "library" && <GrimoireCopy onError={onError} />}
           {section === "online" && <Online onError={onError} />}
           {section === "shortcuts" && <Shortcuts />}
           {section === "about" && <About />}
@@ -758,6 +760,41 @@ function Folders({ libraries, onChange, onError }: { libraries: Library[]; onCha
           </button>
         </div>
       )}
+    </section>
+  );
+}
+
+/** Copies the whole library for the owner's Grimoire app (see grimoire.ts), with how far it is. */
+function GrimoireCopy({ onError }: { onError: (m: string) => void }) {
+  const [progress, setProgress] = useState<Progress | null>(null);
+  const [said, setSaid] = useState<string | null>(null);
+  const run = async () => {
+    if (grimoireCopy.busy) return;
+    grimoireCopy.busy = true;
+    setSaid(null);
+    setProgress({ done: 0, total: 0 });
+    try {
+      setSaid(copiedText(await copyForGrimoire("all", setProgress)));
+    } catch (e) {
+      onError(`Couldn't copy for Grimoire: ${String(e)}`);
+    } finally {
+      grimoireCopy.busy = false;
+      setProgress(null);
+    }
+  };
+  return (
+    <section className="settings__more">
+      <h3 className="settings__title">Grimoire</h3>
+      <p className="settings__text">
+        Copies what every file is (resolution, codec, audio, size, drive) for Grimoire's Torrented page. Files not looked at before
+        are opened once, so the first time takes a while. One show at a time: right-click its cover.
+      </p>
+      <div className="field-row">
+        <button className="btn btn--small" onClick={() => void run()} disabled={!!progress}>
+          {progress ? (progress.total ? `Reading ${progress.done} of ${progress.total}…` : "Getting ready…") : "Copy everything for Grimoire"}
+        </button>
+      </div>
+      {said && <p className="settings__text">{said}</p>}
     </section>
   );
 }

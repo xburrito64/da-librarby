@@ -2385,6 +2385,11 @@ select.input {
   color: var(--muted);
 }
 
+/* A part under another in the same settings page (Library folders, then Grimoire). */
+.settings__more {
+  margin-top: 34px;
+}
+
 .folder {
   display: flex;
   align-items: center;

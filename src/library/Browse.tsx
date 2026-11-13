@@ -22,7 +22,8 @@ import {
 import { useContextMenu } from "../ui/ContextMenu";
 import { getSetting, setSetting } from "../ui/settings";
 import type { Tab } from "./LibraryView";
-import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, StarIcon, UndoIcon } from "../ui/icons";
+import { CheckIcon, ChevronLeft, ChevronRight, CloseIcon, CopyIcon, DiceIcon, FolderIcon, InfoIcon, PlayIcon, PlusIcon, ShuffleIcon, StarIcon, UndoIcon } from "../ui/icons";
+import { copyTitleForGrimoire } from "./grimoire";
 import { CoverRating, openRate } from "../rating/Rating";
 import { useRatingSettings } from "../rating/settings";
 import Typed from "../ui/Typed";
@@ -713,6 +714,7 @@ export function Card({ title, onOpen, onPlay }: { title: TitleSummary; onOpen: (
             ? { label: "Remove from My List", icon: <CloseIcon />, onSelect: () => library.setListed(title.id, false) }
             : { label: "Add to My List", icon: <PlusIcon />, onSelect: () => library.setListed(title.id, true), sfx: "save" },
           { label: "Open folder", icon: <FolderIcon />, onSelect: () => revealTitle(title.id) },
+          { label: "Copy for Grimoire", icon: <CopyIcon />, onSelect: () => void copyTitleForGrimoire(title.id, title.name) },
         ])
       }
       title={title.name}
