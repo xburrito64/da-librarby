@@ -1,5 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
-import { fileInfo, library, type FileInfo, type FileRow, type LibraryKind, type TitleDetail } from "./api";
+import {
+  fileInfo,
+  library,
+  type FileInfo,
+  type FileRow,
+  type LibraryKind,
+  type TitleDetail,
+} from "./api";
 
 /*
  * "Copy for Grimoire": the owner keeps a list of what they torrented in their Grimoire app
@@ -56,6 +63,8 @@ export interface GrimoireTitle {
   movie: boolean;
   /** The show a movie belongs to. */
   partOf: string | null;
+  /** What a movie was made in, two letters ("ja"), so Grimoire takes that audio track (not a dub). */
+  language: string | null;
   files: GrimoireFile[];
 }
 
@@ -78,21 +87,35 @@ export interface Progress {
 /** How long to wait for one file to be read (opening one from a sleeping drive can take a while). */
 const READ_WAIT_MS = 30_000;
 
-const driveOf = (path: string) => (/^[a-z]:/i.test(path) ? `${path[0].toUpperCase()}:` : null);
+const driveOf = (path: string) =>
+  /^[a-z]:/i.test(path) ? `${path[0].toUpperCase()}:` : null;
 
 /** The titles to copy: these, with the movies (and spin-offs) that belong to a show among them. */
 async function titlesFor(ids: number[] | "all"): Promise<TitleDetail[]> {
   const all = await library.titles();
-  const wanted = ids === "all" ? all : all.filter((t) => ids.includes(t.id) || (t.parentId != null && ids.includes(t.parentId)));
+  const wanted =
+    ids === "all"
+      ? all
+      : all.filter(
+          (t) =>
+            ids.includes(t.id) ||
+            (t.parentId != null && ids.includes(t.parentId)),
+        );
   const details = await Promise.all(wanted.map((t) => library.title(t.id)));
   return details.filter((d): d is TitleDetail => d != null);
 }
 
 /** What's in each file, reading the ones not read yet, one at a time. */
-async function readFiles(paths: string[], online: Set<string>, onProgress?: (p: Progress) => void) {
+async function readFiles(
+  paths: string[],
+  online: Set<string>,
+  onProgress?: (p: Progress) => void,
+) {
   const infos = new Map<string, FileInfo | null>();
   const waiting = new Map<string, (info: FileInfo | null) => void>();
-  const stop = await fileInfo.onReady((path, info) => waiting.get(path)?.(info));
+  const stop = await fileInfo.onReady((path, info) =>
+    waiting.get(path)?.(info),
+  );
   try {
     let done = 0;
     for (const path of paths) {
@@ -116,7 +139,11 @@ async function readFiles(paths: string[], online: Set<string>, onProgress?: (p: 
   return infos;
 }
 
-function fileOut(f: FileRow, title: TitleDetail, info: FileInfo | null | undefined): GrimoireFile {
+function fileOut(
+  f: FileRow,
+  title: TitleDetail,
+  info: FileInfo | null | undefined,
+): GrimoireFile {
   const season = title.seasons.find((s) => s.id === f.seasonId);
   return {
     role: f.role,
@@ -158,14 +185,22 @@ export async function copyForGrimoire(
   const summaries = await library.titles();
   const offline = new Set(summaries.filter((t) => !t.online).map((t) => t.id));
   const files = titles.flatMap((t) => t.files.map((f) => ({ f, t })));
-  const online = new Set(files.filter(({ t }) => !offline.has(t.id)).map(({ f }) => f.path));
+  const online = new Set(
+    files.filter(({ t }) => !offline.has(t.id)).map(({ f }) => f.path),
+  );
   const infos = await readFiles(
     files.map(({ f }) => f.path),
     online,
     onProgress,
   );
-  const letters = [...new Set(files.map(({ f }) => driveOf(f.path)).filter((d): d is string => !!d))];
-  const drives = await invoke<Record<string, string>>("drive_labels", { letters }).catch(() => ({}));
+  const letters = [
+    ...new Set(
+      files.map(({ f }) => driveOf(f.path)).filter((d): d is string => !!d),
+    ),
+  ];
+  const drives = await invoke<Record<string, string>>("drive_labels", {
+    letters,
+  }).catch(() => ({}));
   const out: GrimoireExport = {
     app: "Da Librarby",
     for: "Grimoire",
@@ -178,22 +213,33 @@ export async function copyForGrimoire(
       kind: t.kind,
       movie: t.isMovie,
       partOf: t.parentName,
+      language: t.meta?.extra?.originalLanguage ?? null,
       files: t.files.map((f) => fileOut(f, t, infos.get(f.path))),
     })),
   };
   await invoke("copy_text", { text: JSON.stringify(out) });
-  const unread = out.titles.reduce((n, t) => n + t.files.filter((f) => !f.read).length, 0);
+  const unread = out.titles.reduce(
+    (n, t) => n + t.files.filter((f) => !f.read).length,
+    0,
+  );
   return { titles: out.titles.length, files: files.length, unread };
 }
 
 /** What the little message says once it's copied. */
-export function copiedText(r: { titles: number; files: number; unread: number }) {
+export function copiedText(r: {
+  titles: number;
+  files: number;
+  unread: number;
+}) {
   const what = `${r.titles} title${r.titles === 1 ? "" : "s"}, ${r.files} file${r.files === 1 ? "" : "s"}`;
-  const unread = r.unread ? ` (${r.unread} couldn't be read: is their drive plugged in?)` : "";
+  const unread = r.unread
+    ? ` (${r.unread} couldn't be read: is their drive plugged in?)`
+    : "";
   return `Copied for Grimoire: ${what}${unread}. Paste it on Grimoire's Torrented page.`;
 }
 
-const say = (text: string) => window.dispatchEvent(new CustomEvent("da:say", { detail: text }));
+const say = (text: string) =>
+  window.dispatchEvent(new CustomEvent("da:say", { detail: text }));
 let busy = false;
 
 /** From a cover's menu: copies the title (with its movies) and says how it went. */
