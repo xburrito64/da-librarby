@@ -77,6 +77,11 @@ export interface GrimoireExport {
   /** The names the drives have in Windows, by letter ("F:" → "TOSHIBA EXT"). */
   drives: Record<string, string>;
   titles: GrimoireTitle[];
+  /**
+   * Every title's name in the library, copied or not, so Grimoire can tell a show of its own
+   * ("Naruto Shippuden", with "Naruto" here too) from a longer name for one ("SpongeBob SquarePants").
+   */
+  library: string[];
 }
 
 export interface Progress {
@@ -216,6 +221,7 @@ export async function copyForGrimoire(
       language: t.meta?.extra?.originalLanguage ?? null,
       files: t.files.map((f) => fileOut(f, t, infos.get(f.path))),
     })),
+    library: [...new Set(summaries.map((t) => t.name))],
   };
   await invoke("copy_text", { text: JSON.stringify(out) });
   const unread = out.titles.reduce(
