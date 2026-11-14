@@ -80,9 +80,12 @@ function dateTime(seconds: number) {
   return `${date(seconds)}, ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
+/** Counted the way Windows Explorer does (1 MB = 1024 × 1024 bytes, cut off rather than rounded),
+ *  so a file shows the same size here as in Explorer. */
 export function bytes(n: number) {
-  if (n >= 1e9) return `${(n / 1e9).toFixed(2)} GB`;
-  return `${Math.round(n / 1e6)} MB`;
+  const mb = n / 1024 ** 2;
+  if (mb >= 1000) return `${(Math.floor((mb / 1024) * 100) / 100).toFixed(2)} GB`;
+  return `${Math.floor(mb)} MB`;
 }
 
 function bitrate(bits: number | null) {
